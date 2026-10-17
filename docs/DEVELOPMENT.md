@@ -1,0 +1,29 @@
+# 开发环境
+
+## 可复现工具链
+
+CI 使用 `.node-version` 和 `package.json#packageManager`；Node 24.12+，pnpm 11.9.0。Java 21+ 只用于 Firebase emulators。推荐 Dev Container；配置提供 Node 24 与 Java 21，但本次没有 Docker，不能声称容器已实际构建。
+
+本机先运行 `pnpm install --frozen-lockfile` 和 `pnpm doctor`。Windows 若现有 npm 损坏，可直接使用正常的 pnpm；不要为了本项目重装其他项目共用的全局工具。
+
+## Java
+
+Java 17 不满足当前 emulator 要求。本机已在被 Git 忽略的 `.tools/java` 安装经 SHA256 校验的 Temurin 21，不修改全局 Java。其他开发者可以安装自己的 Java 21，或解压官方 JDK 到 `.tools/java`，使 `bin/java`（Windows 为 `bin/java.exe`）直接存在。也可通过 `AI_CITY_JAVA_HOME` 指定。
+
+`scripts/emulators.mjs` 优先选择 Java 21 的本地路径，使用显式 `demo-ai-city` 和回环地址。启动失败时保留错误，不自动连接真实项目。Windows、macOS、Linux 使用相同 pnpm 命令。
+
+## 命令
+
+| 命令 | 用途 |
+| --- | --- |
+| `pnpm dev` | 本地 Next.js；默认绑定 127.0.0.1 |
+| `pnpm check` | 格式、类型、unit tests、生产 build |
+| `pnpm test:rules` | 本地模拟器规则测试，完成后关闭 |
+| `pnpm emulators` | Auth、Firestore、Storage 与 UI |
+| `pnpm doctor` | 检查版本与本地 Java，不打印凭证 |
+
+HTTP 可以验证启动和日语 HTML，实际 Phaser 样例还须浏览器检查。开发容器和 Codespaces 暴露端口时保持 private；不要把 Firebase emulator 暴露给公网。
+
+## 云端访问
+
+默认 mock 不需要登录。需要实际云操作时，开发者使用个人 Google 身份和最小权限，不共用 owner 账号或下载 JSON key。显式设置项目和 `GOOGLE_CLOUD_QUOTA_PROJECT=ai-city-511822`，避免复用其他项目的 ADC quota 配置。相关操作见 `CLOUD.md`。

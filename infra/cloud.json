@@ -1,0 +1,17 @@
+{
+  "projectId": "ai-city-511822",
+  "projectNumber": "391632496355",
+  "region": "asia-northeast1",
+  "repository": "jacksin2031/AI-city",
+  "repositoryId": "1422735194",
+  "repositoryOwnerId": "78193899",
+  "environment": "development",
+  "privateBucket": "ai-city-511822-private",
+  "assetBucket": "ai-city-511822-assets",
+  "artifactRepository": "ai-city",
+  "generationQueue": "avatar-generation-dev",
+  "workloadIdentityPool": "github-ai-city",
+  "workloadIdentityProvider": "github",
+  "ciServiceAccount": "ai-city-ci@ai-city-511822.iam.gserviceaccount.com",
+  "runtimeServiceAccount": "ai-city-runtime@ai-city-511822.iam.gserviceaccount.com"
+}

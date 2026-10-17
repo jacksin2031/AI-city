@@ -1,0 +1,43 @@
+:root {
+  color-scheme: light;
+  font-family: "Noto Sans JP", "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif;
+  color: #20342c;
+  background: #f7f8f4;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 900px;
+  padding: 48px 24px;
+  margin: auto;
+}
+h1 {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1.25;
+}
+p,
+li {
+  line-height: 1.8;
+}
+a {
+  color: #22634d;
+  text-underline-offset: 4px;
+}
+nav {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.notice {
+  border-left: 4px solid #b57c35;
+  padding: 12px 20px;
+  background: #fff5e8;
+}
+.city {
+  min-height: 200px;
+  margin: 24px 0;
+}
+canvas {
+  max-width: 100%;
+}

@@ -1,0 +1,22 @@
+{
+  "name": "AI City",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-24-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21",
+      "installMaven": false,
+      "installGradle": false
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@11.9.0 --activate && pnpm install --frozen-lockfile && pnpm doctor",
+  "forwardPorts": [3000, 4000],
+  "portsAttributes": {
+    "3000": { "label": "日语开发预览", "onAutoForward": "notify" },
+    "4000": { "label": "Firebase emulators", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": { "extensions": ["biomejs.biome", "ms-vscode.vscode-typescript-next"] }
+  },
+  "remoteUser": "node"
+}

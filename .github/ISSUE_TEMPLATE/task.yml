@@ -1,0 +1,28 @@
+name: 开发任务
+description: 为人和 AI 定义有限、可验证的任务
+title: '[A/B/Shared] '
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目标与 owner
+      description: 指定一名实际负责人，并说明用户可见或工程结果
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 文件范围与相关 contract
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收条件与验证命令
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依赖与非目标
+      description: 不要附任何凭证或真实参与者数据

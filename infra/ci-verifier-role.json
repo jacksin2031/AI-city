@@ -1,0 +1,10 @@
+{
+  "title": "AI City CI Verifier",
+  "description": "Read only project identity and enabled APIs; no deploy, data or model permissions.",
+  "stage": "GA",
+  "includedPermissions": [
+    "resourcemanager.projects.get",
+    "serviceusage.services.get",
+    "serviceusage.services.list"
+  ]
+}

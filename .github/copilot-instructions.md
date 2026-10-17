@@ -1,0 +1,1 @@
+Read the repository and module AGENTS.md and docs/ai/WORKFLOW.md. Use pnpm and shared contracts, keep one owner per task, make minimum necessary changes. UI is Japanese; planning documentation is simplified Chinese. Default to fictional fixtures and mock mode. Never add credentials or participant data. Run relevant validation and report remaining uncertainty.

@@ -1,0 +1,6 @@
+# Actual confirmed account only. Update when the second developer is known.
+* @jacksin2031
+# Logical A/B responsibilities: docs/OWNERSHIP.md
+/packages/contracts/ @jacksin2031
+/infra/ @jacksin2031
+/.github/ @jacksin2031
