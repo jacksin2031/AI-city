@@ -2,7 +2,7 @@
 
 ## 可复现工具链
 
-CI 使用 `.node-version` 和 `package.json#packageManager`；Node 24.12+，pnpm 11.9.0。Java 21+ 只用于 Firebase emulators。推荐 Dev Container；配置提供 Node 24 与 Java 21，但本次没有 Docker，不能声称容器已实际构建。
+CI 使用 `.node-version` 和 `package.json#packageManager`；Node 24.12+，pnpm 11.9.0。Java 21+ 只用于 Firebase emulators。推荐 Dev Container；配置提供 Node 24 与 Java 21，基础镜像固定 digest。本机没有 Docker，容器构建和内部检查由 GitHub CI 的 Dev Container job 独立执行，查看该 job 的实际结果。
 
 本机先运行 `pnpm install --frozen-lockfile` 和 `pnpm doctor`。Windows 若现有 npm 损坏，可直接使用正常的 pnpm；不要为了本项目重装其他项目共用的全局工具。
 

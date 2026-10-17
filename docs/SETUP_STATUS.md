@@ -19,13 +19,18 @@
 
 每次主分支 push 或 PR 运行 Quality、Firestore rules 和 Dev Container 构建。手动 Cloud identity verification 使用真实 OIDC 交换，只读取目标项目元数据。最新结果以 [GitHub Actions](https://github.com/jacksin2031/AI-city/actions) 为准，workflow 文件存在不能代替运行通过。
 
+- [真实 OIDC 验证](https://github.com/jacksin2031/AI-city/actions/runs/39028173998)已通过；没有使用 JSON key。
+- 首轮远端 Quality 和 Firestore rules 通过；Dev Container 发现原镜像 tag 不存在，已改为 MCR registry 验证存在的 `24-bookworm` 并固定 digest。后续以相应 CI job 为准。
+- 已建立 [P0 milestone](https://github.com/jacksin2031/AI-city/milestone/1)、6 项 P0 任务和 [账号与预算待办](https://github.com/jacksin2031/AI-city/issues/7)。
+
 发布前独立审查发现并已修正：重跑初始化时验证 bucket 安全漂移、CI 自定义角色和额外项目绑定、WIF 单一 provider / issuer / mapping；公开素材清单不接受私有签名 URL 或任意外部链接。新增负向测试已观察失败后修正通过；云脚本重跑通过。
 
 ## 明确未完成或需后续决定
 
 - 第二位开发者账号未知：GitHub 邀请、个人 IAM、实际 A/B Code Owner 映射未完成。
 - 云预算金额与提醒接收人待决定，没有宣称存在实时硬消费上限。
-- 本机未安装 Docker；Dev Container 的实际构建结果须另行验证，不能用本机 pnpm 测试替代。
+- 本机未安装 Docker；Dev Container 的构建与内部检查由远端 CI 独立验证，不能用本机 pnpm 测试替代。
+- GitHub 分支强制保护 API 返回 403，要求 Pro 或公开仓库。仓库保持私人，CI、PR 模板与人工审查流程可用，但 main 尚无平台强制保护，不把 CODEOWNERS 文件当作强制审批的证明。
 - Firebase Auth 访客流程、真实照片生成、四方向美术、授权发布、城市业务、Gemini 对话和 Cloud Run 应用部署均属后续 P0；当前不收集真实用户资料或调用付费模型。
 - 浏览器验证不等于目标平板 4–8 小时、FPS、照片辨认度或日本路人试用验收。
 

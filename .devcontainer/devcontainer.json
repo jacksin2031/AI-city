@@ -1,6 +1,6 @@
 {
   "name": "AI City",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-24-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:24-bookworm@sha256:970eebf5b82d3800bdd9f46680e1c4c664d365d18603148540788356700ce301",
   "features": {
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21",
