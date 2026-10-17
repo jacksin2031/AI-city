@@ -9,7 +9,8 @@
     },
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  "postCreateCommand": "corepack enable && corepack prepare pnpm@11.9.0 --activate && pnpm install --frozen-lockfile && pnpm doctor",
+  "remoteEnv": { "PATH": "/home/node/.local/bin:${containerEnv:PATH}" },
+  "postCreateCommand": "mkdir -p \"$HOME/.local/bin\" && corepack enable --install-directory \"$HOME/.local/bin\" && corepack prepare pnpm@11.9.0 --activate && pnpm install --frozen-lockfile && pnpm doctor",
   "forwardPorts": [3000, 4000],
   "portsAttributes": {
     "3000": { "label": "日语开发预览", "onAutoForward": "notify" },

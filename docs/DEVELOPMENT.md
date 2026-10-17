@@ -4,6 +4,8 @@
 
 CI 使用 `.node-version` 和 `package.json#packageManager`；Node 24.12+，pnpm 11.9.0。Java 21+ 只用于 Firebase emulators。推荐 Dev Container；配置提供 Node 24 与 Java 21，基础镜像固定 digest。本机没有 Docker，容器构建和内部检查由 GitHub CI 的 Dev Container job 独立执行，查看该 job 的实际结果。
 
+容器以非 root 的 `node` 用户工作。Corepack shim 安装到用户目录 `.local/bin`，避免启动时尝试写入 `/usr/local/bin`；不要求开发者用 sudo 安装项目工具。
+
 本机先运行 `pnpm install --frozen-lockfile` 和 `pnpm doctor`。Windows 若现有 npm 损坏，可直接使用正常的 pnpm；不要为了本项目重装其他项目共用的全局工具。
 
 ## Java
