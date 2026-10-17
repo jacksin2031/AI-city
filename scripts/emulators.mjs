@@ -42,7 +42,7 @@ const args =
     ? [
         "emulators:exec",
         "--only",
-        "firestore",
+        "firestore,storage",
         "--project",
         "demo-ai-city",
         "--config",

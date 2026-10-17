@@ -27,7 +27,7 @@ pnpm dev
 
 ```sh
 pnpm check       # 格式、类型、单元测试、生产构建
-pnpm test:rules  # demo-ai-city 本地 Firestore emulator，绝不访问真实数据库
+pnpm test:rules  # demo-ai-city 本地 Firestore / Storage emulator，绝不访问真实数据库
 pnpm emulators  # 本地 Auth / Firestore / Storage
 ```
 
