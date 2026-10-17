@@ -27,4 +27,6 @@ Issue：
 
 交接写在 PR 或任务文档，包含接口样例、版本、已完成/待完成和下一条验证命令。不要只写“完成”“修好了”。需要子 Agent 时按实际价值使用，返回证据；不要让多个 Agent 同时改同一文件。AI 工具及账号由开发者自行选择，共用约束放在 AGENTS，避免绑定单一厂商。
 
+产品计划可直接检索 `docs/plans/part-a.md` 或 `part-b.md` 的相关章节；不要每次把两份完整计划全部塞进 context。Word 下载版保留在相同目录。
+
 `.agents/skills/ai-city-task/SKILL.md` 提供可复用任务入口；`CLAUDE.md` 和 Copilot instructions 指向同一套规则，避免复制多份互相冲突的项目规范。

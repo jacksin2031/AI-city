@@ -40,8 +40,8 @@
 ## Task 3 团队与 AI 工作流
 
 - [x] 建立 AGENTS、模块责任、AI task/handoff、Issue/PR templates、CI 与手动云验证 workflow。
-- [ ] 推送初始 foundation，创建 P0 milestone 与有限任务清单，设置仓库环境变量和审查策略。
-- [ ] 运行 GitHub CI 及真实 OIDC 验证，独立审查，修复后记录实际结果。
+- [x] 推送初始 foundation，创建 P0 milestone 与有限任务清单，设置仓库环境变量和审查策略；私人仓库强制分支保护 API 403，明确记录限制。
+- [x] 运行 GitHub CI 及真实 OIDC 验证，独立审查，修复后记录实际结果。
 
 ## Execution ledger
 
@@ -50,3 +50,5 @@
 - 实测：13 项单元测试、5 项 emulator 权限测试、生产 build、HTTP 与 Chrome Phaser 样例通过；prod dependency audit 无已知漏洞。
 - 修正：pnpm 11 使用 allowBuilds；Google Cloud SDK 使用 --edition=standard；Firebase API 初次启用需传播时间。均按实际错误与 CLI 帮助修正。
 - 独立审查：修正 WIF pool/provider 完整校验、CI 权限漂移、bucket 防护漂移及公开 manifest 网址边界。新测试先失败后通过，现共 15 项 unit tests；云端初始化重跑通过。
+- 远端验收：CI 39028492953 的 Quality、Firestore rules、Dev Container 全通过；OIDC 39028173998 通过。容器真实验证发现并修正镜像 tag 和非 root Corepack shim 路径问题。
+- 已创建 P0 milestone / Issues 1–6；账号、IAM、预算与 GitHub 方案限制集中在 Issue 7，不猜测或扩大权限。

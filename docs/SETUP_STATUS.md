@@ -20,7 +20,7 @@
 每次主分支 push 或 PR 运行 Quality、Firestore rules 和 Dev Container 构建。手动 Cloud identity verification 使用真实 OIDC 交换，只读取目标项目元数据。最新结果以 [GitHub Actions](https://github.com/jacksin2031/AI-city/actions) 为准，workflow 文件存在不能代替运行通过。
 
 - [真实 OIDC 验证](https://github.com/jacksin2031/AI-city/actions/runs/39028173998)已通过；没有使用 JSON key。
-- 首轮远端 Quality 和 Firestore rules 通过；Dev Container 发现原镜像 tag 不存在，已改为 MCR registry 验证存在的 `24-bookworm` 并固定 digest。后续以相应 CI job 为准。
+- [主分支 CI 验收](https://github.com/jacksin2031/AI-city/actions/runs/39028492953)三个 job 全部通过：Quality、Firestore rules、Dev Container。容器已实际完成非 root 初始化、环境诊断、15 项单元测试、类型检查和生产构建；基础镜像固定 digest。
 - 已建立 [P0 milestone](https://github.com/jacksin2031/AI-city/milestone/1)、6 项 P0 任务和 [账号与预算待办](https://github.com/jacksin2031/AI-city/issues/7)。
 
 发布前独立审查发现并已修正：重跑初始化时验证 bucket 安全漂移、CI 自定义角色和额外项目绑定、WIF 单一 provider / issuer / mapping；公开素材清单不接受私有签名 URL 或任意外部链接。新增负向测试已观察失败后修正通过；云脚本重跑通过。
