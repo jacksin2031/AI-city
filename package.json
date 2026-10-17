@@ -19,11 +19,13 @@
     "test:rules": "node scripts/emulators.mjs test",
     "emulators": "node scripts/emulators.mjs start",
     "doctor": "node scripts/doctor.mjs",
-    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@firebase/rules-unit-testing": "6.0.0",
+    "@playwright/test": "1.63.0",
     "@types/node": "24.10.1",
     "firebase": "13.0.0",
     "firebase-tools": "15.34.0",

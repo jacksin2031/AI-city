@@ -21,10 +21,13 @@ Java 17 不满足当前 emulator 要求。本机已在被 Git 忽略的 `.tools/
 | `pnpm dev` | 本地 Next.js；默认绑定 127.0.0.1 |
 | `pnpm check` | 格式、类型、unit tests、生产 build |
 | `pnpm test:rules` | 本地模拟器规则测试，完成后关闭 |
+| `pnpm test:e2e` | 生产构建 + Playwright 浏览器冒烟测试：日语页面、nonce CSP、控制台零错误、单一 Phaser canvas |
 | `pnpm emulators` | Auth、Firestore、Storage 与 UI |
 | `pnpm doctor` | 检查版本与本地 Java，不打印凭证 |
 
-HTTP 可以验证启动和日语 HTML，实际 Phaser 样例还须浏览器检查。开发容器和 Codespaces 暴露端口时保持 private；不要把 Firebase emulator 暴露给公网。
+HTTP 可以验证启动和日语 HTML，实际 Phaser 样例还须浏览器检查。`pnpm test:e2e` 首次需 `pnpm exec playwright install chromium`；本机已有 Chrome 时可设 `PLAYWRIGHT_CHANNEL=chrome` 直接使用。冒烟测试不代替目标平板的性能与长时间验收。
+
+页面 CSP 由 `apps/web/proxy.ts` 按请求生成 nonce（`strict-dynamic`，不允许 `unsafe-inline`），因此页面为动态渲染。新增外部脚本、图片或连接来源时修改 `apps/web/lib/csp.ts` 并通过浏览器测试；`upgrade-insecure-requests` 与 HSTS 留待 HTTPS 部署时设定。开发容器和 Codespaces 暴露端口时保持 private；不要把 Firebase emulator 暴露给公网。
 
 ## 云端访问
 
