@@ -20,7 +20,7 @@ Java 17 不满足当前 emulator 要求。本机已在被 Git 忽略的 `.tools/
 | --- | --- |
 | `pnpm dev` | 本地 Next.js；默认绑定 127.0.0.1 |
 | `pnpm check` | 格式、类型、unit tests、生产 build |
-| `pnpm test:rules` | 本地模拟器规则测试，完成后关闭 |
+| `pnpm test:rules` | 本地 Firestore 与 Storage 模拟器规则测试，完成后关闭 |
 | `pnpm test:e2e` | 生产构建 + Playwright 浏览器冒烟测试：日语页面、nonce CSP、控制台零错误、单一 Phaser canvas |
 | `pnpm emulators` | Auth、Firestore、Storage 与 UI |
 | `pnpm doctor` | 检查版本与本地 Java，不打印凭证 |
