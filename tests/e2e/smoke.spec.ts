@@ -1,9 +1,16 @@
 import { expect, type Page, test } from "@playwright/test";
+import { isKnownCiDriverWarning } from "../helpers/browser-console";
 
 // CSP violations and uncaught errors surface as console errors / page errors in Chromium.
 function collectProblems(page: Page) {
   const problems: string[] = [];
   page.on("console", (message) => {
+    if (isKnownCiDriverWarning(message.type(), message.text(), Boolean(process.env.CI))) {
+      test
+        .info()
+        .annotations.push({ type: "CI WebGL driver warning", description: message.text() });
+      return;
+    }
     if (message.type() === "error" || message.type() === "warning")
       problems.push(`${message.type()}: ${message.text()}`);
   });
@@ -15,6 +22,7 @@ for (const [path, heading] of [
   ["/", "あなたの分身を、この街へ。"],
   ["/join", "AIシティへの参加"],
   ["/city", "街の開発サンプル"],
+  ["/integration", "ローカル連携サンプル"],
 ] as const) {
   test(`${path} renders in Japanese under a nonce CSP without errors`, async ({ page }) => {
     const problems = collectProblems(page);

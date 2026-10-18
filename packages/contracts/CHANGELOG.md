@@ -2,6 +2,15 @@
 
 每次 schema 变更在此记录版本、owner、兼容性和双方需要的调整。
 
+## 0.3.0（2026-10-18）
+
+Owner：A（仓库负责人 jacksin2031）。新增独立 `development` / `development-client` 导出，保留 v0.2 调用方兼容。
+
+- 新增严格的本地样例任务、分项确认、参与视图、居民快照、连续事件页 schema；READY 必须有结果，任务必须有时间字段。
+- B 可使用有唯一素材版本的离线 fixtures 或同源 typed client。素材标记 REFERENCE_ONLY，不冒充实际图片。
+- 本地事件使用每次进程启动独立 streamId、活动内连续 eventSeq；加入居民 version 1，移除 version 2。
+- 不新增真实身份、照片授权、资产下载或云端能力。见 `docs/A_B_LOCAL_INTEGRATION.md`；共享 DTO 变化仍需 B 兼容审查。
+
 ## 0.2.0（2026-10-17）
 
 Owner：jacksin2031。依据计划书第 7 节补齐字段。所有新增字段均为可选，v0.1 文档和现有调用方（`packages/city`）无需修改。

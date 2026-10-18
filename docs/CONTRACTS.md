@@ -1,6 +1,8 @@
 # 共享 Contracts
 
-当前为 `packages/contracts` v0.2，Zod schema 为字段来源，变更记录见 `packages/contracts/CHANGELOG.md`。全部 fixture 都是虚构信息。它不是完整生产协议或后端授权实现。v0.2 新增字段均为可选，P0 中哪些改为必填需双方确认。
+当前为 `packages/contracts` v0.3，Zod schema 为字段来源，变更记录见 `packages/contracts/CHANGELOG.md`。全部 fixture 都是虚构信息。它不是完整生产协议或后端授权实现。原 v0.2 导出保持兼容；`development` 子路径提供本地接入专用严格 DTO，要求有效 READY 结果及时间字段。
+
+本地接入入口：`@ai-city/contracts/development`（schema、类型、fixtures）和 `@ai-city/contracts/development-client`（型别化 HTTP client）。权威名单为 `CitySnapshot`，变化为连续序号的 `CityEventPage`；重启由 `streamId` 变化识别。素材为 `REFERENCE_ONLY`，不是已存在的图片。完整接入及限制见 [A/B 本地接入基础](A_B_LOCAL_INTEGRATION.md)。
 
 - `AvatarSpec`：模板 ID、可见外观颜色、色盘、配件与不对称标记；不包含照片或敏感推断。
 - `AvatarManifest`：同一素材版本的四方向、Rig 与动画版本、透明帧尺寸、锚点（相对帧 0–1）、atlas 和 fallback 标记；公开引用只接受 `/avatars/` 范围内 PNG/WebP（atlas 数据为 JSON）路径，不接收私有签名 URL 或任意外部网址。由 A 实现授权资产传输；签名 URL 属于独立内部传输接口。

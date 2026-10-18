@@ -23,6 +23,6 @@ export default defineConfig({
     url: "http://127.0.0.1:3000/api/health",
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
-    env: { NEXT_TELEMETRY_DISABLED: "1" },
+    env: { NEXT_TELEMETRY_DISABLED: "1", AI_CITY_ENABLE_LOCAL_MOCK: "1" },
   },
 });

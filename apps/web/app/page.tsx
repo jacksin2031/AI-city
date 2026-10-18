@@ -14,6 +14,7 @@ export default function Home() {
       <nav aria-label="プレビュー">
         <Link href="/join">参加画面を確認</Link>
         <Link href="/city">街のサンプルを見る</Link>
+        <Link href="/integration">連携サンプルを見る</Link>
       </nav>
     </main>
   );
