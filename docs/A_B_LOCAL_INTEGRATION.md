@@ -78,6 +78,7 @@ READY 必须有结果引用、deadline、updatedAt，不代表已显示。重复
 ## 运行与边界
 
 - `pnpm dev` 仅绑定 127.0.0.1，启用本地接口。生产构建默认关闭；本地运行生产构建时显式设置 `AI_CITY_ENABLE_LOCAL_MOCK=1` 再 `pnpm start`。开启后仍拒绝非 loopback Host、跨源 POST 和超过 4 KiB 的 JSON，不提供 CORS。
+- Next 的 `agentRules` 自动附加已关闭，保留项目维护的模块 AGENTS.md；开发/构建切换时 `next-env.d.ts` 的生成类型路径变化属于框架产物，不应当作业务改动提交。
 - 连接层边界依赖上述 loopback 绑定。Host/Origin 检查不是来源 IP 验证，不能把 opt-in 开关当作公开部署的安全机制；不得对外绑定、公开转发端口或经公网 reverse proxy 提供此样例。
 - store 为单 Node.js 进程内存；重启清空任务和名单。会话一小时失效，下一次 API 访问时取消任务并发移除事件。每进程最多 200 个会话、200 个累计任务，达到任务上限需重启。
 - 本地 cookie 只提供 mock 隔离，不是 Firebase Auth 验收，不适用于真实照片或公开部署。尚无真实照片处理授权、持久化、分布式幂等、Cloud Tasks、真实生成或付费调用。
