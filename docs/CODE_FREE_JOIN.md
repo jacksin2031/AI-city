@@ -8,6 +8,7 @@ Owner：A。用户要求参加页更简单、不需要输入代码。本次只�
 - 说明缩短，24 小时保留/共享端退出等资料放在「参加情報と公開について」，公开前逐项确认、本人退出及撤回照常保留。
 - 有有效 cookie 时刷新恢复原任务；管理员仍需登录，平板仍需配对。参加码输入框与管理端发参加码区块在此模式隐藏。
 - `AI_CITY_VISITOR_CODE_FREE=1` 是明确 server opt-in，需同时启用既有持久访客。仓库默认 0 保留邀请模式；body 不能自行选择权限/模式，不信任 query/forwarded IP。
+- 用户随后明确三端是独立入口，不以超链接互跳，资料仍同步：公开首页只通往参加页；管理/平板没有跨角色链接或返回公众首页链接。开发样例导航仅在本地非持久模式保留，真实权限仍由 API 校验而不是靠隐藏链接。
 
 ## 边界
 
@@ -23,4 +24,4 @@ Owner：A。用户要求参加页更简单、不需要输入代码。本次只�
 
 需要恢复逐人邀请时，在当前版本设置 `AI_CITY_VISITOR_CODE_FREE=0` 并更新 revision。这个设置同时恢复参加码表单和管理发码区块；不删除已有会话、公开住民或独立 quota 文档。继续使用原 namespace、HMAC 和管理员 Secret，不新增 IAM、秘密或模型。
 
-本地证据（2026-10-19）：`pnpm check` PASS，138 unit / types / lint / build；rules 119 PASS；Firestore emulator transaction 5 PASS（包含两个 SDK 竞争最后一个免代码配额）；既有 E2E 15、邀请模式 2、免代码模式 2 PASS。免代码套件同时验证打开页面尚无 cookie、无需代码、按准备建立会话、公开撤回及真实 Node 重启恢复。375px 截图 `output/playwright/code-free-entry.png` 已视觉检查。独立 Luna Max 静态复核无 Critical/Important；固定窗边界的 Minor 已按实际语义记录。
+本地证据（2026-10-19）：`pnpm check` PASS，138 unit / types / lint / build；rules 119 PASS；Firestore emulator transaction 5 PASS（包含两个 SDK 竞争最后一个免代码配额）；既有 E2E 15、邀请模式 2、免代码模式 3 PASS。免代码套件验证三端无跨角色导航、打开页面尚无 cookie、无需代码、按准备建立会话、公开撤回及真实 Node 重启恢复。导航测试已先确认旧页面存在 4 个不符要求的入口，移除后转绿。375px 截图 `output/playwright/code-free-entry.png` 已视觉检查。独立 Luna Max 静态复核无 Critical/Important；固定窗边界的 Minor 已按实际语义记录。

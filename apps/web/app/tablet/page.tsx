@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { type FormEvent, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 import { TabletCity } from "./city";
@@ -60,7 +59,6 @@ export default function Tablet() {
         <p className="muted">
           同じHTTPSの接続先を使えば、スマホと別のネットワークでもつながります。接続中は管理情報を表示しません。
         </p>
-        <Link href="/">戻る</Link>
       </main>
     );
   const control = state.control;

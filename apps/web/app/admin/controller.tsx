@@ -2,7 +2,6 @@
 import { DevelopmentApiError } from "@ai-city/contracts/development-client";
 import type { createDeviceClient } from "@ai-city/contracts/device-client";
 import type { DeviceAdmin } from "@ai-city/contracts/device-link";
-import Link from "next/link";
 import { type FormEvent, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 
@@ -84,7 +83,6 @@ export default function Admin({
           <p className="muted">
             主催者から受け取ったキーを入力してください。ローカル開発ではコンピューターの準備画面で確認できます。
           </p>
-          <Link href="/setup">ローカル接続の準備</Link>
         </form>
       ) : (
         <>
@@ -96,10 +94,7 @@ export default function Admin({
           </div>
           <section className="flow-panel">
             <h2>タブレットをつなぐ</h2>
-            <p>
-              タブレットで同じサイトの <Link href="/tablet">タブレット用画面</Link>{" "}
-              を開き、コードを入力します。
-            </p>
+            <p>タブレットで専用の展示画面を開き、コードを入力します。</p>
             <button
               type="button"
               disabled={busy}
@@ -192,9 +187,6 @@ export default function Admin({
             <h2>
               公開中の住民 <span>{state.snapshot.residents.length}人</span>
             </h2>
-            <p>
-              <Link href="/join">参加画面を開く</Link>
-            </p>
             {!state.snapshot.residents.length && (
               <p className="muted">まだ住民はいません。参加画面で確認した人だけ表示されます。</p>
             )}
@@ -273,7 +265,6 @@ export default function Admin({
       <p className="muted">
         開発サンプル・写真やAI生成は未接続です。接続の有効期限が切れた場合は、もう一度接続してください。
       </p>
-      <Link href="/">戻る</Link>
     </main>
   );
 }

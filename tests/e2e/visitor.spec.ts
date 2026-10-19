@@ -7,6 +7,49 @@ import { isKnownCiDriverWarning } from "../helpers/browser-console";
 
 const codeFree = process.env.AI_CITY_TEST_CODE_FREE === "1";
 
+test("the three role entry points have no hyperlinks between them", async ({
+  browser,
+  page,
+  request,
+}) => {
+  test.skip(!codeFree, "Separate public entry navigation is checked with code-free participation");
+  await page.goto("/");
+  await expect(
+    page.locator('a[href="/admin"], a[href="/tablet"], a[href="/city"], a[href="/integration"]'),
+  ).toHaveCount(0);
+  await expect(page.locator('a[href="/join"]')).toHaveCount(1);
+  await page.goto("/join");
+  await expect(page.locator('a[href="/admin"], a[href="/tablet"]')).toHaveCount(0);
+  const managerContext = await browser.newContext();
+  const tabletContext = await browser.newContext();
+  try {
+    const manager = await managerContext.newPage();
+    const tablet = await tabletContext.newPage();
+    const key = (
+      await (
+        await request.post("/api/link/bootstrap", {
+          data: {},
+          headers: { origin: "http://127.0.0.1:3001" },
+        })
+      ).json()
+    ).key;
+    await manager.goto("/admin");
+    await expect(manager.locator("a[href]")).toHaveCount(0);
+    await manager.getByLabel("管理キー", { exact: true }).fill(key);
+    await manager.getByRole("button", { name: "管理画面に接続", exact: true }).click();
+    await expect(manager.getByRole("button", { name: "参加者の街", exact: true })).toBeVisible();
+    await expect(manager.locator("a[href]")).toHaveCount(0);
+    await tablet.goto("/tablet");
+    await expect(tablet.locator("a[href]")).toHaveCount(0);
+    await managerContext.request.post("/api/link/logout", {
+      data: {},
+      headers: { origin: "http://127.0.0.1:3001" },
+    });
+  } finally {
+    await Promise.all([managerContext.close(), tabletContext.close()]);
+  }
+});
+
 test("independent visitor resumes, shares only approved fields and withdraws from paired tablet", async ({
   browser,
   request,
