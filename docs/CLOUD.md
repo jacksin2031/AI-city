@@ -17,6 +17,8 @@
 | `ai-city-preview-builder` / `ai-city-preview-runtime` | 独立预览构建及运行身份；不升级原 CI/runtime，不使用默认 compute 身份 |
 | `ai-city-511822-preview-builds` | 东京私有源码暂存桶，UBLA/PAP，一天异步生命周期清理 |
 | Secret `ai-city-preview-admin` | 随机管理钥匙，仅预览 runtime 可读，值不进入 Git/前端/聊天 |
+| Secret `ai-city-preview-visitor-hmac` | 经用户批准新增，独立访客签名秘密；东京复制、版本 1，仅 preview runtime 可读 |
+| `aiCityPreviewVisitor` | 专用 preview runtime 的 5 项文档 CRUD/事务权限；IAM condition 只允许 `(default)` 数据库，不含 query/list 或管理权限 |
 
 `infra/bootstrap.ps1` 可由项目 owner 运行，先查询再创建；检查 project number、bucket 安全与区域、CI 角色权限与额外绑定，以及 WIF 唯一 provider、issuer、mapping 和条件。发生漂移时停止，不静默扩大权限。不覆盖已有数据库，不运行模型或应用部署。资源是否创建成功以 `SETUP_STATUS.md` 的实际记录为准。
 
@@ -34,7 +36,7 @@ Firebase 已添加到同一 GCP 项目。默认 alias 是 `demo-ai-city`，真�
 
 已有 billing。空资源和 API 启用不代表后续使用免费；2026-10-19 用户明确确认后已使用 Cloud Build、Artifact Registry、Secret Manager 和 Cloud Run 部署 mock 预览，可能产生构建、存储和运行费用。没有模型请求或真实用户数据。预算金额和提醒接收人尚未决定，不虚构已建立硬消费上限。单实例上限也不是费用上限，浏览器持续轮询会保持请求负载。预算提醒不是可靠实时断费开关。
 
-私有桶的一天生命周期是清理兜底，GCS 生命周期异步执行，不能当作精确 24 小时删除保证。真实业务仍需生成后清理、保留期限和撤回机制。当前只有预览管理钥匙 Secret，没有 Gemini API key；后续模型接入优先使用 Vertex AI + ADC 的 runtime 身份。预览 runtime 没有 Firestore、Storage 或模型权限。资源范围、验收和停止访问步骤见[设备联动预览记录](releases/2026-10-19-device-link-preview.md)。
+私有桶的一天生命周期是清理兜底，GCS 生命周期异步执行，不能当作精确 24 小时删除保证。真实业务仍需生成后清理、保留期限和撤回机制。当前有管理钥匙及访客 HMAC 两个 Secret，没有 Gemini API key。用户批准后，预览 runtime 增加条件限定数据库的最小 CRUD/事务权限，仍无 Storage 或模型权限；原 CI/runtime 身份未升级。访客权限由服务端 owner/role 控制，IAM 不隔离 collection/namespace。最新范围及回退见[访客发布记录](releases/2026-10-19-persistent-visitors-preview.md)；[设备联动记录](releases/2026-10-19-device-link-preview.md) 保留原版本的实机证据，不能用来声称新访客流程已完成实机验收。
 
 ## 新协作者
 

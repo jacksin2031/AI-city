@@ -1,6 +1,6 @@
 # 邀请式持久访客（虚构样例）
 
-Owner：A。分支 `codex/persistent-visitors`，基于设备发布文档分支；不修改 B 的 renderer 或公开 snapshot shape。当前线上设备 preview 尚未部署本功能。
+Owner：A。实现分支 `codex/persistent-visitors`，基于设备发布文档分支；不修改 B 的 renderer 或公开 snapshot shape。用户批准后已在现有 preview 启用，精确源码与云端证据见[发布记录](releases/2026-10-19-persistent-visitors-preview.md)。仓库默认仍关闭，其他部署不自动启用。
 
 ## 使用流程
 
@@ -46,9 +46,9 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
 
 ## 云端发布边界
 
-本轮只在 demo emulator 写入，真实项目仅只读确认版别。原线上设备联动与用户实机确认不覆盖此功能。云端要求明确 `AI_CITY_VISITOR_ALLOW_CLOUD=1`、project `ai-city-511822`、独立 exhibition namespace、原精确 HTTPS origin、mock opt-in、稳定 ADMIN_KEY 和独立 `AI_CITY_VISITOR_HMAC_KEY`。缺一失败关闭；HMAC 轮换会使现有 cookie 全部失效，不复用管理 key。
+实现阶段只在 demo emulator 写入；用户在具体 PR #17 与权限说明后回复 ok，批准了现有 preview 的真实数据库、秘密及发布。本次真实服务验证只用虚构访客。原设备实机确认不覆盖此功能。云端要求明确 `AI_CITY_VISITOR_ALLOW_CLOUD=1`、project `ai-city-511822`、独立 exhibition namespace、原精确 HTTPS origin、mock opt-in、稳定 ADMIN_KEY 和独立 `AI_CITY_VISITOR_HMAC_KEY`。缺一失败关闭；HMAC 轮换会使现有 cookie 全部失效，不复用管理 key。
 
-发布前另需批准：为专用 preview runtime 配置最小 Firestore 数据访问权限、在 Secret Manager 保存新 HMAC 秘密及其限定访问权，并更新 Cloud Run；沿用现有公共服务，不扩大其他项目权限。配置公网入口限流和预算、再测新版本实际跨网设备。Firestore server IAM 会绕过客户端 rules，所以不能以 rules PASS 代替真实 runtime/IAM 验收。
+已按批准范围为专用 preview runtime 配置数据库条件限定的 5 项 Firestore 权限、新 Secret 及 Cloud Run 更新；沿用现有公共服务，其他身份/项目权限不变。正式公开运营仍需入口限流、预算及新版本实际跨网设备验收。Firestore server IAM 绕过客户端 rules；本轮有实际 runtime/Firestore 交易及新 revision 恢复证据，不把 rules PASS 当成云权限验收。
 
 尚未包含：照片上传、真人身份核验、真实头像/文字模型、Cloud Tasks、设备会话持久化、正式生产展览与目标平板长时间性能。所有人物、插画和生成任务仍明确标记 MOCK。
 
@@ -62,4 +62,4 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
 - 独立 Luna Max 静态安全复核：无剩余 Critical/Important；Minor 的 admission 失败语义和 ADMIN key 负向配置测试已补齐。
 - 首轮干净 CI 揭示 REST fallback 在 emulator 仍会发现 ADC；本机已登录掩盖了问题。emulator 改用无认证 gRPC，云端保留 REST；持久化及浏览器测试显式使用不存在的 ADC 路径，确保不靠开发者凭证。修正后重新执行 Firestore 4 项、访客/重启 2 项及 build/格式验证。
 
-本地实现及上述验收 COMPLETE；新功能云端 IAM、真实 Firestore 写入、发布及新版本实机跨网验收 NOT RUN。测试只使用虚构输入。
+本地实现及上述验收 COMPLETE；随后批准的云端 IAM、真实 Firestore 写入、发布及 HTTPS 浏览器验收也已完成，见发布记录。新版本参加流程的实机跨网验收 NOT RUN；测试只使用虚构输入。
