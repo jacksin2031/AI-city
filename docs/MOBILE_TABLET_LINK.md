@@ -28,9 +28,9 @@ Owner：A / Main；分支 codex/mobile-tablet-link，基于 PR #14。用户要�
 | AI_CITY_ENABLE_LOCAL_MOCK | 显式 1，仅使用虚构数据 |
 | PORT | 默认 8080 |
 
-Dockerfile 从根目录构建，运行非 root node；.dockerignore 排除环境、凭证、工具与输出。本机没有 Docker，镜像尚未构建验证；可本地验证源码构建、类型及启动配置负向测试。远端脚本验证配置后才绑定 0.0.0.0；本机脚本仅绑定 127.0.0.1 并设置进程标记。bootstrap 不依赖 Host 声称来自本机：没有受信任启动标记就拒绝；远端永远禁用。缺少远端 origin 也没有本机标记时 API 停用。
+Dockerfile 从根目录构建，运行非 root node；.dockerignore 排除环境、凭证、工具与输出。本机没有 Docker；2026-10-19 已通过 Cloud Build 实际构建并在 Cloud Run 验证。远端脚本验证配置后才绑定 0.0.0.0；本机脚本仅绑定 127.0.0.1 并设置进程标记。bootstrap 不依赖 Host 声称来自本机：没有受信任启动标记就拒绝；远端永远禁用。缺少远端 origin 也没有本机标记时 API 停用。
 
-当前尚未部署，没有实际跨网手机/平板验收。拟用现有 ai-city-511822 / 东京，独立 HTTPS 预览服务，单实例上限 1、最小实例 0；真实部署、公开服务访问及构建/运行费用须最终确认。CI 只读身份不代表有部署权，不扩大 IAM、不创建服务账号密钥、不调用模型。不要把 localhost 给外部设备或使用未经授权的公开隧道代替部署。
+用户确认部署及相关构建/运行费用后，2026-10-19 已部署到现有 ai-city-511822 / 东京，独立 HTTPS 服务 ai-city-link-preview，单实例上限 1、最小实例 0。入口：[手机管理](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/admin)、[平板展示](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/tablet)。管理员从 [Secret Manager 的 ai-city-preview-admin](https://console.cloud.google.com/security/secret-manager/secret/ai-city-preview-admin/versions?project=ai-city-511822) 查看管理钥匙；不要把钥匙放进聊天、URL 或 Git。只读 CI 身份未升级；预览使用独立最小权限 builder/runtime 身份，没有服务账号 JSON key 或模型调用。详细资源、镜像、验证和回退见[部署记录](releases/2026-10-19-device-link-preview.md)。实际手机/平板跨网络验收仍未执行。
 
 ## 权限与限制
 
@@ -47,7 +47,7 @@ Dockerfile 从根目录构建，运行非 root node；.dockerignore 排除环境
 
 浏览器为隔离 cookie 的 context：375px 管理、1024×768 展示；覆盖配对、角色禁止、模式/暂停/休止、管理员撤回、刷新、挂起清除/恢复、撤销、无溢出与 CSP/JS 错误。忽略目录 output/playwright/mobile-admin.png 与 paired-tablet.png 为虚构数据截图；截图中的配对码已消费。
 
-这些不是实际手机/平板、HTTPS 发布或不同运营商网络的验收。回退切回 codex/b-illustrated-city；不改 main 或云端资源。部署后仍需 iPhone/Android、目标平板、不同 Wi-Fi/移动数据与重启/休眠测试。
+本地测试不是实际手机/平板或不同运营商网络的验收。源码回退可切回 codex/b-illustrated-city，但不会改变已部署的云端服务；云端停止访问与回退步骤见部署记录。仍需 iPhone/Android、目标平板、不同 Wi-Fi/移动数据与重启/休眠测试。main 未合并。
 
 ### 本次结果（2026-10-19）
 
@@ -56,6 +56,8 @@ Dockerfile 从根目录构建，运行非 root node；.dockerignore 排除环境
 - 完整 Chrome e2e --retries=0：15 PASS，含 375px 手机与 1024px 独立展示 context；截图已实际检查，CSP/JS 检查通过。
 - 实际 production 进程不经本机 launcher、不带 loopback 标记：bootstrap 与参与 session 均返回 404，不回传管理钥匙。
 - Luna Max 独立只读审查与复核：bootstrap/匿名任务耗尽两项 P1 已修并红→绿；限流合法连接锁死 P2 经洪水回归修正，reviewer 静态复核无该残余。基础 volumetric 防护仍属正式公开运行的后续项。
-- Docker 不可用，镜像构建 NOT RUN；云端 HTTPS、实际手机/平板与不同网络 NOT RUN。
+- Cloud Build：SUCCESS，构建精确源码 746db21；Cloud Run HTTPS 管理登录、独立 context 配对、只读权限、模式、动作、休止、分项确认、删除、刷新、超时清空/恢复、撤销和退出 PASS。
+- 云端 Chrome：375px 管理、1024×768 展示，无横向溢出；控制台仅预期未授权请求 401/403，无 CSP/JS 异常。截图已实际检查；虚构测试住民已删除、模式恢复 DEMO、测试平板撤销、测试管理会话退出，临时钥匙/cookie 文件已删除。
+- 实际手机/平板、不同 Wi-Fi/移动数据、目标设备性能与长时间运行 NOT RUN。
 
-状态：IMPLEMENTED / NOT FULLY VALIDATED。源码与本地联动验证完成；实际跨网需经确认部署后验证。
+状态：PARTIAL（包含实机跨网范围）。源码、本地联动、镜像构建与云端 HTTPS 浏览器验收已完成；实际手机/平板跨网仍待实机验收。

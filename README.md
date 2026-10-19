@@ -2,7 +2,7 @@
 
 面向日本公众的 AI 城市互动展示。项目旨在向路人直观展示 AI 的强大能力：从照片理解与 Q 版形象，到人格偏好与居民交流。**产品 UI 使用日语，项目计划和协作文档使用简体中文。**
 
-当前是共同开发基础，不是已完成的展览产品。默认 mock：只有虚构人物和明确标识的 Phaser 动作样例，没有真实照片上传、模型生成、公开展示或部署中的应用。
+当前是共同开发基础，不是已完成的展览产品。默认 mock：只有虚构人物和明确标识的插画/Phaser 动作样例，没有真实照片上传或模型生成。已部署手机管理与配对平板的 HTTPS mock 预览，匿名公众参与和正式展览尚未开放。
 
 ## 开始开发
 
@@ -25,7 +25,7 @@ pnpm dev
 - 健康状态：<http://localhost:3000/api/health>
 - 手机管理：<http://localhost:3000/admin>；平板展示：<http://localhost:3000/tablet>；本机准备：<http://localhost:3000/setup>
 
-同/不同网络的手机与平板联动设置见 [接入指南](docs/MOBILE_TABLET_LINK.md)。目前尚未部署 HTTPS 服务；localhost 仅供同机浏览器验证。
+同/不同网络的手机与平板联动设置见 [接入指南](docs/MOBILE_TABLET_LINK.md)。云端入口：[手机管理](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/admin)、[平板展示](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/tablet)；管理钥匙取用、部署身份和验收边界见 [发布记录](docs/releases/2026-10-19-device-link-preview.md)。HTTPS 浏览器联动已验证，实际跨网手机/平板尚待实机验收；localhost 仅供同机浏览器验证。
 
 没有 pnpm 时使用 Corepack 启用 `package.json` 指定的版本，或按 [pnpm 官方安装说明](https://pnpm.io/installation) 安装；不要换用 npm/yarn 重新生成 lockfile。开发无需云账号或 API key。
 
