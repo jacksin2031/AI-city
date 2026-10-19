@@ -22,6 +22,7 @@ const messages: Record<string, string> = {
   INVITATION_REQUIRED:
     "管理者から受け取った参加用コードを確認してください。コードは3分間・1回だけ有効です。",
   LOCAL_CAPACITY: "ただいま参加が集中しています。しばらく待ってお試しください。",
+  RATE_LIMITED: "ただいま参加が集中しています。1分ほど待って、もう一度お試しください。",
 };
 function json(value: unknown, status = 200, headers: Record<string, string> = {}) {
   return Response.json(value, { status, headers: { "Cache-Control": "no-store", ...headers } });
@@ -32,6 +33,7 @@ export async function handleVisitorRequest(
   enabled: boolean,
   remoteOrigin?: string,
   security?: VisitorBoundary | null,
+  codeFree = false,
 ): Promise<Response> {
   try {
     if (!enabled || !service)
@@ -62,9 +64,16 @@ export async function handleVisitorRequest(
       const invitation = security.readInvitation(input.invitation);
       if (input.invitation && !invitation)
         throw new DevelopmentServiceError("INVITATION_REQUIRED", 401);
-      if (!token && !invitation) throw new DevelopmentServiceError("INVITATION_REQUIRED", 401);
-      security.allow(token ? `session:${rawCredential}` : `invite:${input.invitation}`);
-      const session = await service.createSession(token ?? undefined, invitation ?? undefined);
+      if (!token && !invitation && !codeFree)
+        throw new DevelopmentServiceError("INVITATION_REQUIRED", 401);
+      // One process-wide admission bucket: rotating cookies or network headers cannot bypass it.
+      if (codeFree && !invitation && !token) security.allow("open-admission", 12);
+      if (token || invitation)
+        security.allow(token ? `session:${rawCredential}` : `invite:${input.invitation}`);
+      const session =
+        codeFree && !invitation
+          ? await service.createOpenSession(token ?? undefined)
+          : await service.createSession(token ?? undefined, invitation ?? undefined);
       return json({ mode: "MOCK" }, 200, cookie(security.signSession(session.token), 86400));
     }
     if (path.startsWith("city/")) throw new DevelopmentServiceError("NOT_FOUND", 404);

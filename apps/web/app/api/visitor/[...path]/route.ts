@@ -14,6 +14,7 @@ async function handle(request: Request) {
       visitorsEnabled,
       process.env.AI_CITY_PUBLIC_ORIGIN,
       getVisitorBoundary(),
+      process.env.AI_CITY_VISITOR_CODE_FREE === "1",
     );
   } catch {
     return Response.json(

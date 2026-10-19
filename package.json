@@ -20,6 +20,7 @@
     "test:rules": "node scripts/emulators.mjs test",
     "test:persistence": "node scripts/emulators.mjs persistence",
     "test:visitor:e2e": "node scripts/emulators.mjs visitor-e2e",
+    "test:join:e2e": "node scripts/emulators.mjs join-e2e",
     "emulators": "node scripts/emulators.mjs start",
     "doctor": "node scripts/doctor.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",

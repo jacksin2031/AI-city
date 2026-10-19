@@ -30,8 +30,8 @@ if (!javaHome) {
   }
 }
 const mode = process.argv[2];
-if (!["start", "test", "persistence", "visitor-e2e"].includes(mode))
-  throw new Error("Expected start, test, persistence or visitor-e2e");
+if (!["start", "test", "persistence", "visitor-e2e", "join-e2e"].includes(mode))
+  throw new Error("Expected start, test, persistence, visitor-e2e or join-e2e");
 const cli = join(
   dirname(require.resolve("firebase-tools/package.json")),
   "lib",
@@ -57,6 +57,7 @@ const args =
     : ["emulators:start", "--only", "auth,firestore,storage", "--project", "demo-ai-city"];
 const env = {
   ...process.env,
+  ...(mode === "join-e2e" ? { AI_CITY_TEST_CODE_FREE: "1" } : {}),
   ...(javaHome
     ? {
         JAVA_HOME: javaHome,

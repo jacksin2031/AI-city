@@ -7,7 +7,13 @@ import { type FormEvent, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 
 const modes = { DEMO: "イラストの見本", LIVE: "参加者の街", MAINTENANCE: "展示を休止" } as const;
-export default function Admin({ persistent = false }: { persistent?: boolean }) {
+export default function Admin({
+  persistent = false,
+  codeFree = false,
+}: {
+  persistent?: boolean;
+  codeFree?: boolean;
+}) {
   const feed = useDeviceFeed("admin");
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -114,7 +120,7 @@ export default function Admin({ persistent = false }: { persistent?: boolean }) 
               </div>
             )}
           </section>
-          {persistent && (
+          {persistent && !codeFree && (
             <section className="flow-panel">
               <h2>参加者を招待する</h2>
               <p>参加者の画面に入力する、3分間・1回だけ有効なコードです。</p>

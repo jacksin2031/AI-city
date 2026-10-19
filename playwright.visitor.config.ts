@@ -18,6 +18,7 @@ export default defineConfig({
       AI_CITY_ENABLE_LOCAL_MOCK: "1",
       AI_CITY_LOOPBACK_PREVIEW: "1",
       AI_CITY_ENABLE_VISITORS: "1",
+      AI_CITY_VISITOR_CODE_FREE: process.env.AI_CITY_TEST_CODE_FREE === "1" ? "1" : "0",
       AI_CITY_VISITOR_PROJECT_ID: "demo-ai-city",
       AI_CITY_VISITOR_NAMESPACE: "browser-acceptance",
       AI_CITY_VISITOR_HMAC_KEY: "fixture-only-stable-key-for-local-acceptance",

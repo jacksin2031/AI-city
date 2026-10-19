@@ -21,7 +21,7 @@ export function createVisitorBoundary(key: string, namespace: string, now = Date
       const raw = value.slice(0, 32);
       return same(value.slice(32), mac("invitation", raw).slice(0, 32)) ? raw : null;
     },
-    allow: (value: string) => {
+    allow: (value: string, limit = 60) => {
       for (const [id, entry] of buckets) if (entry.until <= now()) buckets.delete(id);
       const id = createHash("sha256").update(value).digest("hex");
       let entry = buckets.get(id);
@@ -30,7 +30,7 @@ export function createVisitorBoundary(key: string, namespace: string, now = Date
         entry = { count: 0, until: now() + 60000 };
         buckets.set(id, entry);
       }
-      if (++entry.count > 60) throw new DevelopmentServiceError("RATE_LIMITED", 429);
+      if (++entry.count > limit) throw new DevelopmentServiceError("RATE_LIMITED", 429);
     },
   };
 }

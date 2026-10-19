@@ -2,7 +2,7 @@
 
 面向日本公众的 AI 城市互动展示。项目旨在向路人直观展示 AI 的强大能力：从照片理解与 Q 版形象，到人格偏好与居民交流。**产品 UI 使用日语，项目计划和协作文档使用简体中文。**
 
-当前是共同开发基础，不是已完成的展览产品。默认 mock：只有虚构人物和明确标识的插画/Phaser 动作样例，没有真实照片上传或模型生成。已部署手机管理、配对平板及邀请式匿名访客的 HTTPS mock 预览；无邀请码不能参加，正式展览尚未开放。
+当前是共同开发基础，不是已完成的展览产品。默认 mock：只有虚构人物和明确标识的插画/Phaser 动作样例，没有真实照片上传或模型生成。手机管理、配对平板及持久匿名访客已有 HTTPS 预览；本分支新增可显式启用的免代码参加，正式展览尚未开放。
 
 ## 开始开发
 
@@ -35,12 +35,13 @@ pnpm test:rules  # demo-ai-city 本地 Firestore / Storage emulator，绝不访�
 pnpm test:e2e    # 生产构建 + Playwright 浏览器冒烟测试
 pnpm test:persistence # demo Firestore 事务、隔离与恢复
 pnpm test:visitor:e2e # 先 build；demo Firestore + 访客浏览器及 Node 重启验收
+pnpm test:join:e2e # 先 build；免代码入场、公开/撤回及 Node 重启验收
 pnpm emulators  # 本地 Auth / Firestore / Storage
 ```
 
 ## 两人如何协作
 
-仓库默认关闭邀请式持久访客入口；经用户批准已在现有 preview 启用，使用说明见 [持久访客](docs/PERSISTENT_VISITORS.md)，精确版本及云端证据见 [访客发布记录](docs/releases/2026-10-19-persistent-visitors-preview.md)。它仍使用虚构插画；云端浏览器验收通过，新参加流程的实机跨网验收仍待用户确认。
+仓库默认关闭持久访客和免代码入场开关；使用说明见 [持久访客](docs/PERSISTENT_VISITORS.md)，免代码流程及验证见 [简化参加入口](docs/CODE_FREE_JOIN.md)。原邀请式云端版本证据保留在[访客发布记录](docs/releases/2026-10-19-persistent-visitors-preview.md)，不把历史邀请步骤当成新页面要求。所有模式仍使用虚构插画，浏览器不等于实机验收。
 
 | 主责 | 目录 | 工作范围 |
 | --- | --- | --- |

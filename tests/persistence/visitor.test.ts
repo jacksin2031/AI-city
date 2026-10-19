@@ -38,6 +38,34 @@ const consent = {
 };
 
 describe("real Firestore transaction persistence", () => {
+  it("atomically bounds code-free admission across SDK clients and preserves invited-mode metadata", async () => {
+    const { namespace, store: repository } = store();
+    const first = new VisitorService(repository);
+    const otherClient = new Firestore({ projectId: "demo-ai-city", preferRest: false });
+    try {
+      const second = new VisitorService(new FirestoreVisitorStore(otherClient, namespace));
+      for (let i = 0; i < 11; i++) await first.createOpenSession();
+      const results = await Promise.allSettled([
+        first.createOpenSession(),
+        second.createOpenSession(),
+      ]);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      const failed = results.find((r) => r.status === "rejected");
+      expect(failed?.status === "rejected" ? failed.reason : null).toMatchObject({
+        code: "RATE_LIMITED",
+        status: 429,
+      });
+      expect(
+        (await db.doc(`visitorExhibitions/${namespace}/meta/open-admission`).get()).get("count"),
+      ).toBe(12);
+      expect((await db.collection(`visitorExhibitions/${namespace}/sessions`).get()).size).toBe(12);
+      expect(
+        (await db.doc(`visitorExhibitions/${namespace}/meta/state`).get()).get("openAdmission"),
+      ).toBeUndefined();
+    } finally {
+      await otherClient.terminate();
+    }
+  });
   it("redeems one invitation only once across independent Firestore clients", async () => {
     const { namespace, store: repository } = store();
     const first = new VisitorService(repository);

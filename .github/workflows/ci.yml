@@ -78,6 +78,10 @@ jobs:
         env:
           CI: 'true'
           NEXT_TELEMETRY_DISABLED: '1'
+      - run: pnpm test:join:e2e
+        env:
+          CI: 'true'
+          NEXT_TELEMETRY_DISABLED: '1'
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

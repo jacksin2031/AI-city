@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { isKnownCiDriverWarning } from "../helpers/browser-console";
 
+const codeFree = process.env.AI_CITY_TEST_CODE_FREE === "1";
+
 test("independent visitor resumes, shares only approved fields and withdraws from paired tablet", async ({
   browser,
   request,
@@ -64,20 +66,36 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await tablet.getByLabel("8桁の接続コード").fill(code);
     await tablet.getByRole("button", { name: "街に接続", exact: true }).click();
     await visitor.goto("/join");
-    await expect(visitor.getByText(/このブラウザーだけの参加情報/)).toBeVisible();
-    const invited = manager.waitForResponse((response) =>
-      response.url().endsWith("/api/link/visitor-invitation"),
-    );
-    await manager.getByRole("button", { name: "参加用コードを発行", exact: true }).click();
-    const inviteResponse = await invited;
-    expect(inviteResponse.status(), JSON.stringify(await inviteResponse.json())).toBe(200);
-    const invitation = await manager
-      .getByTestId("visitor-invitation")
-      .innerText({ timeout: 10000 });
-    await visitor.getByLabel("参加用コード", { exact: true }).fill(invitation);
-    await visitor.getByRole("button", { name: "参加を始める", exact: true }).click();
+    if (codeFree) {
+      await expect(visitor.getByLabel("参加用コード", { exact: true })).toHaveCount(0);
+      await expect(
+        manager.getByRole("button", { name: "参加用コードを発行", exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        visitor.getByRole("heading", { name: "街に参加する", exact: true }),
+      ).toBeVisible();
+      expect((await visitorContext.cookies()).some((c) => c.name === "ai-city-visitor")).toBe(
+        false,
+      );
+      await visitor.screenshot({ path: "output/playwright/code-free-entry.png", fullPage: true });
+    } else {
+      await expect(visitor.getByText(/このブラウザーだけの参加情報/)).toBeVisible();
+      const invited = manager.waitForResponse((response) =>
+        response.url().endsWith("/api/link/visitor-invitation"),
+      );
+      await manager.getByRole("button", { name: "参加用コードを発行", exact: true }).click();
+      const inviteResponse = await invited;
+      expect(inviteResponse.status(), JSON.stringify(await inviteResponse.json())).toBe(200);
+      const invitation = await manager
+        .getByTestId("visitor-invitation")
+        .innerText({ timeout: 10000 });
+      await visitor.getByLabel("参加用コード", { exact: true }).fill(invitation);
+      await visitor.getByRole("button", { name: "参加を始める", exact: true }).click();
+    }
     await visitor.getByLabel("架空のニックネーム", { exact: true }).fill("永続テスト・架空");
-    await visitor.getByRole("button", { name: "サンプルを準備", exact: true }).click();
+    await visitor
+      .getByRole("button", { name: codeFree ? "プレビューを作る" : "サンプルを準備", exact: true })
+      .click();
     await expect(
       visitor.getByRole("heading", { name: "サンプルを確認", exact: true }),
     ).toBeVisible();
@@ -87,13 +105,15 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await expect(
       visitor.getByRole("heading", { name: "サンプルを確認", exact: true }),
     ).toBeVisible();
-    const invitationResponse = await managerContext.request.post("/api/link/visitor-invitation", {
-      data: {},
-      headers: { origin },
-    });
-    const nextInvitation = (await invitationResponse.json()).code;
+    const invitationResponse = codeFree
+      ? null
+      : await managerContext.request.post("/api/link/visitor-invitation", {
+          data: {},
+          headers: { origin },
+        });
+    const nextInvitation = invitationResponse ? (await invitationResponse.json()).code : undefined;
     await otherContext.request.post("/api/visitor/session", {
-      data: { invitation: nextInvitation },
+      data: codeFree ? {} : { invitation: nextInvitation },
       headers: { origin },
     });
     expect((await otherContext.request.get(`/api/visitor/jobs/${jobId}`)).status()).toBe(404);
@@ -178,6 +198,7 @@ test("actual Node restart preserves signed visitor identity and publication but 
           AI_CITY_ENABLE_LOCAL_MOCK: "1",
           AI_CITY_LOOPBACK_PREVIEW: "1",
           AI_CITY_ENABLE_VISITORS: "1",
+          AI_CITY_VISITOR_CODE_FREE: codeFree ? "1" : "0",
           AI_CITY_VISITOR_PROJECT_ID: "demo-ai-city",
           AI_CITY_VISITOR_NAMESPACE: namespace,
           AI_CITY_VISITOR_HMAC_KEY: "fixture-only-stable-visitor-key-for-restart",
@@ -227,8 +248,14 @@ test("actual Node restart preserves signed visitor identity and publication but 
   try {
     await start();
     const admin = await login();
-    const invitation = await (await call("/api/link/visitor-invitation", admin, {})).json();
-    const session = await call("/api/visitor/session", undefined, { invitation: invitation.code });
+    const invitation = codeFree
+      ? null
+      : await (await call("/api/link/visitor-invitation", admin, {})).json();
+    const session = await call(
+      "/api/visitor/session",
+      undefined,
+      invitation ? { invitation: invitation.code } : {},
+    );
     expect(session.status).toBe(200);
     const cookie = session.headers.getSetCookie()[0]?.split(";")[0];
     expect((await call("/api/visitor/jobs/current", cookie)).status).toBe(200);

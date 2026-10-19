@@ -24,6 +24,11 @@ const PENDING_SESSION_LEASE_MS = 3 * 60 * 1000;
 const MAX_ACTIVE_SESSIONS = 200;
 const MAX_ACTIVE_INVITATIONS = 10;
 const MAX_JOBS_PER_SESSION = 32;
+const OPEN_ADMISSIONS_PER_MINUTE = 12;
+const OpenAdmissionSchema = z.strictObject({
+  startedAt: z.number().int().nonnegative(),
+  count: z.number().int().min(1).max(OPEN_ADMISSIONS_PER_MINUTE),
+});
 const DIGEST = z.string().regex(/^[a-f0-9]{64}$/);
 const INVITATION_DIGEST = z.string().regex(/^[a-f0-9]{64}$/);
 const SafeId = z
@@ -454,14 +459,26 @@ export class VisitorService {
     existingToken?: string,
     invitation?: string,
   ): Promise<{ token: string; expiresAt: number }> {
+    return this.admitSession(existingToken, invitation, false);
+  }
+
+  async createOpenSession(existingToken?: string): Promise<{ token: string; expiresAt: number }> {
+    return this.admitSession(existingToken, undefined, true);
+  }
+
+  private async admitSession(
+    existingToken: string | undefined,
+    invitation: string | undefined,
+    open: boolean,
+  ): Promise<{ token: string; expiresAt: number }> {
     const now = this.now();
     if (invitation !== undefined && !/^[a-fA-F0-9]{32}$/.test(invitation)) {
       throw new DevelopmentServiceError("INVITATION_REQUIRED", 401);
     }
-    if (existingToken && !digestToken(existingToken) && !invitation) {
+    if (!open && existingToken && !digestToken(existingToken) && !invitation) {
       throw new DevelopmentServiceError("INVITATION_REQUIRED", 401);
     }
-    if (!existingToken && (!invitation || !/^[a-fA-F0-9]{32}$/.test(invitation))) {
+    if (!open && !existingToken && (!invitation || !/^[a-fA-F0-9]{32}$/.test(invitation))) {
       throw new DevelopmentServiceError("INVITATION_REQUIRED", 401);
     }
 
@@ -472,7 +489,7 @@ export class VisitorService {
       invitation && /^[a-fA-F0-9]{32}$/.test(invitation)
         ? digestInvitation(invitation.toLowerCase())
         : null;
-    if (!invitationDigest && (!existingToken || !digestToken(existingToken))) {
+    if (!open && !invitationDigest && (!existingToken || !digestToken(existingToken))) {
       throw new DevelopmentServiceError("INVITATION_REQUIRED", 401);
     }
 
@@ -492,12 +509,23 @@ export class VisitorService {
       if (candidate) return failure("SESSION_CREATE_FAILED", 500);
 
       if (
-        !invitationDigest ||
-        state.invitations[invitationDigest] === undefined ||
-        state.invitations[invitationDigest] <= now
+        !open &&
+        (!invitationDigest ||
+          state.invitations[invitationDigest] === undefined ||
+          state.invitations[invitationDigest] <= now)
       ) {
         return failure("INVITATION_REQUIRED", 401);
       }
+
+      // Separate document keeps existing visitor metadata and rollback readers compatible.
+      const rawAdmission = open ? await tx.get("meta/open-admission") : null;
+      const parsedAdmission = rawAdmission ? OpenAdmissionSchema.safeParse(rawAdmission) : null;
+      if (parsedAdmission && !parsedAdmission.success)
+        throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      const admission = parsedAdmission?.data ?? null;
+      const withinWindow = admission && now < admission.startedAt + 60000;
+      if (withinWindow && admission.count >= OPEN_ADMISSIONS_PER_MINUTE)
+        return failure("RATE_LIMITED", 429);
 
       if (existingDigest && isKnownSession(existing, existingDigest, state)) {
         tx.delete(`sessions/${existingDigest}`);
@@ -533,6 +561,11 @@ export class VisitorService {
       };
       setDocument(tx, `sessions/${proposedDigest}`, session);
       setDocument(tx, "meta/state", state);
+      if (open)
+        setDocument(tx, "meta/open-admission", {
+          startedAt: withinWindow ? admission.startedAt : now,
+          count: withinWindow ? admission.count + 1 : 1,
+        });
       return success({ token: proposedToken, expiresAt });
     });
 

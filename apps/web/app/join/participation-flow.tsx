@@ -27,9 +27,11 @@ function message(error: unknown) {
 export function ParticipationFlow({
   hosted = false,
   persistent = false,
+  codeFree = false,
 }: {
   hosted?: boolean;
   persistent?: boolean;
+  codeFree?: boolean;
 }) {
   const client = useMemo(
     () => createDevelopmentClient({ apiPath: persistent ? "/api/visitor" : "/api/dev" }),
@@ -129,16 +131,20 @@ export function ParticipationFlow({
     event.preventDefault();
     requestId.current ??= crypto.randomUUID();
     const currentRequestId = requestId.current;
-    void perform(() =>
-      client.createJob({
+    void perform(async () => {
+      if (persistent && codeFree && !admitted) {
+        await client.createSession();
+        setAdmitted(true);
+      }
+      return client.createJob({
         eventId: "fixture-event",
         requestId: currentRequestId,
         nickname,
         sampleId,
         scenario,
         answers: answerQuestions ? (answers as NonNullable<CreateJobRequest["answers"]>) : null,
-      }),
-    );
+      });
+    });
   }
   function reset() {
     requestId.current = null;
@@ -167,7 +173,7 @@ export function ParticipationFlow({
       )}
       {loading ? (
         <p role="status">参加情報を確認しています。</p>
-      ) : persistent && !admitted ? (
+      ) : persistent && !admitted && !codeFree ? (
         <form
           className="flow-panel"
           onSubmit={(event) => {
@@ -205,7 +211,7 @@ export function ParticipationFlow({
         </form>
       ) : !view ? (
         <form onSubmit={start} className="flow-panel">
-          <h2>サンプルで参加の流れを試す</h2>
+          <h2>{codeFree ? "街に参加する" : "サンプルで参加の流れを試す"}</h2>
           <label className="field">
             架空のニックネーム
             <input
@@ -285,7 +291,7 @@ export function ParticipationFlow({
             </details>
           )}
           <button type="submit" disabled={busy}>
-            サンプルを準備
+            {codeFree ? "プレビューを作る" : "サンプルを準備"}
           </button>
         </form>
       ) : stopped ? (

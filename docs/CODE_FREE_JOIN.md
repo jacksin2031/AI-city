@@ -1,0 +1,26 @@
+# 免代码参加入口
+
+Owner：A。用户要求参加页更简单、不需要输入代码。本次只改变入场与页面说明，复用既有匿名设备身份、分项同意、持久任务、管理与平板 snapshot；不改变 B renderer、共享 DTO 或数据库 IAM。
+
+## 行为
+
+- `/join` 直接显示架空昵称及角色选择，按「プレビューを作る」才自动建立匿名会话和样例任务；单纯浏览不占名额。
+- 说明缩短，24 小时保留/共享端退出等资料放在「参加情報と公開について」，公开前逐项确认、本人退出及撤回照常保留。
+- 有有效 cookie 时刷新恢复原任务；管理员仍需登录，平板仍需配对。参加码输入框与管理端发参加码区块在此模式隐藏。
+- `AI_CITY_VISITOR_CODE_FREE=1` 是明确 server opt-in，需同时启用既有持久访客。仓库默认 0 保留邀请模式；body 不能自行选择权限/模式，不信任 query/forwarded IP。
+
+## 边界
+
+免代码是允许公众自行建立匿名设备身份，不代表真人身份核验。无凭证入场先经每进程 12 次/60 秒固定窗口限制，再由 Firestore `meta/open-admission` 事务保证每数据库 namespace 窗口最多 12 次新会话；重启/并发不会清空持久配额，有效会话恢复不耗新会话配额。固定窗交界可能短时间合计 24 次，不宣称任意滚动 60 秒都是 12 次。
+
+既有 200 会话总上限、3 分钟未确认 pending lease、固定 24h 到期和本人凭证 HMAC、角色/同源/严格 body 验证继续有效。新 quota 单独保存，不增加旧 `meta/state` 字段，旧邀请版本可继续读取该状态。失败额度不做额外写入，损坏的配额状态失败关闭。
+
+公开入口不再需要管理员逐人发邀请；任何能打开网站的人都可尝试参加。配额是容量/请求保护，不是反机器人身份或费用硬上限；机器人仍可能占用公开名额。正式大流量展览的入口治理、人机验证/预算另行设计，本轮不调用付费服务。
+
+## 验证与回退
+
+`pnpm check`、`pnpm test:rules`、`pnpm test:persistence`、`pnpm test:e2e`、`pnpm test:visitor:e2e`、`pnpm test:join:e2e` 分别验证类型/格式/unit/build、客户端拒绝、真实 emulator 配额竞态、既有流程、邀请模式与免代码模式。后两项都验证隔离浏览器的公开/撤回与真正停止/重启 Node 后恢复；禁止与共享 8080 emulator 的其他套件同时运行。
+
+需要恢复逐人邀请时，在当前版本设置 `AI_CITY_VISITOR_CODE_FREE=0` 并更新 revision。这个设置同时恢复参加码表单和管理发码区块；不删除已有会话、公开住民或独立 quota 文档。继续使用原 namespace、HMAC 和管理员 Secret，不新增 IAM、秘密或模型。
+
+本地证据（2026-10-19）：`pnpm check` PASS，138 unit / types / lint / build；rules 119 PASS；Firestore emulator transaction 5 PASS（包含两个 SDK 竞争最后一个免代码配额）；既有 E2E 15、邀请模式 2、免代码模式 2 PASS。免代码套件同时验证打开页面尚无 cookie、无需代码、按准备建立会话、公开撤回及真实 Node 重启恢复。375px 截图 `output/playwright/code-free-entry.png` 已视觉检查。独立 Luna Max 静态复核无 Critical/Important；固定窗边界的 Minor 已按实际语义记录。
