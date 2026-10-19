@@ -41,6 +41,165 @@ nav {
 canvas {
   max-width: 100%;
 }
+.city-page {
+  max-width: 1260px;
+}
+.city-tabs {
+  gap: 12px;
+  margin: 28px 0;
+}
+.city-tabs a {
+  padding: 12px 18px;
+  border-radius: 24px;
+  border: 1px solid #bacbbd;
+  text-decoration: none;
+}
+.city-tabs a[aria-current="page"] {
+  background: #244d3c;
+  color: #fff;
+  border-color: #244d3c;
+}
+.illustrated-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  margin-bottom: 32px;
+  align-items: start;
+}
+.city-stage {
+  min-width: 0;
+}
+.city-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+.city-stage .city {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 8 / 5;
+  overflow: hidden;
+  margin: 18px 0;
+  border-radius: 20px;
+  background: #e2eedc;
+}
+.city canvas {
+  display: block;
+}
+.city-page button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #829c88;
+  border-radius: 10px;
+  background: #fffdf6;
+  color: #244d3c;
+  font: inherit;
+  cursor: pointer;
+}
+.city-page button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.city-page :focus-visible {
+  outline: 3px solid #b47128;
+  outline-offset: 4px;
+}
+.city-page .muted {
+  color: #52675b;
+  font-size: 0.88rem;
+}
+.city-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.city-roster .resident-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  text-align: left;
+}
+.resident-chip span {
+  overflow-wrap: anywhere;
+}
+.resident-chip[aria-pressed="true"] {
+  border-color: #244d3c;
+  background: #e4edde;
+  box-shadow: inset 0 0 0 1px #244d3c;
+}
+.city-profile {
+  min-width: 0;
+  background: #fffdf6;
+  border: 1px solid #d7dccb;
+  border-radius: 20px;
+  padding: 22px;
+  overflow-wrap: anywhere;
+}
+.city-profile h2 {
+  margin: 12px 0;
+  font-size: 1.55rem;
+}
+.city-eyebrow {
+  color: #52675b;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  display: block;
+}
+.profile-portrait {
+  display: block;
+  margin: 14px auto 0;
+}
+.direction-previews {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  background: #eff2e8;
+  border-radius: 12px;
+  padding: 12px 4px;
+}
+.direction-previews figure {
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+}
+.direction-previews img {
+  display: block;
+}
+.city-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.city-actions button {
+  font-size: 0.88rem;
+}
+.preset-dialogue {
+  background: #f3e7c8;
+  padding: 12px;
+  border-radius: 12px;
+}
+@media (max-width: 800px) {
+  .illustrated-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .city-page {
+    padding: 28px 16px;
+  }
+  .city-tabs a {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+  .city-profile {
+    padding: 20px;
+  }
+  .direction-previews {
+    justify-content: space-around;
+  }
+}
 .participation {
   max-width: 720px;
 }

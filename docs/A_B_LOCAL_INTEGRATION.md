@@ -20,7 +20,7 @@ pnpm dev
 
 打开 `/join`，使用虚构昵称和既有样例创建任务，预览后选择显示字段并明确确认。打开 `/integration` 可看到居民与新增/删除事件；撤回后名单会移除居民。
 
-`/city` 仍由 B 负责，本次没有改动其 Phaser 实现，不代表它已经消费新接口。B 可先使用离线 fixtures，或在自己的浏览器端模块中使用同源 client。
+`/city` 默认展示两个虚构居民的简易插画；`/city?mode=participants` 已消费同源接口，确认后加入、撤回后移除。这是用户授权临时替代 B 正式素材的本地增量，详见 [插画交接](B_ILLUSTRATED_CITY.md)。正式照片外观抽取、素材与实机仍由 B 后续完成。B 也可使用离线 fixtures，或在自己的浏览器端模块中使用同源 client。
 
 ```ts
 import {
@@ -72,7 +72,7 @@ READY 必须有结果引用、deadline、updatedAt，不代表已显示。重复
 - 后续：按游标读取 events，处理后推进至 `latestSeq`，再读取 snapshot 对账。名单以 snapshot 为准；事件用于变化通知，不包含完整居民、照片或私人答案。
 - `eventSeq` 在单活动流内连续递增；按事件 id/序号去重，旧居民 version 不覆盖新版本。本服务产生 JOINED（version 1）、REMOVED（version 2）；重复操作不增加事件。原 schema 的 UPDATED/HIDDEN 保留，但本服务暂不产生。
 - 删除时卸载对应资源；旧 JOINED 不得使已删居民复活。STREAM_RESET/CURSOR_AHEAD（409）时丢弃旧游标与名单，重新读快照。新 `streamId` 表示进程已重启。
-- `avatars` 以唯一 `avatarVersion` 关联居民。`assetStatus: REFERENCE_ONLY` 表示路径只有接口样例，尚无实际 PNG/WebP/atlas，不能当作下载成功。B 提供素材并协商接口后才增加可加载状态。
+- `avatars` 以唯一 `avatarVersion` 关联居民。`assetStatus: REFERENCE_ONLY` 表示路径只有接口样例，尚无实际 PNG/WebP/atlas，不能当作下载成功。当前城市另外使用本地代码绘制的原创 SVG 占位插画，不请求这些路径；B 提供正式素材并协商接口后才增加可加载状态。
 - `/integration` 的 client 消费代码是实际接入样例：每秒轮询、无重叠请求、卸载停止更新、错误时隐藏旧名单。B 负责城市动画、资源加载、镜头、离线策略及性能。
 
 ## 运行与边界

@@ -21,7 +21,7 @@ pnpm dev
 - 首页：<http://localhost:3000>
 - A 参与流程入口：<http://localhost:3000/join>
 - A/B 本地接入预览：<http://localhost:3000/integration>（确认后才加入列表，图片素材尚未接入）
-- B 城市样例：<http://localhost:3000/city>
+- B 简易插画样例：<http://localhost:3000/city>；本地确认后的居民：<http://localhost:3000/city?mode=participants>
 - 健康状态：<http://localhost:3000/api/health>
 
 没有 pnpm 时使用 Corepack 启用 `package.json` 指定的版本，或按 [pnpm 官方安装说明](https://pnpm.io/installation) 安装；不要换用 npm/yarn 重新生成 lockfile。开发无需云账号或 API key。
@@ -48,7 +48,7 @@ pnpm emulators  # 本地 Auth / Firestore / Storage
 
 详细入口：[开发环境](docs/DEVELOPMENT.md)、[AI 工作流](docs/ai/WORKFLOW.md)、[责任边界](docs/OWNERSHIP.md)、[接口](docs/CONTRACTS.md)、[云端](docs/CLOUD.md)、[计划书](docs/plans/README.md)。
 
-B 接入先读 [本地接入指南](docs/A_B_LOCAL_INTEGRATION.md)：可使用共享 fixtures 或 typed client，不需要云账号。当前新增流程仍是单进程内存 mock，重启会清空；真实身份、上传、生成、云队列和 /city 业务接入均未完成。
+B 接入先读 [本地接入指南](docs/A_B_LOCAL_INTEGRATION.md) 与 [简易插画替换指南](docs/B_ILLUSTRATED_CITY.md)：可使用共享 fixtures 或 typed client，不需要云账号。当前 /city 已接通本地确认与撤回，但仍是单进程内存 mock，重启会清空；真实身份、上传、生成、云队列与正式展示素材尚未完成。
 
 ## Google Cloud
 

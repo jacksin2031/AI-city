@@ -1,5 +1,6 @@
 "use client";
 
+import { characterDataUrl } from "@ai-city/city/illustrations";
 import type { CreateJobRequest, ParticipationView } from "@ai-city/contracts/development";
 import {
   createDevelopmentClient,
@@ -239,7 +240,7 @@ export function ParticipationFlow() {
             <>
               <h2>連携の準備ができました</h2>
               <p role="status">連携用の一覧に追加しました。</p>
-              <p>街の表示への接続は、開発担当者が行います。</p>
+              <p>参加者の街で簡易イラストを確認できます。</p>
             </>
           ) : view.job.state === "READY" ? (
             <h2>サンプルを確認</h2>
@@ -260,8 +261,15 @@ export function ParticipationFlow() {
           {view.preview && (
             <>
               <div className="sample-preview">
+                {/* biome-ignore lint/performance/noImgElement: local SVG data URL; next/image inline styles conflict with nonce CSP. */}
+                <img
+                  src={characterDataUrl(view.preview.avatarVersion)}
+                  alt="簡易イラストのプレビュー"
+                  width="96"
+                  height="128"
+                />
                 <strong>{view.preview.nickname}</strong>
-                <span>既存サンプル・画像素材は未接続</span>
+                <span>仮のイラスト・写真からの生成ではありません</span>
               </div>
               <dl className="preview-details">
                 <div>
@@ -328,7 +336,7 @@ export function ParticipationFlow() {
           )}
           {published ? (
             <div className="flow-actions">
-              <Link href="/integration">連携画面で確認</Link>
+              <Link href="/city?mode=participants">街で確認</Link>
               <button
                 type="button"
                 className="secondary"
