@@ -20,7 +20,8 @@ export function getVisitorService(): VisitorService | null {
     createHash("sha256").update(config.hmacKey).digest("hex"),
   ]);
   if (!state.aiCityVisitors || state.aiCityVisitors.key !== key) {
-    const db = new Firestore({ projectId: config.projectId, preferRest: true });
+    // The emulator uses unauthenticated insecure gRPC. REST fallback still discovers ADC.
+    const db = new Firestore({ projectId: config.projectId, preferRest: !config.emulator });
     state.aiCityVisitors = {
       key,
       service: new VisitorService(new FirestoreVisitorStore(db, config.namespace)),

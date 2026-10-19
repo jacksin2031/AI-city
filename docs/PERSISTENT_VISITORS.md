@@ -60,5 +60,6 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
 - `CI=true PLAYWRIGHT_CHANNEL=chrome pnpm test:e2e --retries=0`：原有 15 项全部 PASS。
 - 同环境 `pnpm test:visitor:e2e`：2 PASS；独立访客/管理/平板浏览器上下文完成参加、重载恢复、所有权隔离、分项公开和撤回；另一项实际停止并重启 Node 后验证保留及重新登录。截图在忽略目录 `output/playwright/persistent-visitor.png` / `persistent-tablet.png`，已视觉检查 375px 手机及 1024px 平板，无横向溢出。
 - 独立 Luna Max 静态安全复核：无剩余 Critical/Important；Minor 的 admission 失败语义和 ADMIN key 负向配置测试已补齐。
+- 首轮干净 CI 揭示 REST fallback 在 emulator 仍会发现 ADC；本机已登录掩盖了问题。emulator 改用无认证 gRPC，云端保留 REST；持久化及浏览器测试显式使用不存在的 ADC 路径，确保不靠开发者凭证。修正后重新执行 Firestore 4 项、访客/重启 2 项及 build/格式验证。
 
 本地实现及上述验收 COMPLETE；新功能云端 IAM、真实 Firestore 写入、发布及新版本实机跨网验收 NOT RUN。测试只使用虚构输入。

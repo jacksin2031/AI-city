@@ -22,6 +22,7 @@ export default defineConfig({
       AI_CITY_VISITOR_NAMESPACE: "browser-acceptance",
       AI_CITY_VISITOR_HMAC_KEY: "fixture-only-stable-key-for-local-acceptance",
       FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+      GOOGLE_APPLICATION_CREDENTIALS: "/ai-city-emulator-must-not-use-adc.json",
     },
   },
 });

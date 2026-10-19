@@ -14,7 +14,8 @@ function store() {
 beforeAll(() => {
   if (process.env.FIRESTORE_EMULATOR_HOST !== "127.0.0.1:8080")
     throw new Error("Requires the loopback demo emulator, never cloud");
-  db = new Firestore({ projectId: "demo-ai-city", preferRest: true });
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = "/ai-city-emulator-must-not-use-adc.json";
+  db = new Firestore({ projectId: "demo-ai-city", preferRest: false });
 });
 afterAll(async () => {
   for (const namespace of namespaces)
@@ -40,7 +41,7 @@ describe("real Firestore transaction persistence", () => {
   it("redeems one invitation only once across independent Firestore clients", async () => {
     const { namespace, store: repository } = store();
     const first = new VisitorService(repository);
-    const otherClient = new Firestore({ projectId: "demo-ai-city", preferRest: true });
+    const otherClient = new Firestore({ projectId: "demo-ai-city", preferRest: false });
     try {
       const second = new VisitorService(new FirestoreVisitorStore(otherClient, namespace));
       const invitation = await first.createInvitation();
@@ -88,7 +89,7 @@ describe("real Firestore transaction persistence", () => {
     const created = await original.createJob(a.token, input);
     now += 1200;
     await original.getJob(a.token, created.job.jobId);
-    const otherClient = new Firestore({ projectId: "demo-ai-city", preferRest: true });
+    const otherClient = new Firestore({ projectId: "demo-ai-city", preferRest: false });
     try {
       const restored = new VisitorService(
         new FirestoreVisitorStore(otherClient, namespace),

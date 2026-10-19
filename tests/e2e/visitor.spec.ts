@@ -183,6 +183,7 @@ test("actual Node restart preserves signed visitor identity and publication but 
           AI_CITY_VISITOR_HMAC_KEY: "fixture-only-stable-visitor-key-for-restart",
           AI_CITY_ADMIN_KEY: "fixture-only-stable-admin-key-for-restart",
           FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
+          GOOGLE_APPLICATION_CREDENTIALS: "/ai-city-emulator-must-not-use-adc.json",
         },
       },
     );
