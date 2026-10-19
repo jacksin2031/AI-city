@@ -7,9 +7,8 @@ import {
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
 import Link from "next/link";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-const client = createDevelopmentClient();
 const questions = [
   ["初めての人と出会ったら？", ["まず様子を見る", "あいさつする", "自分から話しかける"]],
   ["知らない場所を見つけたら？", ["いつもの道を歩く", "少しのぞいてみる", "探検してみる"]],
@@ -25,7 +24,17 @@ function message(error: unknown) {
     : "接続できませんでした。参加情報を読み直してください。";
 }
 
-export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
+export function ParticipationFlow({
+  hosted = false,
+  persistent = false,
+}: {
+  hosted?: boolean;
+  persistent?: boolean;
+}) {
+  const client = useMemo(
+    () => createDevelopmentClient({ apiPath: persistent ? "/api/visitor" : "/api/dev" }),
+    [persistent],
+  );
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -37,17 +46,26 @@ export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
   const [answers, setAnswers] = useState([1, 1, 1, 1, 1, 1]);
   const [avatarConsent, setAvatarConsent] = useState(false);
   const [fields, setFields] = useState({ nickname: false, personality: false, interests: false });
+  const [admitted, setAdmitted] = useState(!persistent);
+  const [invitation, setInvitation] = useState("");
   const requestId = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
     async function recover() {
       try {
-        await client.createSession();
+        if (!persistent) await client.createSession();
         const current = await client.current();
-        if (active) setView(current);
+        if (active) {
+          setView(current);
+          setAdmitted(true);
+        }
       } catch (failure) {
-        if (active) setError(message(failure));
+        if (
+          active &&
+          !(persistent && failure instanceof DevelopmentApiError && failure.status === 401)
+        )
+          setError(message(failure));
       } finally {
         if (active) setLoading(false);
       }
@@ -56,7 +74,7 @@ export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [client, persistent]);
 
   useEffect(() => {
     if (!view || busy || !["QUEUED", "RUNNING"].includes(view.job.state)) return;
@@ -76,7 +94,7 @@ export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
       active = false;
       clearTimeout(timer);
     };
-  }, [view, busy]);
+  }, [view, busy, client]);
 
   async function perform(action: () => Promise<ParticipationView | null>) {
     setBusy(true);
@@ -90,8 +108,16 @@ export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
     }
   }
   async function recoverCurrent() {
-    await client.createSession();
-    const current = await client.current();
+    if (!persistent) await client.createSession();
+    let current: ParticipationView | null;
+    try {
+      current = await client.current();
+      setAdmitted(true);
+    } catch (failure) {
+      if (persistent && failure instanceof DevelopmentApiError && failure.status === 401)
+        setAdmitted(false);
+      throw failure;
+    }
     if (!current) {
       requestId.current = null;
       setAvatarConsent(false);
@@ -141,6 +167,42 @@ export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
       )}
       {loading ? (
         <p role="status">参加情報を確認しています。</p>
+      ) : persistent && !admitted ? (
+        <form
+          className="flow-panel"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void perform(async () => {
+              await client.createSession(invitation);
+              const current = await client.current();
+              setAdmitted(true);
+              setInvitation("");
+              return current;
+            });
+          }}
+        >
+          <h2>参加用コードで始める</h2>
+          <p>管理者から受け取ったコードを入力してください。3分間・1回だけ有効です。</p>
+          <label className="field">
+            参加用コード
+            <input
+              value={invitation}
+              onChange={(event) =>
+                setInvitation(event.target.value.toLowerCase().replace(/[^a-f0-9]/g, ""))
+              }
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              minLength={64}
+              maxLength={64}
+              pattern="[a-f0-9]{64}"
+            />
+          </label>
+          <button type="submit" disabled={busy}>
+            参加を始める
+          </button>
+        </form>
       ) : !view ? (
         <form onSubmit={start} className="flow-panel">
           <h2>サンプルで参加の流れを試す</h2>
@@ -203,23 +265,25 @@ export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
               ))}
             </div>
           )}
-          <details className="sample-options">
-            <summary>失敗・再試行の動作も試す</summary>
-            <label className="field">
-              動作サンプル
-              <select
-                value={scenario}
-                onChange={(event) =>
-                  setScenario(event.target.value as CreateJobRequest["scenario"])
-                }
-              >
-                <option value="SUCCESS">通常の準備</option>
-                <option value="FAIL_ONCE">一度失敗して再試行</option>
-                <option value="ALWAYS_FAIL">準備が続けて失敗</option>
-                <option value="TIMEOUT">時間切れ</option>
-              </select>
-            </label>
-          </details>
+          {!persistent && (
+            <details className="sample-options">
+              <summary>失敗・再試行の動作も試す</summary>
+              <label className="field">
+                動作サンプル
+                <select
+                  value={scenario}
+                  onChange={(event) =>
+                    setScenario(event.target.value as CreateJobRequest["scenario"])
+                  }
+                >
+                  <option value="SUCCESS">通常の準備</option>
+                  <option value="FAIL_ONCE">一度失敗して再試行</option>
+                  <option value="ALWAYS_FAIL">準備が続けて失敗</option>
+                  <option value="TIMEOUT">時間切れ</option>
+                </select>
+              </label>
+            </details>
+          )}
           <button type="submit" disabled={busy}>
             サンプルを準備
           </button>
@@ -339,7 +403,11 @@ export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
           )}
           {published ? (
             <div className="flow-actions">
-              <Link href="/city?mode=participants">街で確認</Link>
+              {persistent ? (
+                <span>管理者が「参加者の街」に切り替えると、展示タブレットで確認できます。</span>
+              ) : (
+                <Link href="/city?mode=participants">街で確認</Link>
+              )}
               <button
                 type="button"
                 className="secondary"
@@ -373,6 +441,22 @@ export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
             </div>
           )}
         </div>
+      )}
+      {persistent && admitted && !loading && (
+        <button
+          type="button"
+          className="secondary"
+          disabled={busy}
+          onClick={() => {
+            void perform(async () => {
+              await client.closeSession();
+              window.location.assign("/");
+              return null;
+            });
+          }}
+        >
+          参加情報を削除して終了
+        </button>
       )}
     </section>
   );

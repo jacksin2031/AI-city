@@ -13,6 +13,7 @@ import {
   type DeviceUpdate,
   DeviceUpdateSchema,
 } from "./device-link";
+import { VisitorInvitationSchema } from "./visitor";
 
 export function createDeviceClient(options: { signal?: AbortSignal; fetch?: typeof fetch } = {}) {
   async function read<T>(path: string, schema: z.ZodType<T>, body?: unknown): Promise<T> {
@@ -40,6 +41,7 @@ export function createDeviceClient(options: { signal?: AbortSignal; fetch?: type
     admin: () => read("admin", DeviceAdminSchema),
     display: () => read("display", DeviceDisplaySchema),
     pairing: () => read("pairing", DevicePairingSchema, {}),
+    visitorInvitation: () => read("visitor-invitation", VisitorInvitationSchema, {}),
     update: (input: DeviceUpdate) =>
       read("control", DeviceAdminSchema, DeviceUpdateSchema.parse(input)),
     remove: (residentId: string) =>

@@ -521,3 +521,9 @@ canvas {
   place-content: center;
   text-align: center;
 }
+.visitor-code {
+  display: block;
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+  font-size: 1.1rem;
+}

@@ -4,6 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // installed Chrome instead of downloading Playwright's Chromium.
 export default defineConfig({
   testDir: "tests/e2e",
+  testIgnore: "visitor.spec.ts",
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",

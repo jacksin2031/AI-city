@@ -48,6 +48,9 @@ jobs:
       - run: pnpm test:rules
         env:
           CI: 'true'
+      - run: pnpm test:persistence
+        env:
+          CI: 'true'
   browser:
     name: Browser smoke
     runs-on: ubuntu-24.04
@@ -62,8 +65,16 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+        env:
+          CI: 'true'
+          NEXT_TELEMETRY_DISABLED: '1'
+      - run: pnpm test:visitor:e2e
         env:
           CI: 'true'
           NEXT_TELEMETRY_DISABLED: '1'

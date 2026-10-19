@@ -2,6 +2,14 @@
 
 每次 schema 变更在此记录版本、owner、兼容性和双方需要的调整。
 
+## 0.5.0（2026-10-19）
+
+Owner：A / Main。`createDevelopmentClient` 新增可选 apiPath（默认 /api/dev 不变；持久访客使用 /api/visitor）与 closeSession；Node cookie jar 根据通道隔离，4 秒请求限时，同时初始化共用同一个请求。新增传输负向及并发测试。
+
+新增 `visitor` 子路径：严格的一次性签名邀请请求/响应 schema 与不可使用的全零 fixture；`device-client.visitorInvitation()` 供管理员发出邀请。`createSession(invitation?)` 保留原本无参数的本地调用。新增权限不改变 B 的快照 shape。
+
+公开 DTO 和原 fixtures 未变，B 的渲染器继续消费原 snapshot；MOCK 标记继续代表角色/生成内容为样例。新访客权限由服务端持久匿名会话校验，不由 `publicConsent` 或 DTO 自行授权；不表示核实真人、照片授权或真实生成。设备控制会话仍为进程内短期会话。
+
 ## 0.4.0（2026-10-19）
 
 Owner：A / Main。新增手机管理与平板联动的 `device-link` / `device-client` 子路径；原 v0.3 导出及本地调用方保持兼容。

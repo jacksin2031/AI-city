@@ -4,6 +4,7 @@ import { fallbackContentSecurityPolicy } from "./lib/csp";
 const config: NextConfig = {
   // Project-owned AGENTS.md files must not be appended to by the development server.
   agentRules: false,
+  serverExternalPackages: ["@google-cloud/firestore"],
   transpilePackages: ["@ai-city/contracts", "@ai-city/city"],
   poweredByHeader: false,
   async redirects() {

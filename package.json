@@ -18,6 +18,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:rules": "node scripts/emulators.mjs test",
+    "test:persistence": "node scripts/emulators.mjs persistence",
+    "test:visitor:e2e": "node scripts/emulators.mjs visitor-e2e",
     "emulators": "node scripts/emulators.mjs start",
     "doctor": "node scripts/doctor.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
@@ -26,6 +28,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@firebase/rules-unit-testing": "6.0.0",
+    "@google-cloud/firestore": "9.3.1",
     "@playwright/test": "1.63.0",
     "@types/node": "24.10.1",
     "firebase": "13.0.0",

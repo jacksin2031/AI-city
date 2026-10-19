@@ -40,6 +40,9 @@ const paths = [
   "events/e1",
   "events/e1/cityEvents/c1",
   "admin/config",
+  "visitorExhibitions/sample-exhibition/meta/state",
+  "visitorExhibitions/sample-exhibition/sessions/fixture-digest",
+  "visitorExhibitions/sample-exhibition/jobs/fixture-digest",
 ];
 
 const clients: [string, () => RulesTestContext][] = [
@@ -77,14 +80,16 @@ describe("foundation fails closed", () => {
       await assertFails(updateDoc(ref, { nickname: "はる" }));
       await assertFails(deleteDoc(ref));
     });
-    it.each(["privateSessions", "publicResidents", "events"])(
-      "cannot list or add to %s",
-      async (name) => {
-        const ref = collection(context().firestore(), name);
-        await assertFails(getDocs(ref));
-        await assertFails(addDoc(ref, { nickname: "はる" }));
-      },
-    );
+    it.each([
+      "privateSessions",
+      "publicResidents",
+      "events",
+      "visitorExhibitions/sample-exhibition/sessions",
+    ])("cannot list or add to %s", async (name) => {
+      const ref = collection(context().firestore(), name);
+      await assertFails(getDocs(ref));
+      await assertFails(addDoc(ref, { nickname: "はる" }));
+    });
   });
 
   it("does not let a client forge consent on a public resident", async () => {

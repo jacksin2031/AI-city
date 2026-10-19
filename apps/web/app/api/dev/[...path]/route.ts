@@ -18,7 +18,7 @@ function handle(request: Request) {
   return handleDevelopmentRequest(
     request,
     participationService,
-    previewEnabled,
+    previewEnabled && process.env.AI_CITY_ENABLE_VISITORS !== "1",
     process.env.AI_CITY_PUBLIC_ORIGIN,
     authorized,
   );

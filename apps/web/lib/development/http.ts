@@ -112,6 +112,16 @@ export function validateRequestOrigin(request: Request, remoteOrigin?: string): 
       request.headers.get("sec-fetch-site") === "cross-site")
   )
     throw new DevelopmentServiceError("LOCAL_ONLY", 403);
+  if (request.method === "GET") {
+    const origin = request.headers.get("origin");
+    const site = request.headers.get("sec-fetch-site");
+    if (
+      (origin && origin !== browserUrl.origin) ||
+      (site && !["same-origin", "none"].includes(site))
+    ) {
+      throw new DevelopmentServiceError("LOCAL_ONLY", 403);
+    }
+  }
   return browserUrl;
 }
 

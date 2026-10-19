@@ -33,10 +33,14 @@ pnpm dev
 pnpm check       # 格式、类型、单元测试、生产构建
 pnpm test:rules  # demo-ai-city 本地 Firestore / Storage emulator，绝不访问真实数据库
 pnpm test:e2e    # 生产构建 + Playwright 浏览器冒烟测试
+pnpm test:persistence # demo Firestore 事务、隔离与恢复
+pnpm test:visitor:e2e # 先 build；demo Firestore + 访客浏览器及 Node 重启验收
 pnpm emulators  # 本地 Auth / Firestore / Storage
 ```
 
 ## 两人如何协作
+
+本分支新增默认关闭的邀请式持久访客入口，使用说明及权限边界见 [持久访客](docs/PERSISTENT_VISITORS.md)。它仍使用虚构插画；当前线上 preview 尚未部署此功能，不能把原设备联动验收当成新访客功能的实机验收。
 
 | 主责 | 目录 | 工作范围 |
 | --- | --- | --- |

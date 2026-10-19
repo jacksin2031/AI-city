@@ -22,8 +22,11 @@ export class DevelopmentApiError extends Error {
 }
 
 /** Same-origin browser client; Node tooling supplies an explicit loopback baseUrl. */
-export function createDevelopmentClient(options: { baseUrl?: string; fetch?: typeof fetch } = {}) {
+export function createDevelopmentClient(
+  options: { baseUrl?: string; fetch?: typeof fetch; apiPath?: "/api/dev" | "/api/visitor" } = {},
+) {
   const base = options.baseUrl?.replace(/\/$/, "") ?? "";
+  const apiPath = options.apiPath ?? "/api/dev";
   const transport = options.fetch ?? fetch;
   const nodeCookies = Boolean(base && typeof window === "undefined");
   let sessionCookie = "";
@@ -34,17 +37,19 @@ export function createDevelopmentClient(options: { baseUrl?: string; fetch?: typ
       headers["Content-Type"] = "application/json";
       if (base) headers.Origin = new URL(base).origin;
     }
-    const response = await transport(`${base}/api/dev/${path}`, {
+    const response = await transport(`${base}${apiPath}/${path}`, {
       method: body === undefined ? "GET" : "POST",
       headers,
       credentials: "same-origin",
       cache: "no-store",
+      signal: AbortSignal.timeout(4000),
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const value: unknown = await response.json();
     if (nodeCookies) {
       const cookie = response.headers.get("set-cookie")?.split(";")[0];
-      if (cookie?.startsWith("ai-city-local-session=")) sessionCookie = cookie;
+      const name = apiPath === "/api/visitor" ? "ai-city-visitor=" : "ai-city-local-session=";
+      if (cookie?.startsWith(name)) sessionCookie = cookie;
     }
     if (!response.ok) {
       const error = DevelopmentErrorSchema.parse(value).error;
@@ -54,8 +59,15 @@ export function createDevelopmentClient(options: { baseUrl?: string; fetch?: typ
   }
   const id = (value: string) => encodeURIComponent(value);
   const empty = z.strictObject({ mode: z.literal("MOCK") });
+  let initializing: ReturnType<typeof read<{ mode: "MOCK" }>> | null = null;
   return {
-    createSession: () => read("session", empty, {}),
+    createSession: (invitation?: string) => {
+      initializing ??= read("session", empty, invitation ? { invitation } : {}).finally(() => {
+        initializing = null;
+      });
+      return initializing;
+    },
+    closeSession: () => read("logout", empty, {}),
     createJob: (input: CreateJobRequest) =>
       read("jobs", ParticipationViewSchema, CreateJobRequestSchema.parse(input)),
     current: () => read("jobs/current", ParticipationViewSchema.nullable()),
