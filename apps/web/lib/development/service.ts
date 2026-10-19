@@ -260,6 +260,15 @@ export class LocalParticipationService {
       type,
     });
   }
+  /** Called only after the device HTTP controller has verified the ADMIN role. */
+  removeResident(id: string) {
+    this.expire();
+    const record = [...this.jobs.values()].find(
+      (item) => item.publication === "PUBLISHED" && item.resident?.residentId === id,
+    );
+    if (!record) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+    return this.remove(record.session, record.job.jobId);
+  }
   private view(record: RecordState): ParticipationView {
     const ready = record.job.state === "READY";
     return ParticipationViewSchema.parse({

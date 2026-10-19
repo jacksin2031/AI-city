@@ -44,15 +44,22 @@ export const CreateJobRequestSchema = z.strictObject({
     .nullable(),
   scenario: z.enum(["SUCCESS", "FAIL_ONCE", "ALWAYS_FAIL", "TIMEOUT"]),
 });
-export const PublishRequestSchema = z.strictObject({
-  avatarPublicConsent: z.literal(true),
-  consentVersion: z.literal(1),
-  fields: z.strictObject({
-    nickname: z.boolean(),
-    personality: z.boolean(),
-    interests: z.boolean(),
-  }),
-});
+export const PublishRequestSchema = z
+  .strictObject({
+    avatarPublicConsent: z.literal(true),
+    consentVersion: z.union([z.literal(1), z.literal(2)]),
+    publicationScope: z.literal("HOSTED_PREVIEW").optional(),
+    fields: z.strictObject({
+      nickname: z.boolean(),
+      personality: z.boolean(),
+      interests: z.boolean(),
+    }),
+  })
+  .refine((input) =>
+    input.consentVersion === 2
+      ? input.publicationScope === "HOSTED_PREVIEW"
+      : input.publicationScope === undefined,
+  );
 export const DevelopmentJobSchema = GenerationJobSchema.superRefine((job, context) => {
   if (
     !job.deadline ||

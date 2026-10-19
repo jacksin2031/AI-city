@@ -2,6 +2,8 @@
 
 Owner：A。对应 Issues #1、#2、#5 的本地 mock 增量，不是完整云端或实机验收。
 
+后续手机管理/平板跨网接入见 [联动指南](MOBILE_TABLET_LINK.md)：contracts 已升至相容 0.4.0，远端仅管理员/配对展示。本文的无登录读取、v1 同意与 loopback 说明属于原交付的本地默认模式，不适用于公开托管。
+
 ## B 从这里开始
 
 当前交付分支为 `codex/a-local-integration`。PR 合并前，B 在自己的干净 clone 从该分支建立独立分支，例如：

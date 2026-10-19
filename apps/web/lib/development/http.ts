@@ -3,7 +3,7 @@ import {
   developmentEventId,
   EmptyDevelopmentRequestSchema,
   isDevelopmentValidationError,
-  type PublishRequest,
+  PublishRequestSchema,
 } from "@ai-city/contracts/development";
 import { DevelopmentServiceError, type LocalParticipationService } from "./service";
 
@@ -23,11 +23,13 @@ const messages: Record<string, string> = {
   INVALID_REQUEST: "入力内容を確認してください。",
   BODY_TOO_LARGE: "送信する内容が大きすぎます。",
   NOT_FOUND: "指定されたサンプルは見つかりませんでした。",
+  CONSENT_SCOPE_REQUIRED: "展示サイトで公開する範囲を確認してから同意してください。",
+  ADMIN_REQUIRED: "この接続サンプルは管理者専用です。スマホの管理画面から接続してください。",
 };
 function json(value: unknown, status = 200, headers?: HeadersInit) {
   return Response.json(value, { status, headers: { "Cache-Control": "no-store", ...headers } });
 }
-async function body(request: Request): Promise<unknown> {
+export async function readJsonBody(request: Request): Promise<unknown> {
   if (!request.headers.get("content-type")?.startsWith("application/json"))
     throw new DevelopmentServiceError("INVALID_REQUEST", 400);
   const reader = request.body?.getReader();
@@ -69,35 +71,62 @@ function query(url: URL, keys: string[]) {
     throw new DevelopmentServiceError("INVALID_REQUEST", 400);
 }
 
+export function validateRequestOrigin(request: Request, remoteOrigin?: string): URL {
+  const url = new URL(request.url);
+  const host = request.headers.get("host") ?? url.host;
+  let browserUrl: URL;
+  try {
+    browserUrl = new URL(`${url.protocol}//${host}`);
+  } catch {
+    throw new DevelopmentServiceError("LOCAL_ONLY", 403);
+  }
+  if (remoteOrigin) {
+    let configured: URL;
+    try {
+      configured = new URL(remoteOrigin);
+    } catch {
+      throw new DevelopmentServiceError("LOCAL_ONLY", 403);
+    }
+    if (
+      configured.protocol !== "https:" ||
+      configured.origin !== remoteOrigin ||
+      configured.username ||
+      configured.password ||
+      loopback.has(configured.hostname) ||
+      host !== configured.host
+    )
+      throw new DevelopmentServiceError("LOCAL_ONLY", 403);
+    // HTTPS terminates at the configured host. Never derive allowed origins from forwarded headers.
+    browserUrl = configured;
+  } else if (
+    browserUrl.host !== host ||
+    browserUrl.port !== url.port ||
+    !loopback.has(url.hostname) ||
+    !loopback.has(browserUrl.hostname)
+  ) {
+    throw new DevelopmentServiceError("LOCAL_ONLY", 403);
+  }
+  if (
+    request.method === "POST" &&
+    (request.headers.get("origin") !== browserUrl.origin ||
+      request.headers.get("sec-fetch-site") === "cross-site")
+  )
+    throw new DevelopmentServiceError("LOCAL_ONLY", 403);
+  return browserUrl;
+}
+
 export async function handleDevelopmentRequest(
   request: Request,
   service: LocalParticipationService,
   enabled: boolean,
+  remoteOrigin?: string,
+  remoteAuthorized = false,
 ): Promise<Response> {
   try {
     if (!enabled) throw new DevelopmentServiceError("MOCK_DISABLED", 404);
     const url = new URL(request.url);
-    const host = request.headers.get("host");
-    let browserUrl = url;
-    if (host) {
-      try {
-        browserUrl = new URL(`${url.protocol}//${host}`);
-      } catch {
-        throw new DevelopmentServiceError("LOCAL_ONLY", 403);
-      }
-      if (browserUrl.host !== host || browserUrl.port !== url.port)
-        throw new DevelopmentServiceError("LOCAL_ONLY", 403);
-    }
-    // Next may build Request.url from its bound hostname, while Host identifies the browser origin.
-    // Validate both as loopback; never trust a forwarded or external hostname.
-    if (!loopback.has(url.hostname) || !loopback.has(browserUrl.hostname))
-      throw new DevelopmentServiceError("LOCAL_ONLY", 403);
-    if (
-      request.method === "POST" &&
-      (request.headers.get("origin") !== browserUrl.origin ||
-        request.headers.get("sec-fetch-site") === "cross-site")
-    )
-      throw new DevelopmentServiceError("LOCAL_ONLY", 403);
+    const browserUrl = validateRequestOrigin(request, remoteOrigin);
+    if (remoteOrigin && !remoteAuthorized) throw new DevelopmentServiceError("ADMIN_REQUIRED", 403);
     const path = url.pathname.replace(/^\/api\/dev\//, "");
     const cookie = request.headers
       .get("cookie")
@@ -120,15 +149,18 @@ export async function handleDevelopmentRequest(
     }
     query(url, []);
     if (request.method === "POST" && path === "session") {
-      EmptyDevelopmentRequestSchema.parse(await body(request));
+      EmptyDevelopmentRequestSchema.parse(await readJsonBody(request));
       const token = service.hasSession(cookie) ? cookie : service.createSession();
       return json({ mode: "MOCK" }, 200, {
-        "Set-Cookie": `${cookieName}=${token}; Path=/api/dev; HttpOnly; SameSite=Strict; Max-Age=3600`,
+        "Set-Cookie": `${cookieName}=${token}; Path=/api/dev; HttpOnly; SameSite=Strict; Max-Age=3600${browserUrl.protocol === "https:" ? "; Secure" : ""}`,
       });
     }
     if (!service.hasSession(cookie)) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
     if (request.method === "POST" && path === "jobs")
-      return json(service.createJob(cookie, (await body(request)) as CreateJobRequest), 201);
+      return json(
+        service.createJob(cookie, (await readJsonBody(request)) as CreateJobRequest),
+        201,
+      );
     if (request.method === "GET" && path === "jobs/current") return json(service.current(cookie));
     const match = /^jobs\/([A-Za-z0-9_-]{1,128})(?:\/(confirm|cancel|retry|remove))?$/.exec(path);
     if (match?.[1]) {
@@ -136,9 +168,16 @@ export async function handleDevelopmentRequest(
       const action = match[2];
       if (request.method === "GET" && !action) return json(service.getJob(cookie, jobId));
       if (request.method === "POST" && action) {
-        const input = await body(request);
-        if (action === "confirm")
-          return json(service.confirm(cookie, jobId, input as PublishRequest));
+        const input = await readJsonBody(request);
+        if (action === "confirm") {
+          const consent = PublishRequestSchema.parse(input);
+          if (
+            remoteOrigin &&
+            (consent.consentVersion !== 2 || consent.publicationScope !== "HOSTED_PREVIEW")
+          )
+            throw new DevelopmentServiceError("CONSENT_SCOPE_REQUIRED", 403);
+          return json(service.confirm(cookie, jobId, consent));
+        }
         EmptyDevelopmentRequestSchema.parse(input);
         if (action === "cancel") return json(service.cancel(cookie, jobId));
         if (action === "retry") return json(service.retry(cookie, jobId));

@@ -2,6 +2,15 @@
 
 每次 schema 变更在此记录版本、owner、兼容性和双方需要的调整。
 
+## 0.4.0（2026-10-19）
+
+Owner：A / Main。新增手机管理与平板联动的 `device-link` / `device-client` 子路径；原 v0.3 导出及本地调用方保持兼容。
+
+- 严格的控制状态/revision、管理登录、短期配对、只读显示与管理员视图；复用 CityModeEvent 的 DEMO/LIVE/MAINTENANCE，LIVE 在此仍是 mock 参与者展示。
+- deviceControlFixture 是虚构 fixture。显示仅接收公共 snapshot，MAINTENANCE 必须无 snapshot；拒绝额外字段。
+- PublishRequest 本地 consentVersion 1 保持有效；新增 version 2 必须带 `publicationScope: HOSTED_PREVIEW`，远端确认另验证管理员会话和同意记录。shape 验证仍不是授权。
+- A 手机管理调用 device-client，平板 wrapper 复用 B renderer；不修改 AvatarManifest REFERENCE_ONLY。限制见 `docs/MOBILE_TABLET_LINK.md`。
+
 ## 0.3.0（2026-10-18）
 
 Owner：A（仓库负责人 jacksin2031）。新增独立 `development` / `development-client` 导出，保留 v0.2 调用方兼容。

@@ -25,7 +25,7 @@ function message(error: unknown) {
     : "接続できませんでした。参加情報を読み直してください。";
 }
 
-export function ParticipationFlow() {
+export function ParticipationFlow({ hosted = false }: { hosted?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -289,7 +289,7 @@ export function ParticipationFlow() {
           )}
           {!published && view.job.state === "READY" && (
             <div className="consent">
-              <h3>ローカル一覧に表示する項目</h3>
+              <h3>{hosted ? "展示サイトに公開する項目" : "ローカル一覧に表示する項目"}</h3>
               <p>自動では追加されません。表示する項目を選んで確認してください。</p>
               <label className="check">
                 <input
@@ -297,7 +297,9 @@ export function ParticipationFlow() {
                   checked={avatarConsent}
                   onChange={(event) => setAvatarConsent(event.target.checked)}
                 />
-                アバターをローカル連携画面に表示する
+                {hosted
+                  ? "アバターをこの展示サイトに公開する"
+                  : "アバターをローカル連携画面に表示する"}
               </label>
               {(
                 [
@@ -324,13 +326,14 @@ export function ParticipationFlow() {
                   void perform(() =>
                     client.confirm(view.job.jobId, {
                       avatarPublicConsent: true,
-                      consentVersion: 1,
+                      consentVersion: hosted ? 2 : 1,
+                      ...(hosted ? { publicationScope: "HOSTED_PREVIEW" as const } : {}),
                       fields,
                     }),
                   )
                 }
               >
-                ローカル一覧に追加
+                {hosted ? "確認した項目を公開して街に参加" : "ローカル一覧に追加"}
               </button>
             </div>
           )}

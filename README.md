@@ -23,6 +23,9 @@ pnpm dev
 - A/B 本地接入预览：<http://localhost:3000/integration>（确认后才加入列表，图片素材尚未接入）
 - B 简易插画样例：<http://localhost:3000/city>；本地确认后的居民：<http://localhost:3000/city?mode=participants>
 - 健康状态：<http://localhost:3000/api/health>
+- 手机管理：<http://localhost:3000/admin>；平板展示：<http://localhost:3000/tablet>；本机准备：<http://localhost:3000/setup>
+
+同/不同网络的手机与平板联动设置见 [接入指南](docs/MOBILE_TABLET_LINK.md)。目前尚未部署 HTTPS 服务；localhost 仅供同机浏览器验证。
 
 没有 pnpm 时使用 Corepack 启用 `package.json` 指定的版本，或按 [pnpm 官方安装说明](https://pnpm.io/installation) 安装；不要换用 npm/yarn 重新生成 lockfile。开发无需云账号或 API key。
 

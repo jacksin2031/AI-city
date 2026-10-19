@@ -2,6 +2,8 @@
 
 用户授权 Main 暂代 B，先用原创建模 SVG 打通本地展示。分支 `codex/b-illustrated-city` 叠加在 A 基础 PR #13；不是正式 B 资产或云端交付。
 
+本文记录 PR #14 的本地插画交付。后续 contracts 0.4.0、手机管理与专用平板页见 [联动指南](MOBILE_TABLET_LINK.md)，不改变此处正式素材仍未完成的边界。
+
 ## 可直接演示
 
 1. `pnpm dev` 后打开 `/city`：两个虚构居民、咖啡店/图书室/花店、喷泉与步行环线。

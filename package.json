@@ -12,6 +12,7 @@
     "dev": "pnpm --filter @ai-city/web dev",
     "build": "pnpm --filter @ai-city/web build",
     "start": "pnpm --filter @ai-city/web start",
+    "start:remote": "node scripts/start-remote.mjs",
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "pnpm -r typecheck",

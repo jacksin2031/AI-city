@@ -14,6 +14,85 @@ function request(path: string, body?: unknown, cookie?: string, origin = "http:/
 }
 
 describe("local API boundary", () => {
+  it("refuses unauthenticated hosted participation before allocating a session", async () => {
+    const req = new Request("https://city.example/api/dev/session", {
+      method: "POST",
+      headers: { origin: "https://city.example", "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(
+      (
+        await handleDevelopmentRequest(
+          req,
+          new LocalParticipationService(),
+          true,
+          "https://city.example",
+        )
+      ).status,
+    ).toBe(403);
+  });
+  it("never treats old local consent as hosted publication consent", async () => {
+    let now = 0;
+    const service = new LocalParticipationService(() => now);
+    const token = service.createSession();
+    const job = service.createJob(token, {
+      eventId: "fixture-event",
+      requestId: "hosted-scope",
+      nickname: "架空",
+      sampleId: "sora",
+      answers: null,
+      scenario: "SUCCESS",
+    });
+    now = 1100;
+    const post = (consent: unknown) =>
+      new Request(`https://city.example/api/dev/jobs/${job.job.jobId}/confirm`, {
+        method: "POST",
+        headers: {
+          origin: "https://city.example",
+          "content-type": "application/json",
+          cookie: `ai-city-local-session=${token}`,
+        },
+        body: JSON.stringify(consent),
+      });
+    const base = {
+      avatarPublicConsent: true,
+      consentVersion: 1,
+      fields: { nickname: true, personality: false, interests: false },
+    };
+    expect(
+      (await handleDevelopmentRequest(post(base), service, true, "https://city.example", true))
+        .status,
+    ).toBe(403);
+    expect(service.snapshot().residents).toHaveLength(0);
+    expect(
+      (
+        await handleDevelopmentRequest(
+          post({ ...base, consentVersion: 2, publicationScope: "HOSTED_PREVIEW" }),
+          service,
+          true,
+          "https://city.example",
+          true,
+        )
+      ).status,
+    ).toBe(200);
+    expect(service.snapshot().residents[0]?.consentVersion).toBe(2);
+  });
+  it("supports the configured HTTPS participant origin without allowing arbitrary hosts", async () => {
+    const service = new LocalParticipationService();
+    const response = await handleDevelopmentRequest(
+      new Request("https://city.example/api/dev/session", {
+        method: "POST",
+        headers: { origin: "https://city.example", "content-type": "application/json" },
+        body: "{}",
+      }),
+      service,
+      true,
+      "https://city.example",
+      true,
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toContain("Secure");
+  });
   it("uses the verified loopback Host for origin checks when Next normalizes the internal URL", async () => {
     const request = new Request("http://localhost:3000/api/dev/session", {
       method: "POST",

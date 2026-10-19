@@ -8,6 +8,29 @@ import {
 } from "./development";
 
 describe("local integration boundaries", () => {
+  it("keeps local consent v1 and requires hosted scope for v2", () => {
+    const fields = { nickname: true, personality: false, interests: false };
+    expect(
+      PublishRequestSchema.safeParse({ avatarPublicConsent: true, consentVersion: 2, fields })
+        .success,
+    ).toBe(false);
+    expect(
+      PublishRequestSchema.safeParse({
+        avatarPublicConsent: true,
+        consentVersion: 2,
+        publicationScope: "HOSTED_PREVIEW",
+        fields,
+      }).success,
+    ).toBe(true);
+    expect(
+      PublishRequestSchema.safeParse({
+        avatarPublicConsent: true,
+        consentVersion: 1,
+        publicationScope: "HOSTED_PREVIEW",
+        fields,
+      }).success,
+    ).toBe(false);
+  });
   it("provides a validated, fictional snapshot with unambiguous asset versions", () => {
     const snapshot = CitySnapshotSchema.parse(developmentCitySnapshot);
     expect(snapshot.mode).toBe("MOCK");
