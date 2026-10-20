@@ -238,13 +238,13 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await expect(
       tablet.getByText("1人 · 仮のイラストと用意された会話", { exact: true }),
     ).toBeVisible();
-    const welcome = tablet.getByRole("dialog", {
+    const welcome = tablet.getByRole("region", {
       name: "ようこそ、永続テスト・架空さん！",
       exact: true,
     });
     await expect(welcome).toBeVisible();
     await welcome.getByRole("button", { name: "プロフィールを見る", exact: true }).click();
-    const profile = tablet.getByRole("dialog", { name: "永続テスト・架空", exact: true });
+    const profile = tablet.getByRole("region", { name: "永続テスト・架空", exact: true });
     await expect(profile.getByText("非公開", { exact: true })).toBeVisible();
     await expect(profile.getByText("非公開・指定なし", { exact: true })).toBeVisible();
     const publicSnapshot = await (await tabletContext.request.get("/api/link/display")).json();

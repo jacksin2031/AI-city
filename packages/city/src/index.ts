@@ -5,6 +5,7 @@ export function getDevelopmentResidents(): PublicResident[] {
   return structuredClone(developmentCitySnapshot.residents);
 }
 
+export { type ScenePresentationFrame, speechBounds } from "./focus";
 export {
   closePresentation,
   openProfile,

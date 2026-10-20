@@ -29,7 +29,7 @@ pnpm dev
 
 管理页新增住民搜索/排序/批次撤回、一键开场/休场、通信时间与手动同步、配对倒数及解除确认。操作语义与本地验收见 [管理控制](docs/ADMIN_CONTROLS.md)。
 
-平板支持点击角色放大公开资料、新住民顺序欢迎和挥手。数据边界、减轻动作及验证说明见 [角色放大与入场](docs/TABLET_RESIDENT_FOCUS.md)。
+平板支持镜头聚焦角色所在位置、头顶公开资料气泡，以及原地顺序欢迎和挥手。数据边界、减轻动作及验证说明见 [镜头聚焦与场景内欢迎](docs/TABLET_RESIDENT_FOCUS.md)。
 
 没有 pnpm 时使用 Corepack 启用 `package.json` 指定的版本，或按 [pnpm 官方安装说明](https://pnpm.io/installation) 安装；不要换用 npm/yarn 重新生成 lockfile。开发无需云账号或 API key。
 

@@ -4,11 +4,12 @@ import {
   createDevelopmentCity,
   type IllustratedCity,
   openProfile,
+  type ScenePresentationFrame,
   updatePresentation,
 } from "@ai-city/city";
 import type { CitySnapshot } from "@ai-city/contracts/development";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ResidentCard } from "./resident-card";
+import { ResidentSpeech } from "./resident-speech";
 export function TabletCity({
   snapshot,
   motion,
@@ -24,6 +25,8 @@ export function TabletCity({
   const view = useMemo(() => updatePresentation(presentation, snapshot), [presentation, snapshot]);
   const residents = view.roster.residents;
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [anchor, setAnchor] = useState<ScenePresentationFrame | null>(null);
   const [animated, setAnimated] = useState(false);
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
@@ -60,6 +63,12 @@ export function TabletCity({
       onSelect: (id) => {
         if (active) select(id);
       },
+      onClearSelection: () => {
+        if (active && latest.current.active) close();
+      },
+      onPresentationFrame: (frame) => {
+        if (active) setAnchor(frame);
+      },
       onReady: () => {
         if (active) setReady(true);
       },
@@ -70,11 +79,12 @@ export function TabletCity({
           city.current = instance;
           instance.setResidents(latest.current.residents);
           instance.select(latest.current.active?.id ?? null);
+          instance.present(latest.current.active);
           applyMotion();
         }
       })
       .catch(() => {
-        if (active) parent.current?.setAttribute("data-failed", "true");
+        if (active) setFailed(true);
       });
     return () => {
       active = false;
@@ -83,7 +93,7 @@ export function TabletCity({
       city.current?.destroy();
       city.current = null;
     };
-  }, [select]);
+  }, [select, close]);
   useEffect(() => {
     setPresentation((previous) => updatePresentation(previous, snapshot));
   }, [snapshot]);
@@ -98,9 +108,8 @@ export function TabletCity({
   useEffect(() => {
     if (!ready) return;
     city.current?.select(active?.id ?? null);
-    if (active?.kind === "welcome" && animated) city.current?.act(active.id, "wave");
-    else if (active?.kind === "profile") city.current?.act(active.id, "idle");
-  }, [active?.id, active?.kind, animated, ready]);
+    city.current?.present(active);
+  }, [active, ready]);
   useEffect(() => {
     const welcomeId = active?.kind === "welcome" ? active.id : null;
     if (!welcomeId) return;
@@ -120,29 +129,30 @@ export function TabletCity({
     <>
       <section
         className="tablet-city"
-        ref={parent}
         data-ready={ready}
+        data-failed={failed || undefined}
         aria-label="街の住民をタップすると公開プロフィールを表示します。"
       >
+        <div className="tablet-scene-canvas" ref={parent} />
         <p className="canvas-failure" role="alert">
           街を表示できません。ページを読み直してください。
         </p>
+        {resident && active && anchor?.id === active.id && anchor.kind === active.kind && (
+          <ResidentSpeech
+            key={`${active.kind}:${active.id}`}
+            resident={resident}
+            anchor={anchor}
+            animated={animated}
+            sample={sample}
+            close={close}
+            showProfile={() => select(resident.residentId)}
+          />
+        )}
       </section>
-      {resident && active && (
-        <ResidentCard
-          key={`${active.kind}:${active.id}`}
-          resident={resident}
-          kind={active.kind}
-          animated={animated}
-          sample={sample}
-          close={close}
-          showProfile={() => select(resident.residentId)}
-        />
-      )}
       {residents.length > 0 && (
         <details className="tablet-resident-list">
           <summary>住民のプロフィールを選ぶ</summary>
-          <div>
+          <div className="tablet-resident-buttons">
             {residents.map((item) => (
               <button type="button" key={item.residentId} onClick={() => select(item.residentId)}>
                 {item.nickname}のプロフィール

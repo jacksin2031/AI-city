@@ -1,5 +1,11 @@
 import type { PublicResident } from "@ai-city/contracts";
 import type { GameObjects, Scene } from "phaser";
+import {
+  focusCamera,
+  projectResident,
+  type ScenePresentation,
+  type ScenePresentationFrame,
+} from "./focus";
 import { characterDataUrl, illustrationPalette, townIllustration } from "./illustrations";
 import {
   type Actor,
@@ -15,6 +21,7 @@ export type IllustratedCity = {
   setMotionEnabled(enabled: boolean): void;
   select(id: string | null): void;
   act(id: string, action: CityAction): void;
+  present(presentation: ScenePresentation | null): void;
   destroy(): void;
 };
 type Entry = {
@@ -51,6 +58,8 @@ export async function createDevelopmentCity(
     onSelect?: (id: string) => void;
     onAction?: (id: string, action: CityAction) => void;
     onReady?: () => void;
+    onPresentationFrame?: (frame: ScenePresentationFrame | null) => void;
+    onClearSelection?: () => void;
   } = {},
 ): Promise<IllustratedCity> {
   const Phaser = await import("phaser");
@@ -77,19 +86,31 @@ export async function createDevelopmentCity(
   let residents = options.residents ?? [];
   let moving = options.motionEnabled ?? true;
   let selectedId: string | null = null;
+  let presentation: ScenePresentation | null = null;
+  let transition: { startedAt: number; scrollX: number; scrollY: number; zoom: number } | null =
+    null;
+  let lastFrame = "";
   let scene: Scene | undefined;
   let destroyed = false;
   const entries = new Map<string, Entry>();
 
-  function textureFor(entry: Entry) {
-    const pose = entry.actor.action === "turn" ? "idle" : entry.actor.action;
+  function textureFor(entry: Entry, presenting: boolean) {
+    const pose = presenting
+      ? presentation?.kind === "welcome"
+        ? "wave"
+        : "idle"
+      : entry.actor.action === "turn"
+        ? "idle"
+        : entry.actor.action;
     const frame = moving ? Math.floor(entry.actor.elapsed * 4) % 2 : 0;
-    return `${illustrationPalette(entry.resident.avatarVersion)}-${entry.actor.direction}-${pose}-${frame}`;
+    return `${illustrationPalette(entry.resident.avatarVersion)}-${presenting ? "front" : entry.actor.direction}-${pose}-${frame}`;
   }
   function sync(addedIds: string[] = []) {
     if (!scene || destroyed) return;
     const currentScene = scene;
     const visible = residents.slice(0, 20);
+    const focused = residents.find((resident) => resident.residentId === presentation?.id);
+    if (focused && !visible.includes(focused)) visible.push(focused);
     const ids = new Set(visible.map((resident) => resident.residentId));
     for (const [id, entry] of entries)
       if (!ids.has(id)) {
@@ -107,7 +128,7 @@ export async function createDevelopmentCity(
         existing.label.setText(nickname);
         continue;
       }
-      const actor = createActor(index);
+      const actor = createActor(focused === resident ? residents.indexOf(resident) : index);
       const ring = currentScene.add
         .ellipse(0, -6, 58, 18, 0xe7bd67, 0.65)
         .setVisible(resident.residentId === selectedId);
@@ -163,11 +184,16 @@ export async function createDevelopmentCity(
     backgroundColor: "#e2eedc",
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     fps: { target: 30 },
+    input: { windowEvents: false },
     scene: {
       create(this: Scene) {
         scene = this;
         for (const item of images) this.textures.addImage(item.key, item.image);
-        this.add.image(0, 0, "town").setOrigin(0);
+        this.add
+          .image(0, 0, "town")
+          .setOrigin(0)
+          .setInteractive()
+          .on("pointerdown", () => options.onClearSelection?.());
         for (const [x, y, text] of [
           [167, 176, "カフェ"],
           [472, 166, "図書室"],
@@ -188,29 +214,84 @@ export async function createDevelopmentCity(
       },
       update(this: Scene, _time: number, delta: number) {
         if (destroyed) return;
+        const focused = presentation ? entries.get(presentation.id) : undefined;
+        const camera = this.cameras.main;
+        const targetCamera = focusCamera(
+          focused?.actor ?? { x: 480, y: 300 },
+          focused ? (presentation?.kind ?? null) : null,
+        );
+        const progress =
+          !moving || !transition ? 1 : Math.min(1, (this.time.now - transition.startedAt) / 320);
+        const eased = 1 - (1 - progress) ** 3;
+        camera.setZoom(
+          transition
+            ? transition.zoom + (targetCamera.zoom - transition.zoom) * eased
+            : targetCamera.zoom,
+        );
+        camera.setScroll(
+          transition
+            ? transition.scrollX + (targetCamera.scrollX - transition.scrollX) * eased
+            : targetCamera.scrollX,
+          transition
+            ? transition.scrollY + (targetCamera.scrollY - transition.scrollY) * eased
+            : targetCamera.scrollY,
+        );
+        if (progress === 1) transition = null;
+        parent.dataset.cameraZoom = String(Math.round(camera.zoom * 100) / 100);
         let index = 0;
         for (const [id, entry] of entries) {
           const previousAction = entry.actor.action;
-          entry.actor = stepActor(entry.actor, Math.min(delta, 60) / 1000, moving);
+          const presenting = id === presentation?.id;
+          // Keep the underlying route position. Camera focus never relocates the original sprite.
+          entry.actor = presenting
+            ? {
+                ...entry.actor,
+                elapsed: entry.actor.elapsed + (moving ? Math.min(delta, 60) / 1000 : 0),
+              }
+            : stepActor(entry.actor, Math.min(delta, 60) / 1000, moving);
           if (
             moving &&
             id !== selectedId &&
+            !presenting &&
             entry.actor.action === "idle" &&
             entry.actor.elapsed > 2.6 + index * 0.7
           )
             entry.actor = commandActor(entry.actor, "walk");
           if (previousAction !== entry.actor.action) options.onAction?.(id, entry.actor.action);
-          entry.container.setPosition(entry.actor.x, entry.actor.y).setDepth(entry.actor.y);
-          const texture = textureFor(entry);
+          entry.container
+            .setPosition(entry.actor.x, entry.actor.y)
+            .setDepth(presenting ? 2000 : entry.actor.y);
+          entry.sprite.setScale(presenting && presentation?.kind === "welcome" ? 1.1 : 0.9);
+          entry.label.setVisible(!presenting);
+          const texture = textureFor(entry, presenting);
           if (entry.sprite.texture.key !== texture) entry.sprite.setTexture(texture);
-          entry.ring.setVisible(id === selectedId);
+          entry.ring.setVisible(id === selectedId || presenting);
+          if (presenting && presentation) {
+            const projected = projectResident(entry.container, camera, entry.sprite.scaleX);
+            const frame: ScenePresentationFrame = {
+              ...presentation,
+              x: Math.round(projected.x * 100) / 100,
+              y: Math.round(projected.y * 100) / 100,
+              scale: Math.round(projected.scale * 100) / 100,
+              worldX: entry.container.x,
+              worldY: entry.container.y,
+              cameraZoom: Math.round(camera.zoom * 100) / 100,
+              pose: presentation.kind === "welcome" ? "wave" : "idle",
+              frame: Number(texture.slice(-1)),
+            };
+            const signature = JSON.stringify(frame);
+            if (signature !== lastFrame) {
+              lastFrame = signature;
+              options.onPresentationFrame?.(frame);
+            }
+          }
           const text =
             entry.actor.action === "talk"
               ? preset
               : this.time.now < entry.welcomeUntil
                 ? "ようこそ！"
                 : "";
-          entry.bubble.setText(text).setVisible(Boolean(text));
+          entry.bubble.setText(text).setVisible(!presenting && Boolean(text));
           index++;
         }
       },
@@ -226,6 +307,23 @@ export async function createDevelopmentCity(
     },
     select(id) {
       selectedId = id;
+    },
+    present(next) {
+      if (presentation?.id === next?.id && presentation?.kind === next?.kind) return;
+      presentation = next;
+      lastFrame = "";
+      sync();
+      const entry = next ? entries.get(next.id) : undefined;
+      transition =
+        entry && scene
+          ? {
+              startedAt: scene.time.now,
+              scrollX: scene.cameras.main.scrollX,
+              scrollY: scene.cameras.main.scrollY,
+              zoom: scene.cameras.main.zoom,
+            }
+          : null;
+      if (!next || !entry) options.onPresentationFrame?.(null);
     },
     act(id, action) {
       const entry = entries.get(id);

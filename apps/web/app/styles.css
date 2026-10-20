@@ -572,74 +572,74 @@ canvas {
   font-size: 0.8rem;
   color: #52675b;
 }
-.tablet-resident-card {
+.tablet-scene-canvas,
+.tablet-scene-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tablet-scene-overlay {
+  z-index: 1;
+  pointer-events: none;
+}
+.tablet-speech-tail {
+  fill: #fffdf4;
+  stroke: #467a65;
+  stroke-width: 2;
+}
+.tablet-resident-speech {
   box-sizing: border-box;
-  width: min(680px, calc(100vw - 32px));
-  max-height: calc(100dvh - 32px);
-  padding: clamp(20px, 4vw, 36px);
-  overflow: auto;
-  overflow-wrap: anywhere;
+  height: 100%;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   color: #20342c;
   background: #fffdf4;
-  border: 3px solid #467a65;
-  border-radius: 24px;
-  box-shadow: 0 16px 70px #182f3355;
+  border: 2px solid #467a65;
+  border-radius: 16px;
+  overflow-wrap: anywhere;
+  pointer-events: auto;
 }
-.tablet-resident-card::backdrop {
-  background: #16382a99;
+.tablet-speech-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
-.tablet-resident-card[data-animated="true"] {
-  animation: tablet-card-enter 180ms ease-out;
+.tablet-speech-content h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.25;
 }
-.tablet-resident-card h2 {
-  margin-block: 8px 20px;
-  font-size: clamp(1.5rem, 4vw, 2.2rem);
-}
-.tablet-card-eyebrow {
-  color: #467a65;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+.tablet-speech-content dl {
   margin: 0;
+  font-size: 21px;
+  line-height: 1.3;
 }
-.tablet-card-content {
-  display: grid;
-  grid-template-columns: 192px minmax(0, 1fr);
-  align-items: center;
-  gap: 24px;
+.tablet-speech-content dl > div {
+  display: flex;
+  gap: 10px;
+  margin-block: 4px;
 }
-.tablet-portrait {
-  display: block;
-  width: 192px;
-  height: 256px;
-  margin-inline: auto;
-}
-.tablet-profile-fields {
-  margin: 0;
-}
-.tablet-profile-fields div {
-  padding-block: 12px;
-  border-bottom: 1px solid #d2dbd4;
-}
-.tablet-profile-fields dt {
-  font-size: 0.85rem;
+.tablet-speech-content dt {
+  flex-shrink: 0;
   color: #52675b;
 }
-.tablet-profile-fields dd {
+.tablet-speech-content dd {
+  margin: 0;
+}
+.tablet-speech-content p {
+  font-size: 16px;
   margin: 6px 0 0;
-  font-size: 1.1rem;
-  font-weight: 600;
+  color: #52675b;
 }
-.tablet-card-actions,
-.tablet-resident-list > div {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.tablet-card-actions button,
+.tablet-resident-speech button,
 .tablet-resident-list button {
-  min-height: 44px;
-  padding: 10px 16px;
+  min-height: 48px;
+  padding: 8px 12px;
   font: inherit;
+  font-size: 20px;
   color: #244d3c;
   background: #edf2e8;
   border: 1px solid #829c88;
@@ -647,13 +647,26 @@ canvas {
   cursor: pointer;
   overflow-wrap: anywhere;
 }
-.tablet-card-actions button {
-  flex: 1;
+.tablet-resident-speech > button {
+  flex-shrink: 0;
 }
-.tablet-resident-card :focus-visible,
+.tablet-resident-speech[data-kind="welcome"] {
+  padding: 6px;
+}
+.tablet-resident-speech button.tablet-welcome-speech {
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  background: transparent;
+  border: 0;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.tablet-resident-speech :focus-visible,
 .tablet-resident-list :focus-visible {
   outline: 3px solid #b47128;
-  outline-offset: 3px;
+  outline-offset: -3px;
 }
 .tablet-resident-list {
   margin-top: 12px;
@@ -662,31 +675,13 @@ details.tablet-resident-list > summary {
   min-height: 44px;
   cursor: pointer;
 }
-.tablet-resident-list > div {
+.tablet-resident-list .tablet-resident-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
   max-height: 180px;
   overflow-y: auto;
   padding: 8px;
-}
-@keyframes tablet-card-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@media (max-width: 540px) {
-  .tablet-card-content {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .tablet-resident-card[data-animated="true"] {
-    animation: none;
-  }
 }
 .tablet-maintenance {
   min-height: 55dvh;

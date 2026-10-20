@@ -39,21 +39,77 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     const box = await canvas.boundingBox();
     if (!box) throw new Error("Canvas unavailable");
     await page.touchscreen.tap(box.x + (250 / 960) * box.width, box.y + (305 / 600) * box.height);
-    const profile = page.getByRole("dialog", { name: "そら", exact: true });
+    const profile = page.getByRole("region", { name: "そら", exact: true });
     await expect(profile).toBeVisible({ timeout: 5000 });
-    await expect(profile.getByAltText("そらの拡大イラスト", { exact: true })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".tablet-portrait")).toHaveCount(0);
+    await expect(profile).toHaveAttribute("data-actor-x", "480");
+    await expect(profile).toHaveAttribute("data-actor-y", "490");
+    await expect(profile).toHaveAttribute("data-scale", "1.8");
+    await expect(profile).toHaveAttribute("data-world-x", "250");
+    await expect(profile).toHaveAttribute("data-world-y", "365");
+    await expect(profile).toHaveAttribute("data-camera-zoom", "2");
     await expect(profile.getByText(/性格/)).toBeVisible();
     await expect(profile).toHaveAttribute("data-animated", "false");
-    expect(await profile.evaluate((element) => getComputedStyle(element).animationName)).toBe(
-      "none",
-    );
-    await expect(
-      profile.getByText("架空の住民・イラストとプロフィールの見本です。", { exact: true }),
-    ).toBeVisible();
-    const portrait = await profile.locator(".tablet-portrait").boundingBox();
-    expect(portrait?.height).toBeGreaterThanOrEqual(200);
+    await expect(profile.getByText("架空の住民・イラスト見本", { exact: true })).toBeVisible();
+    const speech = await profile.boundingBox();
+    expect(speech && speech.width * speech.height).toBeLessThan(box.width * box.height * 0.18);
     await page.screenshot({ path: "output/playwright/tablet-profile.png", fullPage: true });
+    // The map is interactive: tapping its exposed background closes camera focus.
+    await page.touchscreen.tap(box.x + box.width * 0.92, box.y + box.height * 0.9);
+    await expect(profile).toHaveCount(0);
+    await expect(page.locator(".tablet-scene-canvas")).toHaveAttribute("data-camera-zoom", "1");
+    await page.touchscreen.tap(box.x + (710 / 960) * box.width, box.y + (305 / 600) * box.height);
+    const other = page.getByRole("region", { name: "はる", exact: true });
+    await expect(other).toBeVisible();
+    await expect(other).toHaveAttribute("data-actor-x", "480");
+    await expect(profile).toHaveCount(0);
+    await page.setViewportSize({ width: 768, height: 1024 });
+    const portraitMap = await canvas.boundingBox();
+    const portraitSpeech = await other.boundingBox();
+    if (!portraitMap || !portraitSpeech) throw new Error("Portrait scene unavailable");
+    expect(portraitSpeech.x).toBeGreaterThanOrEqual(portraitMap.x);
+    expect(portraitSpeech.y).toBeGreaterThanOrEqual(portraitMap.y);
+    expect(portraitSpeech.x + portraitSpeech.width).toBeLessThanOrEqual(
+      portraitMap.x + portraitMap.width,
+    );
+    await page.screenshot({
+      path: "output/playwright/tablet-profile-portrait.png",
+      fullPage: true,
+    });
+    // Long public names scroll inside the same bounded bubble; controls stay visible.
+    const longName = "長い公開ニックネーム".repeat(8).slice(0, 80);
+    await page.route("**/api/link/display", async (route) => {
+      const response = await route.fetch();
+      const payload = await response.json();
+      payload.snapshot.eventSeq += 1000;
+      payload.snapshot.residents = payload.snapshot.residents.map(
+        (resident: { residentId: string; nickname: string }) =>
+          resident.residentId === "fixture-haru" ? { ...resident, nickname: longName } : resident,
+      );
+      await route.fulfill({ response, json: payload });
+    });
+    const longProfile = page.getByRole("region", { name: longName, exact: true });
+    await expect(longProfile).toBeVisible();
+    await expect(
+      longProfile.getByRole("button", { name: "拡大を閉じる", exact: true }),
+    ).toBeVisible();
+    expect(
+      await longProfile
+        .locator(".tablet-speech-content")
+        .evaluate((element) => element.scrollHeight > element.clientHeight),
+    ).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({
+      path: "output/playwright/tablet-profile-long-name.png",
+      fullPage: true,
+    });
     await page.keyboard.press("Escape");
+    await expect(longProfile).toHaveCount(0);
+    await page.unroute("**/api/link/display");
+    await expect(other).toHaveCount(0);
     await expect(profile).toHaveCount(0);
     await expect(canvas).toHaveCount(1);
   } finally {
@@ -64,7 +120,7 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
   }
 });
 
-test("new residents wave in order, profile reading has priority and removal or disconnection clears the card", async ({
+test("new residents wave at their city position, profiles have priority and removal or disconnection clears focus", async ({
   browser,
   request,
 }) => {
@@ -116,19 +172,22 @@ test("new residents wave in order, profile reading has priority and removal or d
     await page.getByLabel("8桁の接続コード").fill(pairing.code);
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
     await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     const first = await publish("あ");
-    const welcomeA = page.getByRole("dialog", { name: `ようこそ、${prefix}あさん！`, exact: true });
+    const welcomeA = page.getByRole("region", { name: `ようこそ、${prefix}あさん！`, exact: true });
     await expect(welcomeA).toBeVisible();
-    const portrait = welcomeA.locator(".tablet-portrait");
+    const portrait = welcomeA;
     await expect(portrait).toHaveAttribute("data-pose", "wave");
+    await expect(portrait).toHaveAttribute("data-camera-zoom", "1");
+    await expect(portrait).toHaveAttribute("data-world-x", "250");
+    await expect(portrait).toHaveAttribute("data-world-y", "365");
     // Observe a real frame change in one browser round trip, within the 3-second welcome.
     const changed = await portrait.evaluate(
       (image) =>
         new Promise<boolean>((resolve) => {
-          const initialSource = image.getAttribute("src");
+          const initialSource = image.getAttribute("data-frame");
           const observer = new MutationObserver(() => {
-            if (image.getAttribute("src") !== initialSource) {
+            if (image.getAttribute("data-frame") !== initialSource) {
               observer.disconnect();
               clearTimeout(timer);
               resolve(true);
@@ -138,14 +197,14 @@ test("new residents wave in order, profile reading has priority and removal or d
             observer.disconnect();
             resolve(false);
           }, 1000);
-          observer.observe(image, { attributes: true, attributeFilter: ["src"] });
+          observer.observe(image, { attributes: true, attributeFilter: ["data-frame"] });
         }),
     );
     expect(changed).toBe(true);
     await welcomeA
       .getByRole("button", { name: "プロフィールを見る", exact: true })
       .click({ timeout: 5000 });
-    const profileA = page.getByRole("dialog", { name: `${prefix}あ`, exact: true });
+    const profileA = page.getByRole("region", { name: `${prefix}あ`, exact: true });
     await expect(profileA).toBeVisible();
     await profileA.screenshot({ path: "output/playwright/tablet-live-profile.png" });
     await expect(profileA.getByText("非公開", { exact: true })).toBeVisible();
@@ -168,18 +227,18 @@ test("new residents wave in order, profile reading has priority and removal or d
     // Set the preference while reading a persistent card, before the next short welcome.
     await page.emulateMedia({ reducedMotion: "reduce" });
     await expect(profileA).toHaveAttribute("data-animated", "false");
-    await profileA.getByRole("button", { name: "街に戻る", exact: true }).click();
-    const welcomeB = page.getByRole("dialog", { name: `ようこそ、${prefix}いさん！`, exact: true });
+    await profileA.getByRole("button", { name: "拡大を閉じる", exact: true }).click();
+    const welcomeB = page.getByRole("region", { name: `ようこそ、${prefix}いさん！`, exact: true });
     await expect(welcomeB).toBeVisible();
     await expect(welcomeB).toHaveAttribute("data-animated", "false");
-    const still = await welcomeB.locator(".tablet-portrait").getAttribute("src");
+    const still = await welcomeB.getAttribute("data-frame");
     await page.waitForTimeout(500);
-    await expect(welcomeB.locator(".tablet-portrait")).toHaveAttribute("src", still ?? "");
-    await expect(page.getByRole("dialog")).toHaveCount(0, { timeout: 4500 });
+    await expect(welcomeB).toHaveAttribute("data-frame", still ?? "");
+    await expect(page.locator(".tablet-resident-speech")).toHaveCount(0, { timeout: 4500 });
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
     await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     await page.getByText("住民のプロフィールを選ぶ", { exact: true }).click();
     await page.getByRole("button", { name: `${prefix}あのプロフィール`, exact: true }).click();
     await expect(profileA).toBeVisible();
@@ -215,11 +274,11 @@ test("new residents wave in order, profile reading has priority and removal or d
     await expect(
       page.getByRole("button", { name: `${prefix}あのプロフィール`, exact: true }),
     ).toHaveCount(0);
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     await page.screenshot({ path: "output/playwright/tablet-stale-snapshot.png", fullPage: true });
     await page.unroute("**/api/link/display");
     await page.getByRole("button", { name: `${prefix}いのプロフィール`, exact: true }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator(".tablet-resident-speech")).toBeVisible();
     await publish("う");
     await expect(
       page.getByText(`${initial.snapshot.residents.length + 2}人 · 仮のイラストと用意された会話`, {
@@ -234,7 +293,7 @@ test("new residents wave in order, profile reading has priority and removal or d
     await expect(
       page.getByRole("heading", { name: "ただいま準備中です", exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     await expect(page.locator("canvas")).toHaveCount(0);
     const beforeResume = await (await manager.request.get("/api/link/admin")).json();
     await manager.request.post("/api/link/control", {
@@ -242,16 +301,16 @@ test("new residents wave in order, profile reading has priority and removal or d
       headers: postHeaders,
     });
     await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true");
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     await page.getByText("住民のプロフィールを選ぶ", { exact: true }).click();
     await page.getByRole("button", { name: `${prefix}いのプロフィール`, exact: true }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator(".tablet-resident-speech")).toBeVisible();
     await page.route("**/api/link/display", (route) => route.abort("internetdisconnected"));
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     await expect(page.locator("canvas")).toHaveCount(0);
     await page.unroute("**/api/link/display");
     await expect(page.locator("canvas")).toHaveCount(1);
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     expect(errors).toEqual([]);
   } finally {
     for (const context of visitors) {
