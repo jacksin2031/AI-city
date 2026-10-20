@@ -31,10 +31,10 @@
     "@firebase/rules-unit-testing": "6.0.0",
     "@google-cloud/firestore": "9.3.1",
     "@playwright/test": "1.64.1",
-    "@types/node": "26.6.5",
+    "@types/node": "24.19.2",
     "firebase": "13.0.0",
     "firebase-tools": "15.34.0",
-    "typescript": "7.0.2",
+    "typescript": "5.9.3",
     "vitest": "5.0.5"
   }
 }
