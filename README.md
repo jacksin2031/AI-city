@@ -45,6 +45,8 @@ pnpm emulators  # 本地 Auth / Firestore / Storage
 
 ## 两人如何协作
 
+GitHub 的当前基线、PR 依赖、Issue 缺口和整合方案见 [工作索引](docs/GITHUB_STATUS.md)。
+
 仓库默认关闭持久访客和免代码入场开关；使用说明见 [持久访客](docs/PERSISTENT_VISITORS.md)，免代码流程及验证见 [简化参加入口](docs/CODE_FREE_JOIN.md)。原邀请式云端版本证据保留在[访客发布记录](docs/releases/2026-10-19-persistent-visitors-preview.md)，不把历史邀请步骤当成新页面要求。所有模式仍使用虚构插画，浏览器不等于实机验收。
 
 | 主责 | 目录 | 工作范围 |
