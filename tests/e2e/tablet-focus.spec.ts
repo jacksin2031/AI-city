@@ -122,18 +122,32 @@ test("new residents wave in order, profile reading has priority and removal or d
     await expect(welcomeA).toBeVisible();
     const portrait = welcomeA.locator(".tablet-portrait");
     await expect(portrait).toHaveAttribute("data-pose", "wave");
-    const source = await portrait.getAttribute("src");
-    await expect.poll(() => portrait.getAttribute("src"), { intervals: [50] }).not.toBe(source);
-    await page.emulateMedia({ reducedMotion: "reduce" });
-    await expect(welcomeA).toHaveAttribute("data-animated", "false");
-    const reducedSource = await portrait.getAttribute("src");
-    await page.waitForTimeout(400);
-    await expect(portrait).toHaveAttribute("src", reducedSource ?? "");
-    await page.emulateMedia({ reducedMotion: "no-preference" });
-    await page.screenshot({ path: "output/playwright/tablet-welcome.png", fullPage: true });
-    await welcomeA.getByRole("button", { name: "プロフィールを見る", exact: true }).click();
+    // Observe a real frame change in one browser round trip, within the 3-second welcome.
+    const changed = await portrait.evaluate(
+      (image) =>
+        new Promise<boolean>((resolve) => {
+          const initialSource = image.getAttribute("src");
+          const observer = new MutationObserver(() => {
+            if (image.getAttribute("src") !== initialSource) {
+              observer.disconnect();
+              clearTimeout(timer);
+              resolve(true);
+            }
+          });
+          const timer = setTimeout(() => {
+            observer.disconnect();
+            resolve(false);
+          }, 1000);
+          observer.observe(image, { attributes: true, attributeFilter: ["src"] });
+        }),
+    );
+    expect(changed).toBe(true);
+    await welcomeA
+      .getByRole("button", { name: "プロフィールを見る", exact: true })
+      .click({ timeout: 5000 });
     const profileA = page.getByRole("dialog", { name: `${prefix}あ`, exact: true });
     await expect(profileA).toBeVisible();
+    await profileA.screenshot({ path: "output/playwright/tablet-live-profile.png" });
     await expect(profileA.getByText("非公開", { exact: true })).toBeVisible();
     await expect(profileA.getByText("非公開・指定なし", { exact: true })).toBeVisible();
     await publish("い");
@@ -145,6 +159,15 @@ test("new residents wave in order, profile reading has priority and removal or d
       headers: postHeaders,
     });
     await expect(profileA).toHaveAttribute("data-animated", "false");
+    const stopped = await (await manager.request.get("/api/link/admin")).json();
+    await manager.request.post("/api/link/control", {
+      data: { expectedRevision: stopped.control.revision, motionEnabled: true },
+      headers: postHeaders,
+    });
+    await expect(profileA).toHaveAttribute("data-animated", "true");
+    // Set the preference while reading a persistent card, before the next short welcome.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(profileA).toHaveAttribute("data-animated", "false");
     await profileA.getByRole("button", { name: "街に戻る", exact: true }).click();
     const welcomeB = page.getByRole("dialog", { name: `ようこそ、${prefix}いさん！`, exact: true });
     await expect(welcomeB).toBeVisible();
@@ -153,6 +176,7 @@ test("new residents wave in order, profile reading has priority and removal or d
     await page.waitForTimeout(500);
     await expect(welcomeB.locator(".tablet-portrait")).toHaveAttribute("src", still ?? "");
     await expect(page.getByRole("dialog")).toHaveCount(0, { timeout: 4500 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
     await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true");
     await expect(page.getByRole("dialog")).toHaveCount(0);
