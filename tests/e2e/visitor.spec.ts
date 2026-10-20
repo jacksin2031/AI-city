@@ -238,6 +238,15 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await expect(
       tablet.getByText("1人 · 仮のイラストと用意された会話", { exact: true }),
     ).toBeVisible();
+    const welcome = tablet.getByRole("dialog", {
+      name: "ようこそ、永続テスト・架空さん！",
+      exact: true,
+    });
+    await expect(welcome).toBeVisible();
+    await welcome.getByRole("button", { name: "プロフィールを見る", exact: true }).click();
+    const profile = tablet.getByRole("dialog", { name: "永続テスト・架空", exact: true });
+    await expect(profile.getByText("非公開", { exact: true })).toBeVisible();
+    await expect(profile.getByText("非公開・指定なし", { exact: true })).toBeVisible();
     const publicSnapshot = await (await tabletContext.request.get("/api/link/display")).json();
     expect(publicSnapshot.snapshot.residents[0]).toMatchObject({
       personalityLabel: "非公開",
@@ -253,6 +262,7 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await visitor.screenshot({ path: "output/playwright/persistent-visitor.png", fullPage: true });
     await tablet.screenshot({ path: "output/playwright/persistent-tablet.png", fullPage: true });
     await visitor.getByRole("button", { name: "一覧から削除", exact: true }).click();
+    await expect(profile).toHaveCount(0);
     await expect(
       tablet.getByText("0人 · 仮のイラストと用意された会話", { exact: true }),
     ).toBeVisible();

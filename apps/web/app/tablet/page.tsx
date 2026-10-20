@@ -104,7 +104,12 @@ export default function Tablet() {
       ) : (
         state.snapshot && (
           <>
-            <TabletCity residents={state.snapshot.residents} motion={control.motionEnabled} />
+            <TabletCity
+              key={`${control.serverId}:${control.displayMode}:${state.snapshot.streamId}`}
+              snapshot={state.snapshot}
+              motion={control.motionEnabled}
+              sample={control.displayMode === "DEMO"}
+            />
             <footer className="tablet-footer">
               <span>
                 {!control.motionEnabled
@@ -117,7 +122,7 @@ export default function Tablet() {
         )
       )}
       <p className="tablet-note">
-        写真からの生成・AIの会話ではありません。操作はスマホの管理画面で行います。
+        住民をタップすると公開プロフィールを表示します。写真からの生成・AIの会話ではありません。展示の管理はスマホから行います。
       </p>
     </main>
   );

@@ -3,6 +3,7 @@ import { DevelopmentApiError } from "@ai-city/contracts/development-client";
 import { createDeviceClient } from "@ai-city/contracts/device-client";
 import type { DeviceAdmin, DeviceDisplay } from "@ai-city/contracts/device-link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { mergeDeviceState } from "./device-state";
 
 type Feeds = { admin: DeviceAdmin; display: DeviceDisplay };
 export function useDeviceFeed<K extends keyof Feeds>(role: K) {
@@ -16,19 +17,7 @@ export function useDeviceFeed<K extends keyof Feeds>(role: K) {
   const mounted = useRef(false);
   const accept = useCallback((next: Feeds[K]) => {
     setLastReceivedAt(Date.now());
-    setState((previous) => {
-      if (
-        previous?.control.serverId === next.control.serverId &&
-        (next.control.revision < previous.control.revision ||
-          (next.control.revision === previous.control.revision &&
-            next.snapshot &&
-            previous.snapshot &&
-            next.snapshot.streamId === previous.snapshot.streamId &&
-            next.snapshot.eventSeq < previous.snapshot.eventSeq))
-      )
-        return previous;
-      return next;
-    });
+    setState((previous) => mergeDeviceState(previous, next));
   }, []);
   const reconnect = () => {
     setState(null);
