@@ -21,8 +21,7 @@ export function characterIllustration(
   const side = direction === "left" || direction === "right";
   const back = direction === "back";
   const gait = action === "walk" ? (frame % 2 === 0 ? -4 : 4) : 0;
-  const arm =
-    action === "wave" ? (frame % 2 === 0 ? -130 : -155) : action === "walk" ? gait * 2 : 0;
+  const arm = action === "wave" ? (frame % 2 === 0 ? 110 : 125) : action === "walk" ? gait * 2 : 0;
   const face = back
     ? ""
     : side
