@@ -14,6 +14,7 @@ Owner：A / B / Shared（填写实际负责人）
 
 - [ ] `pnpm check`
 - [ ] `pnpm test:rules`（涉及规则或数据访问）
+- [ ] `pnpm test:e2e`（涉及页面、CSP 或城市画面）
 - [ ] 浏览器/设备验证（如适用，附截图与条件）
 - 未运行项目、原因及风险：
 

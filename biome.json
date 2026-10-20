@@ -9,11 +9,13 @@
       "!pnpm-lock.yaml",
       "!docs/plans",
       "!.artifacts",
-      "!.tools"
+      "!.tools",
+      "!test-results",
+      "!playwright-report"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "lineWidth": 100 },
-  "linter": { "enabled": true, "rules": { "preset": "none" } },
+  "linter": { "enabled": true, "rules": { "preset": "recommended" } },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "javascript": { "formatter": { "quoteStyle": "double" } }
 }

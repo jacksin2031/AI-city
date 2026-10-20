@@ -1,11 +1,16 @@
 {
   "name": "@ai-city/contracts",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.5.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./fixtures": "./src/fixtures.ts"
+    "./fixtures": "./src/fixtures.ts",
+    "./development": "./src/development.ts",
+    "./development-client": "./src/development-client.ts",
+    "./device-link": "./src/device-link.ts",
+    "./device-client": "./src/device-client.ts",
+    "./visitor": "./src/visitor.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

@@ -30,7 +30,8 @@ if (!javaHome) {
   }
 }
 const mode = process.argv[2];
-if (!["start", "test"].includes(mode)) throw new Error("Expected start or test");
+if (!["start", "test", "persistence", "visitor-e2e", "join-e2e"].includes(mode))
+  throw new Error("Expected start, test, persistence, visitor-e2e or join-e2e");
 const cli = join(
   dirname(require.resolve("firebase-tools/package.json")),
   "lib",
@@ -38,20 +39,25 @@ const cli = join(
   "firebase.js",
 );
 const args =
-  mode === "test"
+  mode !== "start"
     ? [
         "emulators:exec",
         "--only",
-        "firestore",
+        mode === "test" ? "firestore,storage" : "firestore",
         "--project",
         "demo-ai-city",
         "--config",
         "firebase.json",
-        "pnpm exec vitest run --config vitest.rules.config.ts",
+        mode === "test"
+          ? "pnpm exec vitest run --config vitest.rules.config.ts"
+          : mode === "persistence"
+            ? "pnpm exec vitest run --config vitest.persistence.config.ts"
+            : "pnpm exec playwright test --config playwright.visitor.config.ts",
       ]
     : ["emulators:start", "--only", "auth,firestore,storage", "--project", "demo-ai-city"];
 const env = {
   ...process.env,
+  ...(mode === "join-e2e" ? { AI_CITY_TEST_CODE_FREE: "1" } : {}),
   ...(javaHome
     ? {
         JAVA_HOME: javaHome,

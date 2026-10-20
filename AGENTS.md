@@ -34,4 +34,4 @@
 
 ## 验证
 
-基础命令：`pnpm check`、`pnpm test:rules`。涉及浏览器时实际检查相应路由和控制台；涉及真实平板性能时在目标设备测量。标明 COMPLETE、PARTIAL、BLOCKED 或 IMPLEMENTED / NOT FULLY VALIDATED，不能降低标准来宣称完成。
+基础命令：`pnpm check`、`pnpm test:rules`、`pnpm test:e2e`。涉及浏览器时实际检查相应路由和控制台；涉及真实平板性能时在目标设备测量。标明 COMPLETE、PARTIAL、BLOCKED 或 IMPLEMENTED / NOT FULLY VALIDATED，不能降低标准来宣称完成。

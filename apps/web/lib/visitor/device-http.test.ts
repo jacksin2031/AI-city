@@ -1,0 +1,160 @@
+import { describe, expect, it } from "vitest";
+import { LocalParticipationService } from "../development/service";
+import { DeviceLinkService } from "../link/service";
+import { createVisitorBoundary } from "./credentials";
+import { handlePersistentDeviceRequest } from "./device-http";
+import { VisitorService } from "./service";
+import { MemoryVisitorStore } from "./test-store";
+
+const base = "https://exhibit.example";
+function request(path: string, token?: string, body?: unknown) {
+  return new Request(`${base}/api/link/${path}`, {
+    method: body === undefined ? "GET" : "POST",
+    headers: {
+      host: "exhibit.example",
+      ...(token ? { cookie: `ai-city-link=${token}` } : {}),
+      ...(body === undefined ? {} : { origin: base, "content-type": "application/json" }),
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+}
+describe("persistent snapshot device authorization", () => {
+  it("issues a signed invitation through the actual administrator request path", async () => {
+    const visitor = new VisitorService(new MemoryVisitorStore());
+    const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    const security = createVisitorBoundary("fixture-only-stable-key".repeat(3), "test");
+    const response = await handlePersistentDeviceRequest(
+      request("visitor-invitation", device.login("a".repeat(64)), {}),
+      device,
+      visitor,
+      true,
+      base,
+      false,
+      security,
+    );
+    expect(response.status).toBe(200);
+    const invitation = await response.json();
+    expect(security.readInvitation(invitation.code)).toMatch(/^[a-f0-9]{32}$/);
+  });
+  it("does not read/write visitor storage for unauthenticated devices or allow DISPLAY removal", async () => {
+    const store = new MemoryVisitorStore();
+    const visitor = new VisitorService(store);
+    const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    expect(
+      (await handlePersistentDeviceRequest(request("admin"), device, visitor, true, base)).status,
+    ).toBe(401);
+    expect(store.dump().size).toBe(0);
+    const admin = device.login("a".repeat(64));
+    const display = device.pair(device.createPairing(admin).code);
+    expect(
+      (
+        await handlePersistentDeviceRequest(
+          request("remove", display, { residentId: "resident-other" }),
+          device,
+          visitor,
+          true,
+          base,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await handlePersistentDeviceRequest(
+          request("visitor-invitation", display, {}),
+          device,
+          visitor,
+          true,
+          base,
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await handlePersistentDeviceRequest(
+          request("visitor-invitation", undefined, {}),
+          device,
+          visitor,
+          true,
+          base,
+        )
+      ).status,
+    ).toBe(401);
+    const participant = await visitor.createSession(
+      undefined,
+      (await visitor.createInvitation()).code,
+    );
+    expect(
+      (
+        await handlePersistentDeviceRequest(
+          request("remove", participant.token, { residentId: "resident-other" }),
+          device,
+          visitor,
+          true,
+          base,
+        )
+      ).status,
+    ).toBe(401);
+  });
+  it("validates the removal schema before mutating data", async () => {
+    const visitor = new VisitorService(new MemoryVisitorStore());
+    const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    const admin = device.login("a".repeat(64));
+    const response = await handlePersistentDeviceRequest(
+      request("remove", admin, { residentId: "resident-test", role: "ADMIN" }),
+      device,
+      visitor,
+      true,
+      base,
+    );
+    expect(response.status).toBe(400);
+  });
+  it("delivers persisted approved fields and makes admin removal durable", async () => {
+    let now = Date.now();
+    const store = new MemoryVisitorStore();
+    const visitor = new VisitorService(store, () => now);
+    const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    const participant = await visitor.createSession(
+      undefined,
+      (await visitor.createInvitation()).code,
+    );
+    const job = await visitor.createJob(participant.token, {
+      eventId: "fixture-event",
+      requestId: "device-job",
+      nickname: "架空",
+      sampleId: "sora",
+      answers: null,
+      scenario: "SUCCESS",
+    });
+    now += 1200;
+    await visitor.getJob(participant.token, job.job.jobId);
+    const view = await visitor.confirm(participant.token, job.job.jobId, {
+      consentVersion: 2,
+      publicationScope: "HOSTED_PREVIEW",
+      avatarPublicConsent: true,
+      fields: { nickname: true, personality: false, interests: false },
+    });
+    const admin = device.login("a".repeat(64));
+    const display = device.pair(device.createPairing(admin).code);
+    device.update(admin, { expectedRevision: 0, displayMode: "LIVE" });
+    const shown = await handlePersistentDeviceRequest(
+      request("display", display),
+      device,
+      visitor,
+      true,
+      base,
+    );
+    expect((await shown.json()).snapshot.residents).toHaveLength(1);
+    expect(
+      (
+        await handlePersistentDeviceRequest(
+          request("remove", admin, { residentId: view.resident?.residentId }),
+          device,
+          visitor,
+          true,
+          base,
+        )
+      ).status,
+    ).toBe(200);
+    expect((await new VisitorService(store, () => now).snapshot()).residents).toHaveLength(0);
+  });
+});

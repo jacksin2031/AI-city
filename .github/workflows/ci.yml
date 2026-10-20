@@ -48,6 +48,46 @@ jobs:
       - run: pnpm test:rules
         env:
           CI: 'true'
+      - run: pnpm test:persistence
+        env:
+          CI: 'true'
+  browser:
+    name: Browser smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          CI: 'true'
+          NEXT_TELEMETRY_DISABLED: '1'
+      - run: pnpm test:visitor:e2e
+        env:
+          CI: 'true'
+          NEXT_TELEMETRY_DISABLED: '1'
+      - run: pnpm test:join:e2e
+        env:
+          CI: 'true'
+          NEXT_TELEMETRY_DISABLED: '1'
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
   devcontainer:
     name: Dev Container
     runs-on: ubuntu-24.04
