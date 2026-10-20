@@ -2,8 +2,10 @@
 import { DevelopmentApiError } from "@ai-city/contracts/development-client";
 import type { createDeviceClient } from "@ai-city/contracts/device-client";
 import type { DeviceAdmin } from "@ai-city/contracts/device-link";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
+import { removeResidents } from "./actions";
+import ManagedResidents from "./residents";
 
 const modes = { DEMO: "イラストの見本", LIVE: "参加者の街", MAINTENANCE: "展示を休止" } as const;
 export default function Admin({
@@ -17,11 +19,27 @@ export default function Admin({
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
-  const [removeId, setRemoveId] = useState<string | null>(null);
+  const [revokeConfirm, setRevokeConfirm] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [now, setNow] = useState(0);
   const [invitation, setInvitation] = useState<{ code: string; expiresAt: string } | null>(null);
+  useEffect(() => {
+    if (!pairing) return;
+    const timer = setInterval(() => {
+      const timestamp = Date.now();
+      setNow(timestamp);
+      if (timestamp >= Date.parse(pairing.expiresAt)) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [pairing]);
+  const remainingSeconds = pairing
+    ? Math.max(0, Math.ceil((Date.parse(pairing.expiresAt) - now) / 1000))
+    : 0;
   async function run(action: (api: ReturnType<typeof createDeviceClient>) => Promise<unknown>) {
     setBusy(true);
-    feed.setError("");
+    setActionError("");
+    setNotice("");
     try {
       const result = await action(feed.api.current);
       if (!feed.mounted.current) return;
@@ -29,7 +47,7 @@ export default function Admin({
         feed.accept(result as DeviceAdmin);
     } catch (failure) {
       if (feed.mounted.current)
-        feed.setError(
+        setActionError(
           failure instanceof DevelopmentApiError
             ? failure.message
             : "操作を確認できませんでした。接続が戻ったら状態を確認してください。",
@@ -37,6 +55,21 @@ export default function Admin({
     } finally {
       if (feed.mounted.current) setBusy(false);
     }
+  }
+  async function withdraw(ids: string[]) {
+    let remaining = ids;
+    await run(async (api) => {
+      const result = await removeResidents(ids, (id) => api.remove(id));
+      remaining = result.remaining;
+      if (!feed.mounted.current) return;
+      setNotice(`${result.removed.length}人を公開一覧から削除しました。`);
+      if (remaining.length)
+        setActionError(
+          `残り${remaining.length}人の削除は完了を確認できませんでした。一覧を確認してから、必要な人だけ再選択してください。`,
+        );
+      return api.admin();
+    });
+    return remaining;
   }
   function login(event: FormEvent) {
     event.preventDefault();
@@ -59,6 +92,16 @@ export default function Admin({
       {feed.error && (
         <p className="flow-error" role="alert">
           {feed.error}
+        </p>
+      )}
+      {actionError && (
+        <p className="flow-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {notice && (
+        <p className="admin-notice" role="status">
+          {notice}
         </p>
       )}
       {feed.loading ? (
@@ -93,6 +136,76 @@ export default function Admin({
             </span>
           </div>
           <section className="flow-panel">
+            <h2>展示の操作</h2>
+            <p>
+              現在：{modes[state.control.displayMode]} ／ 動き
+              {state.control.motionEnabled ? "あり" : "停止"}
+            </p>
+            <div className="admin-actions">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run(async (api) => {
+                    const next = await api.update({
+                      expectedRevision: state.control.revision,
+                      displayMode: "LIVE",
+                      motionEnabled: true,
+                    });
+                    setNotice("参加者の街で展示を開始しました。");
+                    return next;
+                  })
+                }
+              >
+                展示を開始
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void run(async (api) => {
+                    const next = await api.update({
+                      expectedRevision: state.control.revision,
+                      displayMode: "MAINTENANCE",
+                      motionEnabled: false,
+                    });
+                    setNotice("展示を休止し、動きを止めました。");
+                    return next;
+                  })
+                }
+              >
+                休場する
+              </button>
+            </div>
+            <p className="muted">
+              接続中のタブレットに反映します。端末側の省動作設定を優先します。
+            </p>
+            <p className="muted">
+              最終通信：
+              {feed.lastReceivedAt
+                ? new Date(feed.lastReceivedAt).toLocaleTimeString("ja-JP")
+                : "確認中"}
+            </p>
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() =>
+                void run(async (api) => {
+                  const next = await api.admin();
+                  setNotice("現在の状態を確認しました。");
+                  return next;
+                })
+              }
+            >
+              今すぐ同期
+            </button>
+            <p className="muted">
+              通信は約1秒ごとに確認します。接続台数は通信の確認数で、描画完了の通知ではありません。
+            </p>
+          </section>
+          <section className="flow-panel">
             <h2>タブレットをつなぐ</h2>
             <p>タブレットで専用の展示画面を開き、コードを入力します。</p>
             <button
@@ -101,18 +214,25 @@ export default function Admin({
               onClick={() =>
                 void run(async (api) => {
                   const value = await api.pairing();
-                  if (feed.mounted.current) setPairing(value);
+                  if (feed.mounted.current) {
+                    setNow(Date.now());
+                    setPairing(value);
+                  }
                 })
               }
             >
               タブレットの接続コードを発行
             </button>
-            {pairing && (
+            {pairing && remainingSeconds > 0 && (
               <div className="pairing-code">
                 <strong data-testid="pair-code">{pairing.code}</strong>
                 <p>3分間・1回だけ有効。新しく発行すると前のコードは使えません。</p>
                 <p>有効期限：{new Date(pairing.expiresAt).toLocaleTimeString("ja-JP")}</p>
+                <p data-testid="pair-countdown">残り{remainingSeconds}秒</p>
               </div>
+            )}
+            {pairing && remainingSeconds === 0 && (
+              <p role="status">コードの有効期限が切れました。新しいコードを発行してください。</p>
             )}
           </section>
           {persistent && !codeFree && (
@@ -183,49 +303,7 @@ export default function Admin({
               {state.control.motionEnabled ? "動きを止める" : "動きを再開"}
             </button>
           </section>
-          <section className="flow-panel">
-            <h2>
-              公開中の住民 <span>{state.snapshot.residents.length}人</span>
-            </h2>
-            {!state.snapshot.residents.length && (
-              <p className="muted">まだ住民はいません。参加画面で確認した人だけ表示されます。</p>
-            )}
-            {state.snapshot.residents.map((resident) => (
-              <article className="managed-resident" key={resident.residentId}>
-                <strong>{resident.nickname}</strong>
-                {removeId === resident.residentId ? (
-                  <div>
-                    <p>この住民を街から削除しますか？</p>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(async (api) => {
-                          const next = await api.remove(resident.residentId);
-                          setRemoveId(null);
-                          return next;
-                        })
-                      }
-                    >
-                      削除を確定
-                    </button>
-                    <button type="button" className="secondary" onClick={() => setRemoveId(null)}>
-                      戻る
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() => setRemoveId(resident.residentId)}
-                  >
-                    街から削除
-                  </button>
-                )}
-              </article>
-            ))}
-          </section>
+          <ManagedResidents residents={state.snapshot.residents} busy={busy} remove={withdraw} />
           <details className="flow-panel">
             <summary>接続を終了する</summary>
             <p>解除したタブレットには街の情報が表示されなくなります。</p>
@@ -233,15 +311,43 @@ export default function Admin({
               type="button"
               className="secondary"
               disabled={busy}
-              onClick={() =>
-                void run(async (api) => {
-                  setPairing(null);
-                  return api.revoke();
-                })
-              }
+              onClick={() => setRevokeConfirm(true)}
             >
               タブレットの接続をすべて解除
             </button>
+            {revokeConfirm && (
+              <fieldset className="admin-confirm" aria-label="タブレットの解除確認">
+                <p>
+                  登録中のタブレット{state.pairedDisplays}
+                  台をすべて解除します。再接続には新しいコードが必要です。
+                </p>
+                <div className="admin-actions">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async (api) => {
+                        const next = await api.revoke();
+                        setPairing(null);
+                        setRevokeConfirm(false);
+                        setNotice("タブレットの接続をすべて解除しました。");
+                        return next;
+                      })
+                    }
+                  >
+                    解除を確定
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => setRevokeConfirm(false)}
+                  >
+                    解除をやめる
+                  </button>
+                </div>
+              </fieldset>
+            )}
             <p>
               <button
                 type="button"
@@ -252,6 +358,7 @@ export default function Admin({
                     await api.logout();
                     setPairing(null);
                     setInvitation(null);
+                    setRevokeConfirm(false);
                     feed.reconnect();
                   })
                 }

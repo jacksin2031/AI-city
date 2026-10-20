@@ -27,6 +27,8 @@ pnpm dev
 
 同/不同网络的手机与平板联动设置见 [接入指南](docs/MOBILE_TABLET_LINK.md)。云端入口：[手机管理](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/admin)、[平板展示](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/tablet)；管理钥匙取用、部署身份和验收边界见 [发布记录](docs/releases/2026-10-19-device-link-preview.md)。HTTPS 浏览器联动已验证；2026-10-19 用户已确认实机及不同网络连动成功。localhost 仅供同机浏览器验证。
 
+管理页新增住民搜索/排序/批次撤回、一键开场/休场、通信时间与手动同步、配对倒数及解除确认。操作语义与本地验收见 [管理控制](docs/ADMIN_CONTROLS.md)。
+
 没有 pnpm 时使用 Corepack 启用 `package.json` 指定的版本，或按 [pnpm 官方安装说明](https://pnpm.io/installation) 安装；不要换用 npm/yarn 重新生成 lockfile。开发无需云账号或 API key。
 
 ```sh

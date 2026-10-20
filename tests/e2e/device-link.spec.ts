@@ -101,6 +101,7 @@ test("mobile manager pairs an isolated tablet, controls it and revokes its read-
   await expect(tablet.locator("canvas")).toHaveCount(1);
   await phone.getByText("接続を終了する", { exact: true }).click();
   await phone.getByRole("button", { name: "タブレットの接続をすべて解除" }).click();
+  await phone.getByRole("button", { name: "解除を確定", exact: true }).click();
   await expect(tablet.getByRole("heading", { name: "タブレットを接続" })).toBeVisible();
   await expect(tablet.locator("canvas")).toHaveCount(0);
   expect(problems).toEqual([]);

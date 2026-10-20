@@ -396,6 +396,63 @@ canvas {
 .device-page input {
   touch-action: manipulation;
 }
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.admin-actions button {
+  flex: 1 1 130px;
+}
+.admin-filters {
+  display: grid;
+  gap: 12px;
+}
+.admin-filters input,
+.admin-filters select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.admin-filters select {
+  min-height: 44px;
+  padding: 10px;
+  font: inherit;
+  color: inherit;
+  background: #fffdf6;
+  border: 1px solid #829c88;
+  border-radius: 8px;
+}
+.admin-selection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  min-width: 0;
+}
+.admin-selection input {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.admin-selection strong {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.admin-confirm {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 16px;
+  margin-block: 16px;
+  border: 1px solid #b57c35;
+  border-radius: 8px;
+  background: #fff5e8;
+}
+.admin-notice {
+  padding: 16px;
+  border-left: 4px solid #467a65;
+  background: #edf2e8;
+}
 .device-kicker {
   color: #52675b;
   font-size: 0.85rem;

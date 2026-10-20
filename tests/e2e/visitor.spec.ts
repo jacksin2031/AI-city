@@ -7,6 +7,70 @@ import { isKnownCiDriverWarning } from "../helpers/browser-console";
 
 const codeFree = process.env.AI_CITY_TEST_CODE_FREE === "1";
 
+test("code-free manager batch withdrawal persists for both owners", async ({
+  browser,
+  request,
+}) => {
+  test.skip(!codeFree, "Batch management is checked with the public code-free flow");
+  test.setTimeout(60000);
+  const origin = "http://127.0.0.1:3001";
+  const { key } = await (
+    await request.post("/api/link/bootstrap", { data: {}, headers: { origin } })
+  ).json();
+  const managerContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const visitors = [];
+  const prefix = `一括確認${Date.now()}`;
+  try {
+    for (const suffix of ["あ", "い"]) {
+      const context = await browser.newContext();
+      visitors.push(context);
+      const visitor = await context.newPage();
+      await visitor.goto("/join");
+      await visitor.getByLabel("架空のニックネーム", { exact: true }).fill(prefix + suffix);
+      await visitor.getByRole("button", { name: "プレビューを作る", exact: true }).click();
+      await visitor.getByLabel("アバターをこの展示サイトに公開する", { exact: true }).check();
+      await visitor.getByLabel("ニックネームを表示する", { exact: true }).check();
+      await visitor
+        .getByRole("button", { name: "確認した項目を公開して街に参加", exact: true })
+        .click();
+      await expect
+        .poll(
+          async () =>
+            (await (await context.request.get("/api/visitor/jobs/current")).json()).publication,
+        )
+        .toBe("PUBLISHED");
+    }
+    const manager = await managerContext.newPage();
+    await manager.goto("/admin");
+    await manager.getByLabel("管理キー", { exact: true }).fill(key);
+    await manager.getByRole("button", { name: "管理画面に接続", exact: true }).click();
+    await manager.getByLabel("住民を検索", { exact: true }).fill(prefix);
+    await expect(manager.locator("article.managed-resident")).toHaveCount(2);
+    await manager.getByRole("button", { name: "表示中を選択", exact: true }).click();
+    await manager.getByRole("button", { name: "選択した住民を削除", exact: true }).click();
+    await manager.getByRole("button", { name: "選択した2人の削除を確定", exact: true }).click();
+    await expect(
+      manager.getByText("2人を公開一覧から削除しました。", { exact: true }),
+    ).toBeVisible();
+    for (const context of visitors) {
+      const view = await (await context.request.get("/api/visitor/jobs/current")).json();
+      expect(view.publication).toBe("REMOVED");
+    }
+    await manager.reload();
+    await expect(manager.getByRole("button", { name: "展示を開始", exact: true })).toBeVisible();
+    await expect(
+      manager.locator("article.managed-resident").filter({ hasText: prefix }),
+    ).toHaveCount(0);
+  } finally {
+    for (const context of visitors) {
+      await context.request.post("/api/visitor/logout", { data: {}, headers: { origin } });
+      await context.close();
+    }
+    await managerContext.request.post("/api/link/logout", { data: {}, headers: { origin } });
+    await managerContext.close();
+  }
+});
+
 test("the three role entry points have no hyperlinks between them", async ({
   browser,
   page,

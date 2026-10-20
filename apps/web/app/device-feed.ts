@@ -11,25 +11,25 @@ export function useDeviceFeed<K extends keyof Feeds>(role: K) {
   const [needsLogin, setNeedsLogin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [epoch, setEpoch] = useState(0);
+  const [lastReceivedAt, setLastReceivedAt] = useState<number | null>(null);
   const api = useRef(createDeviceClient());
   const mounted = useRef(false);
-  const accept = useCallback(
-    (next: Feeds[K]) =>
-      setState((previous) => {
-        if (
-          previous?.control.serverId === next.control.serverId &&
-          (next.control.revision < previous.control.revision ||
-            (next.control.revision === previous.control.revision &&
-              next.snapshot &&
-              previous.snapshot &&
-              next.snapshot.streamId === previous.snapshot.streamId &&
-              next.snapshot.eventSeq < previous.snapshot.eventSeq))
-        )
-          return previous;
-        return next;
-      }),
-    [],
-  );
+  const accept = useCallback((next: Feeds[K]) => {
+    setLastReceivedAt(Date.now());
+    setState((previous) => {
+      if (
+        previous?.control.serverId === next.control.serverId &&
+        (next.control.revision < previous.control.revision ||
+          (next.control.revision === previous.control.revision &&
+            next.snapshot &&
+            previous.snapshot &&
+            next.snapshot.streamId === previous.snapshot.streamId &&
+            next.snapshot.eventSeq < previous.snapshot.eventSeq))
+      )
+        return previous;
+      return next;
+    });
+  }, []);
   const reconnect = () => {
     setState(null);
     setLoading(true);
@@ -79,5 +79,16 @@ export function useDeviceFeed<K extends keyof Feeds>(role: K) {
       clearTimeout(timer);
     };
   }, [role, epoch, accept]);
-  return { state, error, setError, needsLogin, loading, api, accept, reconnect, mounted };
+  return {
+    state,
+    error,
+    setError,
+    needsLogin,
+    loading,
+    api,
+    accept,
+    reconnect,
+    mounted,
+    lastReceivedAt,
+  };
 }
