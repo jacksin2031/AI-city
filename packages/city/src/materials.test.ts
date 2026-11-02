@@ -51,7 +51,7 @@ describe("Blender facade parameters", () => {
   });
 });
 
-it("treats the visible back of a downward-facing roof as an upward-facing roof", () => {
+it("classifies horizontal roofs independently of face direction and inverted normals", () => {
   const source = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
   const { material } = cityMaterial("F_OfficeGrey", spec, source);
   const shader = {
@@ -61,6 +61,7 @@ it("treats the visible back of a downward-facing roof as an upward-facing roof",
   };
   material.onBeforeCompile(shader as never, {} as never);
   expect(shader.fragmentShader).toContain("gl_FrontFacing ? 1.0 : -1.0");
+  expect(shader.fragmentShader).toContain("if (abs(n.y) > roofThreshold)");
 });
 
 it("keeps station-sign UVs and the emissive texture when merging meshes", () => {

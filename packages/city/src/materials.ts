@@ -144,7 +144,9 @@ function pattern(name: string, spec: MaterialSpec) {
       code: /* glsl */ `
         vec3 n = normalize(vCityNormal) * (gl_FrontFacing ? 1.0 : -1.0);
         float seed = vCityBuilding.x;
-        if (n.y > roofThreshold) {
+        // Some exported horizontal faces have a normal opposite to their triangle winding.
+        // Classify roofs by slope, independently of either face orientation.
+        if (abs(n.y) > roofThreshold) {
           vec3 roofColour = mix(roofA, roofB, cityNoise(vCityPos * 1.6));
           vec3 altColour = seed > 0.85 ? vec3(0.262, 0.292, 0.242) : (seed > 0.55 ? altB : altA);
           diffuseColor.rgb = mix(roofColour, altColour, 0.55);
