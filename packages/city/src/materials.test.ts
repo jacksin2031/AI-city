@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { cityMaterial } from "./materials";
+import { cityMaterial, mergeCity } from "./materials";
 
 const spec = {
   kind: "facade" as const,
@@ -61,4 +61,19 @@ it("treats the visible back of a downward-facing roof as an upward-facing roof",
   };
   material.onBeforeCompile(shader as never, {} as never);
   expect(shader.fragmentShader).toContain("gl_FrontFacing ? 1.0 : -1.0");
+});
+
+it("keeps station-sign UVs and the emissive texture when merging meshes", () => {
+  const root = new THREE.Group();
+  const sign = new THREE.MeshStandardMaterial({ emissiveMap: new THREE.Texture() });
+  sign.name = "SIGN_ekimei_local_wl";
+  const board = new THREE.PlaneGeometry(2, 1);
+  root.add(new THREE.Mesh(board, sign), new THREE.Mesh(board.clone(), sign));
+  const merged = mergeCity(root, {});
+  const mesh = merged.getObjectByName("SIGN_ekimei_local_wl") as THREE.Mesh;
+  expect(mesh).toBeDefined();
+  expect(mesh.geometry.getAttribute("uv").count).toBe(8);
+  expect((mesh.material as THREE.MeshStandardMaterial).emissiveMap).toBe(sign.emissiveMap);
+  expect((mesh.material as THREE.MeshStandardMaterial).map).toBe(sign.emissiveMap);
+  expect((mesh.material as THREE.MeshStandardMaterial).color).toEqual(new THREE.Color(0xffffff));
 });

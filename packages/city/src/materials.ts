@@ -179,6 +179,11 @@ export function cityMaterial(
 ) {
   const material = source.clone();
   material.name = name;
+  // Older exports retain the sign image only as emission; restore its original base colour.
+  if (name.startsWith("SIGN_") && !material.map && material.emissiveMap) {
+    material.map = material.emissiveMap;
+    material.color.setRGB(1, 1, 1);
+  }
   if (!spec) return { material, building: false };
   material.roughness = spec.roughness;
   const made = pattern(name, spec);
@@ -253,7 +258,12 @@ export function mergeCity(root: THREE.Object3D, specs: MaterialSpecs): THREE.Gro
     const base = owner?.userData.base_z;
     const seed = randomFor(owner && owner !== root ? owner.name : mesh.name);
     const geometry = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
-    const keep = new Set(["position", "normal", ...(source.map ? ["uv"] : [])]);
+    // Station signs use emissive textures rather than a base-colour map.
+    const keep = new Set([
+      "position",
+      "normal",
+      ...(source.map || source.emissiveMap ? ["uv"] : []),
+    ]);
     for (const attribute of Object.keys(geometry.attributes))
       if (!keep.has(attribute)) geometry.deleteAttribute(attribute);
     if (!geometry.index)
