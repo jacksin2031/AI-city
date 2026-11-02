@@ -58,6 +58,7 @@ export function TabletCity({
     media.addEventListener("change", applyMotion);
     createDevelopmentCity(parent.current, {
       residents: latest.current.residents,
+      fillViewport: true,
       motionEnabled: latest.current.motion && !media.matches,
       signal: lifetime.signal,
       onSelect: (id) => {

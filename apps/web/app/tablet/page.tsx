@@ -1,5 +1,5 @@
 "use client";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 import { TabletCity } from "./city";
 export default function Tablet() {
@@ -7,6 +7,13 @@ export default function Tablet() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const update = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", update);
+    update();
+    return () => document.removeEventListener("fullscreenchange", update);
+  }, []);
   async function pair(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -62,26 +69,9 @@ export default function Tablet() {
       </main>
     );
   const control = state.control;
-  const mode =
-    control.displayMode === "DEMO"
-      ? "架空の住民・イラスト見本"
-      : control.displayMode === "LIVE"
-        ? "参加者の街"
-        : "展示を休止中";
   return (
     <main className="tablet-display">
-      {/* The theme title floats over the full-screen city, top left. */}
-      <header className="tablet-title">
-        <h1>
-          <span>バーチャル御茶ノ水</span>
-          <small>～もうひとりの自分が暮らす街～</small>
-        </h1>
-        <p>{mode}</p>
-      </header>
       <div className="tablet-controls">
-        <span role="status" className="connection-pill">
-          スマホと連携中
-        </span>
         <button
           type="button"
           onClick={async () => {
@@ -94,7 +84,7 @@ export default function Tablet() {
             }
           }}
         >
-          全画面
+          {fullscreen ? "全画面を終了" : "全画面"}
         </button>
         {fullscreenError && <p role="status">{fullscreenError}</p>}
       </div>
@@ -112,19 +102,10 @@ export default function Tablet() {
               motion={control.motionEnabled}
               sample={control.displayMode === "DEMO"}
             />
-            <footer className="tablet-footer">
-              <span>
-                {!control.motionEnabled
-                  ? "動きは停止中"
-                  : "街の動きは端末の設定に合わせて表示します"}
-              </span>
-              <span>
-                {state.snapshot.residents.length}人 · 仮のイラスト・用意された会話・模擬交通
-              </span>
-              <span className="tablet-note">
-                住民をタップすると公開プロフィールを表示します。写真からの生成・AIの会話ではありません。
-              </span>
-            </footer>
+            <p className="tablet-disclaimer">
+              {control.displayMode === "DEMO" ? "架空の住民" : "仮のイラスト"}・会話と交通は見本
+              {!control.motionEnabled && "・動きは停止中"}
+            </p>
           </>
         )
       )}

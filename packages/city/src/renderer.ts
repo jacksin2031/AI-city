@@ -27,6 +27,7 @@ import {
   stepActor,
 } from "./simulation";
 import { createTraffic, type TrafficData } from "./traffic-scene";
+import { cityViewport } from "./viewport";
 import { type CityPlaces, createWorld, heightAt, parseGrid, tour, type World } from "./world";
 
 export type IllustratedCity = {
@@ -150,6 +151,8 @@ export async function createDevelopmentCity(
   options: {
     residents?: PublicResident[];
     motionEnabled?: boolean;
+    /** Fill the viewport while keeping the scene aspect ratio. */
+    fillViewport?: boolean;
     signal?: AbortSignal;
     /** Where the exported 3D city is served from (same origin). */
     assetBase?: string;
@@ -367,14 +370,12 @@ function startCity(
   function resize() {
     const width = parent.clientWidth || SCREEN.width;
     const height = parent.clientHeight || (width * SCREEN.height) / SCREEN.width;
-    const scale = Math.min(width / SCREEN.width, height / SCREEN.height);
-    const w = Math.max(1, Math.floor(SCREEN.width * scale));
-    const h = Math.max(1, Math.floor(SCREEN.height * scale));
-    renderer.setSize(w, h, false);
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    canvas.style.marginLeft = `${Math.max(0, (width - w) / 2)}px`;
-    canvas.style.marginTop = parent.clientHeight ? `${Math.max(0, (height - h) / 2)}px` : "0";
+    const layout = cityViewport(width, height, options.fillViewport ?? false);
+    renderer.setSize(Math.max(1, layout.width), Math.max(1, layout.height), false);
+    canvas.style.width = `${layout.width}px`;
+    canvas.style.height = `${layout.height}px`;
+    canvas.style.marginLeft = `${layout.left}px`;
+    canvas.style.marginTop = parent.clientHeight ? `${layout.top}px` : "0";
   }
   const resizer = new ResizeObserver(resize);
   resizer.observe(parent);
