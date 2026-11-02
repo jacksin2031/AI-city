@@ -290,6 +290,9 @@ function startCity(
   sun.shadow.normalBias = 0.6;
   scene.add(sun, sun.target);
 
+  // Read this before mergeCity bakes the source mesh transforms into the combined geometry.
+  const metroRailHeightOffset =
+    cityModel.scene.getObjectByName("Rail_Metro_Marunouchi")?.position.y ?? 0;
   const city = mergeCity(cityModel.scene, specs);
   scene.add(city);
   const vehicles = vehicleModel.scene;
@@ -298,7 +301,7 @@ function startCity(
     if (mesh.isMesh) mesh.castShadow = true;
   });
   scene.add(vehicles);
-  const traffic = createTraffic(trafficData, vehicles, city);
+  const traffic = createTraffic(trafficData, vehicles, city, metroRailHeightOffset);
 
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 4000);
   const residentLayer = new THREE.Group();

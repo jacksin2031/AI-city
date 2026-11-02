@@ -13,6 +13,7 @@ import {
 type Route = {
   name: string;
   kind: "road" | "rail";
+  line?: string;
   pts: Point3[];
   length: number;
   stops?: TrafficStop[];
@@ -42,7 +43,12 @@ type RunningVehicle = {
 };
 
 /** Simulated, local-only traffic. Coordinates in the source data are Blender ENU metres. */
-export function createTraffic(data: TrafficData, model: THREE.Object3D, city: THREE.Object3D) {
+export function createTraffic(
+  data: TrafficData,
+  model: THREE.Object3D,
+  city: THREE.Object3D,
+  metroRailHeightOffset = 0,
+) {
   const routes = new Map(data.paths.map((route) => [route.name, route]));
   const running: RunningVehicle[] = [];
   for (const entry of data.vehicles) {
@@ -130,6 +136,9 @@ export function createTraffic(data: TrafficData, model: THREE.Object3D, city: TH
         else
           direction.set(sample.direction[0], sample.direction[2], -sample.direction[1]).normalize();
       }
+      // The exported visible Metro track has its own vertical transform; path data does not.
+      if (v.route.kind === "rail" && v.route.line === "marunouchi")
+        part.object.position.y += metroRailHeightOffset;
       // Preserve world-up while aligning the vehicle's +X axis with the path.
       // A shortest-arc rotation alone can turn the roof upside down near -X.
       side.crossVectors(direction, worldUp);

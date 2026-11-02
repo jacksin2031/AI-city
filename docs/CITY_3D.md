@@ -34,6 +34,7 @@ blender -b School.blend -S Ochanomizu --python scripts/blender/export-ochanomizu
 - 嵌入贴图通过 `<img>` 加载以符合 CSP 的 `connect-src 'self'`。
 - 交通使用本地模拟时钟：41 辆汽车使用既有模型、分布在 16 条道路，信号每 40 秒循环；汽车在匹配的黄灯及红灯前停车，并在同一路径保持间距。列车在推定的御茶ノ水站台停车至少 15 秒，于下一模拟分钟发车。显示的交通、信号周期和列车班次均非实时或实际时刻表。
 - `traffic.json` 从 Blender 管线的 `vehicles.json`、`signals.json` 生成，信号根据道路距离、朝向、高度匹配；月台中心由场景几何估算。行人接近匹配方向及高度的行人信号时，在红灯和闪烁绿灯前等待，稳定绿灯时出发；已进入路口的行人继续通行。灯光与行人共用模拟时钟。重新生成：`python scripts/build-traffic.py <vehicles.json> <signals.json> apps/web/public/city3d/traffic.json`。重新导出模型后应同时重新生成并验证交通数据。
+- 丸ノ内线列车使用轨道模型 `Rail_Metro_Marunouchi` 的垂直偏移，使两方向列车与可见轨道保持同一高度；其他路线不使用此偏移。
 - `/city` 的「イラストの見本」提供 12 名虚构居民作演示；新增角色共用占位画风，不写入参与者数据或服务端。
 - 管理页面可选择最多六名虚构预设住民，与参加者一起显示；样例名称和资料卡明确标识。选择仅保存在设备连接服务的进程内，重启后清空；展示上限 20 人，参加者优先。
 

@@ -143,6 +143,40 @@ it("uses the carriage span to avoid pitching on a single noisy track point", () 
   expect(Math.abs(train.position.y)).toBeLessThan(0.1);
 });
 
+it("applies the Metro track height only to Marunouchi rail vehicles", () => {
+  const model = new THREE.Group();
+  for (const name of ["Train_metro_car01", "Train_other_car01", "Car_road_body"]) {
+    const object = new THREE.Object3D();
+    object.name = name;
+    model.add(object);
+  }
+  const path = {
+    pts: [
+      [0, 0, 10],
+      [100, 0, 10],
+    ] as [number, number, number][],
+    length: 100,
+  };
+  const data: TrafficData = {
+    pedestrianSignals: [],
+    paths: [
+      { ...path, name: "metro", kind: "rail", line: "marunouchi" },
+      { ...path, name: "other", kind: "rail", line: "chuo" },
+      { ...path, name: "road", kind: "road" },
+    ],
+    vehicles: [
+      { controller: "Train_metro", path: "metro", s: 30, cars: 1, car_length: 10 },
+      { controller: "Train_other", path: "other", s: 30, cars: 1, car_length: 10 },
+      { controller: "Car_road", path: "road", s: 30 },
+    ],
+  };
+  const traffic = createTraffic(data, model, new THREE.Group(), -5.25);
+  traffic.update(1);
+  expect(model.getObjectByName("Train_metro_car01")?.position.y).toBeCloseTo(4.75);
+  expect(model.getObjectByName("Train_other_car01")?.position.y).toBeCloseTo(10);
+  expect(model.getObjectByName("Car_road_body")?.position.y).toBeCloseTo(10);
+});
+
 it("adds a shared-model car without overlapping traffic when a route loops", () => {
   const model = new THREE.Group();
   const source = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1), new THREE.MeshStandardMaterial());

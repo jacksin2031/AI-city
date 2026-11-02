@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { type Actor, createActor, stepActor } from "./simulation";
-import type { TrafficData } from "./traffic-scene";
+import { samplePath } from "./traffic";
+import { createTraffic, type TrafficData } from "./traffic-scene";
 import { type CityPlaces, findPath, nearestWalkable, parseGrid, type World } from "./world";
 
 const asset = (name: string) =>
@@ -49,6 +51,38 @@ describe("exported traffic assets", () => {
       }
     }
   });
+});
+
+it("aligns both Marunouchi trains with the exported track's height transform", () => {
+  const data = JSON.parse(readFileSync(asset("traffic.json"), "utf8")) as TrafficData;
+  const glb = readFileSync(asset("city.glb"));
+  const length = glb.readUInt32LE(12);
+  const city = JSON.parse(glb.subarray(20, 20 + length).toString("utf8")) as {
+    nodes: { name: string; translation?: number[] }[];
+  };
+  const height = city.nodes.find((node) => node.name === "Rail_Metro_Marunouchi")?.translation?.[1];
+  expect(height).toBeDefined();
+  expect(Math.abs(height ?? 0)).toBeGreaterThan(1);
+  const vehicles = data.vehicles.filter((entry) => entry.controller.includes("marunouchi"));
+  expect(vehicles).toHaveLength(2);
+  const model = new THREE.Group();
+  for (const entry of vehicles) {
+    const car = new THREE.Object3D();
+    car.name = `${entry.controller}_car01`;
+    model.add(car);
+  }
+  createTraffic(data, model, new THREE.Group(), height);
+  for (const entry of vehicles) {
+    const route = data.paths.find((path) => path.name === entry.path);
+    expect(route?.line).toBe("marunouchi");
+    const centre = entry.s - (entry.car_length ?? 0) / 2;
+    const span = (entry.car_length ?? 0) * 0.4;
+    const rear = samplePath(route?.pts ?? [], centre - span).position[2];
+    const front = samplePath(route?.pts ?? [], centre + span).position[2];
+    expect(model.getObjectByName(`${entry.controller}_car01`)?.position.y).toBeCloseTo(
+      (rear + front) / 2 + (height ?? 0),
+    );
+  }
 });
 
 it("can stop a routed sample walker at an exported pedestrian signal", () => {
