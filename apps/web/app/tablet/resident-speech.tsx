@@ -71,21 +71,46 @@ export function ResidentSpeech({
           ) : (
             <>
               <div className="tablet-speech-content">
+                <p className="tablet-card-kicker">バーチャル御茶ノ水の住民</p>
                 <h2>{resident.nickname}</h2>
+                <p className="tablet-card-activity">
+                  <span aria-hidden="true" />
+                  いま：{anchor.activity}
+                </p>
                 <dl>
                   <div>
                     <dt>性格</dt>
-                    <dd>{resident.personalityLabel}</dd>
+                    <dd>
+                      <span className="tablet-chip">{resident.personalityLabel}</span>
+                    </dd>
                   </div>
                   <div>
                     <dt>興味</dt>
-                    <dd>{resident.interests.join("・") || "非公開・指定なし"}</dd>
+                    <dd>
+                      {resident.interests.length ? (
+                        resident.interests.map((interest) => (
+                          <span className="tablet-chip" key={interest}>
+                            {interest}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="tablet-chip muted">非公開・指定なし</span>
+                      )}
+                    </dd>
                   </div>
                 </dl>
-                <p>{sample ? "架空の住民・イラスト見本" : "仮のイラスト・本人の公開項目のみ"}</p>
+                <p className="tablet-card-note">
+                  {sample ? "架空の住民・イラスト見本" : "仮のイラスト・本人の公開項目のみ"}
+                </p>
               </div>
-              <button ref={closeButton} type="button" onClick={close}>
-                拡大を閉じる
+              <button
+                ref={closeButton}
+                className="tablet-card-close"
+                type="button"
+                onClick={close}
+                aria-label="拡大を閉じる"
+              >
+                ×
               </button>
             </>
           )}

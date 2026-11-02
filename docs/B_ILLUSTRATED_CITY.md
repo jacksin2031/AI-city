@@ -16,8 +16,10 @@
 | 文件 | 当前实现 | 后续责任 |
 | --- | --- | --- |
 | `packages/city/src/illustrations.ts` | 本地 SVG 角色/街景，预设两套配色，未知版本用通用占位角色 | 正式角色素材、外观一致性、街景 |
-| `packages/city/src/renderer.ts` | Phaser 画面、点击、动态纹理、最多 20 人、单一预设气泡 | 真实资源加载、镜头、调度、性能 |
-| `packages/city/src/simulation.ts` | 四个固定路点环线、五动作与方向 | 正式行为/避障；当前不是通用寻路 |
+| `packages/city/src/renderer.ts` | three.js 3D 街景（Blender 导出，见 [CITY_3D](CITY_3D.md)）、点击、最多 20 人、单一预设气泡 | 目标平板性能、镜头、调度 |
+| `packages/city/src/materials.ts` | 用着色器重建 Blender 程序化材质（窗格、砖、噪声） | 与 Blender 外观的进一步对齐 |
+| `packages/city/src/world.ts` | 1 m 步行网格 A* 寻路、地标与店面目的地 | 正式行为/避障 |
+| `packages/city/src/simulation.ts` | 沿步行网格走向目的地、五动作与朝向 | 正式行为/避障；居民之间尚无碰撞 |
 | `packages/city/src/roster.ts` | 严格快照验证、同流旧序号忽略、重启替换 | 保留删除优先与公共数据边界 |
 | `apps/web/app/city/preview.tsx` | 生命周期、非重叠轮询、公开资料与键盘控件 | 保留可访问控件及断线清除 |
 

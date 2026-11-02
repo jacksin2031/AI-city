@@ -8,45 +8,170 @@ export function illustrationPalette(avatarVersion: string): "sora" | "haru" | "g
       : "guest";
 }
 
-/** Original, code-drawn placeholder art. No input text, photo or external resource enters SVG. */
+type Palette = {
+  hair: string;
+  hairShade: string;
+  hairLight: string;
+  eye: string;
+  body: string;
+  bodyShade: string;
+  sleeve: string;
+  sleeveShade: string;
+  cuff: string;
+  inner: string;
+  legs: string;
+  socks: string;
+  shoe: string;
+  skirt?: string;
+  long?: boolean;
+};
+// Autumn outfits (November). Fixed palettes only: no resident data reaches the SVG.
+const palettes: Record<ReturnType<typeof illustrationPalette>, Palette> = {
+  sora: {
+    hair: "#8b5a3c",
+    hairShade: "#64391f",
+    hairLight: "#c08a5e",
+    eye: "#5a3a26",
+    body: "#efe4cc",
+    bodyShade: "#d3c3a1",
+    sleeve: "#2d5aa6",
+    sleeveShade: "#1f4282",
+    cuff: "#efe4cc",
+    inner: "#ffffff",
+    legs: "#ffe1cf",
+    socks: "#ffffff",
+    shoe: "#2c3e66",
+  },
+  haru: {
+    hair: "#4b3226",
+    hairShade: "#2f1d15",
+    hairLight: "#7a5543",
+    eye: "#6b3f5e",
+    body: "#d9a441",
+    bodyShade: "#b9852c",
+    sleeve: "#d9a441",
+    sleeveShade: "#b9852c",
+    cuff: "#fbf6ec",
+    inner: "#fbf6ec",
+    legs: "#3a3540",
+    socks: "#3a3540",
+    shoe: "#6b3f2a",
+    skirt: "#7a4b3a",
+    long: true,
+  },
+  guest: {
+    hair: "#2e2a2b",
+    hairShade: "#171415",
+    hairLight: "#5a5354",
+    eye: "#3b4a5e",
+    body: "#4f8a6a",
+    bodyShade: "#3a6c51",
+    sleeve: "#4f8a6a",
+    sleeveShade: "#3a6c51",
+    cuff: "#3a6c51",
+    inner: "#f4f1e8",
+    legs: "#3d5a80",
+    socks: "#f4f1e8",
+    shoe: "#e9e4da",
+  },
+};
+const line = "#4a2e24";
+const skin = "#ffe3d3";
+const skinShade = "#f6c6b0";
+/** Head geometry in its drawing grid (rendered 7 units lower), shared with the wave test. */
+export const head = { cx: 48, cy: 46, rx: 22, ry: 20.5, offsetY: 7 } as const;
+
+function eye(cx: number, cy: number, color: string, narrow = false) {
+  const rx = narrow ? 3.4 : 4.8;
+  return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="5.8" fill="#fff" stroke="none"/><ellipse cx="${cx}" cy="${cy + 0.6}" rx="${rx - 1}" ry="4.8" fill="${color}" stroke="none"/><ellipse cx="${cx}" cy="${cy + 1.6}" rx="${rx - 2.4}" ry="2.8" fill="#1f1412" stroke="none"/><circle cx="${cx - 1.4}" cy="${cy - 1.6}" r="1.6" fill="#fff" stroke="none"/><circle cx="${cx + 1.3}" cy="${cy + 2.6}" r=".8" fill="#fff" stroke="none"/><path d="M${cx - rx - 0.6} ${cy - 3.6}q${rx + 0.6} -4 ${rx * 2 + 1.2} 0" fill="none" stroke="${line}" stroke-width="2"/>`;
+}
+
+/** Original, code-drawn chibi placeholder art. No input text, photo or external resource enters SVG. */
 export function characterIllustration(
   avatarVersion: string,
   direction: Direction = "front",
   action: CityAction = "idle",
   frame = 0,
 ): string {
-  const palette = illustrationPalette(avatarVersion);
-  const shirt = palette === "sora" ? "#508b75" : palette === "haru" ? "#8881bc" : "#b98059";
-  const hair = palette === "haru" ? "#584033" : "#363a37";
+  const p = palettes[illustrationPalette(avatarVersion)];
   const side = direction === "left" || direction === "right";
   const back = direction === "back";
-  const gait = action === "walk" ? (frame % 2 === 0 ? -4 : 4) : 0;
-  const arm = action === "wave" ? (frame % 2 === 0 ? 110 : 125) : action === "walk" ? gait * 2 : 0;
-  const face = back
-    ? ""
+  const sit = action === "sit";
+  const wave = action === "wave" && !side;
+  const gait = action === "walk" ? (frame % 2 === 0 ? -3 : 3) : 0;
+  const drop = sit ? 6 : 0;
+
+  // —— Legs and shoes ——
+  const leg = (x: number, lift: number) =>
+    `<path d="M${x} 100v${14 - lift}" stroke="${p.legs}" stroke-width="7"/><path d="M${x} ${110 - lift}v4" stroke="${p.socks}" stroke-width="7"/><path d="M${x - 6} ${116 - lift}h10a3.2 3.2 0 0 1 0 6.4h-10a3.2 3.2 0 0 1 0-6.4z" fill="${p.shoe}"/><path d="M${x - 6} ${121.6 - lift}h10" stroke="#fff" stroke-width="1.1"/>`;
+  const seated = `<ellipse cx="41" cy="108" rx="7" ry="5" fill="${p.legs}"/><ellipse cx="55" cy="108" rx="7" ry="5" fill="${p.legs}"/><path d="M41 112v4M55 112v4" stroke="${p.socks}" stroke-width="6"/><path d="M35 116h11a3 3 0 0 1 0 6H35a3 3 0 0 1 0-6zM49 116h11a3 3 0 0 1 0 6H49a3 3 0 0 1 0-6z" fill="${p.shoe}"/>`;
+  const legs = sit
+    ? seated
     : side
-      ? `<circle cx="${direction === "right" ? 58 : 37}" cy="38" r="2.3" fill="#27332e"/><path d="M${direction === "right" ? "59 49q5 2 7-2" : "29 47q2 4 7 2"}" fill="none"/>`
-      : `<circle cx="39" cy="38" r="2.3" fill="#27332e"/><circle cx="57" cy="38" r="2.3" fill="#27332e"/>${action === "talk" ? '<ellipse cx="48" cy="48" rx="4" ry="3" fill="#bb6a64"/>' : '<path d="M42 47q6 7 12 0" fill="none"/>'}<ellipse cx="32" cy="44" rx="4" ry="2" fill="#e9a48b" stroke="none"/><ellipse cx="64" cy="44" rx="4" ry="2" fill="#e9a48b" stroke="none"/>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="128" viewBox="0 0 96 128"><ellipse cx="48" cy="119" rx="25" ry="5" fill="#35463b" opacity=".16"/><g stroke="#34443c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M36 88v${18 + gait}m24-${18 + gait}v${18 - gait}" stroke-width="11" stroke="#f5eee0"/><rect x="26" y="${104 + gait}" width="19" height="9" rx="4" fill="#455c53"/><rect x="51" y="${104 - gait}" width="19" height="9" rx="4" fill="#455c53"/><g transform="rotate(${arm} 29 67)"><path d="M28 65L22 88" stroke="${shirt}" stroke-width="13"/><circle cx="21" cy="91" r="6" fill="#f3c8a1"/></g><g transform="rotate(${-gait * 2} 67 67)"><path d="M68 65l6 23" stroke="${shirt}" stroke-width="13"/><circle cx="75" cy="91" r="6" fill="#f3c8a1"/></g><rect x="28" y="58" width="40" height="38" rx="12" fill="${shirt}"/><path d="M38 58l10 10 10-10" fill="#fbfaf1"/><circle cx="48" cy="36" r="25" fill="${back ? hair : "#f3c8a1"}"/>${back ? '<path d="M29 49q19 12 38 0" fill="none" stroke="#8a735b"/>' : `<path d="M24 34q-3-25 22-25 27-3 27 25l-9-12-10 4-9-9-10 11z" fill="${hair}"/>${face}`}${palette === "haru" && !back ? '<path d="M25 29q-5 18 3 25M71 29q5 18-3 25" fill="none" stroke="#584033" stroke-width="6"/>' : ""}</g></svg>`;
+      ? `${leg(45 - gait, Math.max(0, gait))}${leg(51 + gait, Math.max(0, -gait))}`
+      : `${leg(41, Math.max(0, gait))}${leg(55, Math.max(0, -gait))}`;
+
+  // —— Torso and arms ——
+  const skirt = p.skirt
+    ? `<path d="M32 94h32l5 13q-21 5-42 0z" fill="${p.skirt}"/><path d="M40 95l-2 12M48 95v13M56 95l2 12" stroke="${line}" stroke-width=".8" opacity=".5"/>`
+    : "";
+  const torso = back
+    ? `<path d="M34 76q14-6 28 0l3 26q-17 4-34 0z" fill="${p.body}"/><path d="M48 76v26" stroke="${p.bodyShade}" stroke-width="1.2"/><path d="M40 74q8 4 16 0" fill="none" stroke="${p.sleeveShade}" stroke-width="2.4"/>`
+    : side
+      ? `<path d="M38 76q10-5 20 0l3 26q-13 4-26 0z" fill="${p.body}"/><path d="M53 77l5-1 3 26-6 1z" fill="${p.bodyShade}" stroke="none" opacity=".7"/>`
+      : `<path d="M34 76q14-6 28 0l3 26q-17 4-34 0z" fill="${p.body}"/><path d="M45 74.5h6l-1 27h-4z" fill="${p.inner}"/><path d="M56 77l6-1 3 26-7 1z" fill="${p.bodyShade}" stroke="none" opacity=".75"/><path d="M41 74l7 6 7-6" fill="none" stroke="${p.sleeveShade}" stroke-width="2.4"/>`;
+  const arm = (pivotX: number, handX: number, angle: number) =>
+    `<g transform="rotate(${angle} ${pivotX} 79)"><path d="M${pivotX} 79L${handX} 95" stroke="${p.sleeve}" stroke-width="8.5"/><path d="M${pivotX + (handX - pivotX) * 0.6} 80L${handX} 94" stroke="${p.sleeveShade}" stroke-width="2" opacity=".6"/><path d="M${handX} 94.5v2.5" stroke="${p.cuff}" stroke-width="8"/><circle cx="${handX}" cy="100" r="3.7" fill="${skin}"/></g>`;
+  const swing = gait * 4;
+  const arms = side
+    ? arm(49, 50, swing)
+    : `${arm(36, 30, back ? -swing : swing)}${wave ? "" : arm(60, 66, back ? swing : -swing)}`;
+  // The waving arm is drawn after the head so the palm is never hidden behind it.
+  const waveArm = wave ? arm(60, 66, frame % 2 === 0 ? -112 : -126) : "";
+
+  // —— Head ——
+  const hairBack = p.long
+    ? `<path d="M17 50C9 28 22 8 48 8s39 20 31 42c4 18 2 32-6 36-8-6-50-6-50 0-8-4-10-18-6-36z" fill="${p.hair}"/>`
+    : `<path d="M18 52C10 30 22 9 48 8c26 1 38 22 30 44-2 8-8 9-12 6H30c-4 3-10 2-12-6z" fill="${p.hair}"/>`;
+  const ahoge = `<path d="M48 11c-3-8 6-11 10-6-5-1-8 2-8 6z" fill="${p.hair}"/>`;
+  let face: string;
+  if (back) {
+    face = `${hairBack}<circle cx="25" cy="48" r="4" fill="${skin}"/><circle cx="71" cy="48" r="4" fill="${skin}"/><path d="M19 52C11 30 23 10 48 10c25 0 37 20 29 42-6 10-52 10-58 0z" fill="${p.hair}"/><path d="M30 22q18-9 36 0M28 36q20 10 40 0" fill="none" stroke="${p.hairShade}" stroke-width="1.6"/><path d="M36 17q12-6 24-1" fill="none" stroke="${p.hairLight}" stroke-width="3"/>${ahoge}`;
+  } else if (side) {
+    const mouth =
+      action === "talk"
+        ? `<ellipse cx="64" cy="60" rx="2.2" ry="1.8" fill="#b8474a"/>`
+        : `<path d="M61.5 59.5q2.5 1.6 4.5 0" fill="none" stroke="#8a3f35" stroke-width="1.4"/>`;
+    face = `${hairBack}<circle cx="43" cy="49" r="4" fill="${skin}"/><path d="M30 46c0-14 10-22 22-22 13 0 20 10 20 22 0 12-8 20-20 20-12 0-22-8-22-20z" fill="${skin}"/><path d="M71 50l3 3-3 1" fill="${skin}"/><path d="M26 40C26 22 38 13 52 14c12 1 21 9 21 24l-6-6-3 9-5-11-5 9-4-11-6 8z" fill="${p.hair}"/><path d="M34 21q12-8 26-2" fill="none" stroke="${p.hairLight}" stroke-width="3"/>${ahoge}${eye(61, 49, p.eye, true)}<ellipse cx="62" cy="56" rx="3.6" ry="2.2" fill="#ff8f8f" stroke="none" opacity=".55"/>${mouth}`;
+  } else {
+    const mouth =
+      action === "talk"
+        ? `<path d="M44.5 56.5q3.5 5 7 0z" fill="#b8474a" stroke="#8a3f35" stroke-width="1.2"/><path d="M46 58.4q2 1.4 4 0" fill="#f08a8a" stroke="none"/>`
+        : `<path d="M44.5 56.5q3.5 3.4 7 0" fill="none" stroke="#8a3f35" stroke-width="1.5"/>`;
+    face = `${hairBack}<circle cx="25.5" cy="49" r="4.2" fill="${skin}"/><circle cx="70.5" cy="49" r="4.2" fill="${skin}"/><ellipse cx="${head.cx}" cy="${head.cy}" rx="${head.rx}" ry="${head.ry}" fill="${skin}"/><path d="M27 40q21 10 42 0v6q-21 8-42 0z" fill="${skinShade}" stroke="none" opacity=".6"/><path d="M24 41C24 22 36 14 48 14c13 0 24 8 24 27l-6-8-3 9-6-12-5 11-5-13-5 12-5-10-4 10-3-7z" fill="${p.hair}"/><path d="M33 21q14-9 30-2" fill="none" stroke="${p.hairLight}" stroke-width="3.2"/><path d="M40 16l-3 6M57 17l2 6" stroke="${p.hairShade}" stroke-width="1.4"/>${ahoge}<path d="M35 39.5h7M54 39.5h7" stroke="${p.hairShade}" stroke-width="2.4"/>${eye(39, 49, p.eye)}${eye(57, 49, p.eye)}<ellipse cx="32.5" cy="56.5" rx="4.2" ry="2.4" fill="#ff8f8f" stroke="none" opacity=".55"/><ellipse cx="63.5" cy="56.5" rx="4.2" ry="2.4" fill="#ff8f8f" stroke="none" opacity=".55"/>${mouth}`;
+  }
+
+  // The head sits 7 units lower than its drawing grid so the chin meets the collar.
+  const figure = `${legs}<g transform="translate(0 ${drop})">${skirt}${torso}${arms}<g transform="translate(0 7)">${face}</g>${waveArm}</g>`;
+  // Left is the mirrored right-facing pose.
+  const mirrored = direction === "left" ? ' transform="matrix(-1 0 0 1 96 0)"' : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="128" viewBox="0 0 96 128"><ellipse cx="48" cy="123" rx="18" ry="3.6" fill="#1d2a24" opacity=".2"/><g${mirrored} stroke="${line}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${figure}</g></svg>`;
 }
+
 export function characterDataUrl(
   avatarVersion: string,
   direction: Direction = "front",
   action: CityAction = "idle",
   frame = 0,
+  pixelScale = 1,
 ) {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(characterIllustration(avatarVersion, direction, action, frame))}`;
+  const svg = characterIllustration(avatarVersion, direction, action, frame);
+  const sized =
+    pixelScale === 1
+      ? svg
+      : svg.replace(
+          'width="96" height="128"',
+          `width="${96 * pixelScale}" height="${128 * pixelScale}"`,
+        );
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(sized)}`;
 }
-
-export const townIllustration = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600">
-<rect width="960" height="600" fill="#e2eedc"/><path d="M0 335h960v55H0zM195 335h55v265h-55zM710 335h55v265h-55zM195 480h570v52H195z" fill="#f5e5c6"/><path d="M0 350h960M215 390v210M745 390v210M250 515h460" fill="none" stroke="#d6c4a2" stroke-width="2" stroke-dasharray="7 12"/>
-<g stroke="#405347" stroke-width="3" stroke-linejoin="round">
-<rect x="62" y="156" width="210" height="142" rx="8" fill="#f7dfb5"/><path d="M43 159l125-85 126 85z" fill="#d78466"/><rect x="83" y="203" width="48" height="53" rx="5" fill="#b9dfe0"/><rect x="201" y="203" width="48" height="53" rx="5" fill="#b9dfe0"/><rect x="146" y="225" width="42" height="73" rx="5" fill="#789c86"/><path d="M71 193h193v22H71z" fill="#fff8e6"/><path d="M88 193v22m30-22v22m30-22v22m30-22v22m30-22v22m30-22v22" stroke="#d78466" stroke-width="14"/>
-<rect x="357" y="150" width="230" height="140" rx="8" fill="#f1eade"/><path d="M339 153l133-70 133 70z" fill="#7d9fa0"/><rect x="389" y="195" width="51" height="55" rx="4" fill="#bddedb"/><rect x="504" y="195" width="51" height="55" rx="4" fill="#bddedb"/><path d="M415 196v54m-26-27h51m90-27v54m-26-27h51" stroke="#7d9fa0"/><rect x="455" y="226" width="35" height="64" rx="4" fill="#b68b69"/>
-<rect x="694" y="174" width="201" height="125" rx="8" fill="#eacbc2"/><path d="M677 178l116-76 120 76z" fill="#a47988"/><rect x="714" y="219" width="53" height="48" rx="5" fill="#b9dfe0"/><rect x="817" y="220" width="45" height="79" rx="5" fill="#f5e8cf"/>
-<ellipse cx="483" cy="439" rx="68" ry="27" fill="#9cbab0"/><ellipse cx="483" cy="432" rx="66" ry="24" fill="#b4dedc"/><path d="M483 430v-39m-14 7q14-24 28 0" fill="none" stroke="#79b8bf" stroke-width="5"/>
-<path d="M110 312v61m735-48v54M86 466v72m782-73v73" stroke="#9d7d59" stroke-width="14"/>
-<g fill="#91b78a"><circle cx="108" cy="291" r="34"/><circle cx="84" cy="305" r="24"/><circle cx="132" cy="307" r="25"/><circle cx="846" cy="305" r="34"/><circle cx="820" cy="315" r="24"/><circle cx="870" cy="320" r="25"/><circle cx="85" cy="455" r="37"/><circle cx="60" cy="473" r="26"/><circle cx="108" cy="475" r="27"/><circle cx="867" cy="455" r="37"/><circle cx="842" cy="473" r="26"/><circle cx="891" cy="475" r="27"/></g>
-<g fill="#b28d68"><rect x="325" y="425" width="65" height="12" rx="4"/><path d="M334 439v17m47-17v17"/><rect x="581" y="425" width="65" height="12" rx="4"/><path d="M590 439v17m47-17v17"/></g>
-<g fill="#e7aa91"><circle cx="315" cy="552" r="7"/><circle cx="338" cy="559" r="7"/><circle cx="625" cy="552" r="7"/><circle cx="649" cy="559" r="7"/></g>
-</g></svg>`;

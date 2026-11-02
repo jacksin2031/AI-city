@@ -36,7 +36,7 @@ for (const [path, heading] of [
     expect(nonce).toBeTruthy();
     expect(policy).not.toContain("unsafe-inline");
     expect(policy).not.toContain("unsafe-eval");
-    // Every server-rendered script carries this request's nonce. Chunks loaded later (Phaser)
+    // Every server-rendered script carries this request's nonce. Chunks loaded later (three.js)
     // are trusted through 'strict-dynamic' and are not part of the HTML.
     const scripts = (await response?.text())?.match(/<script\b[^>]*>/g) ?? [];
     expect(scripts.length).toBeGreaterThan(0);
@@ -58,7 +58,7 @@ test("nonces differ per request", async ({ request }) => {
   expect(nonces[0]).not.toBe(nonces[1]);
 });
 
-test("the city sample keeps exactly one Phaser canvas across navigation", async ({ page }) => {
+test("the city sample keeps exactly one 3D canvas across navigation", async ({ page }) => {
   const problems = collectProblems(page);
   await page.goto("/city");
   const canvas = page.locator("section.city canvas");

@@ -5,6 +5,8 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
   browser,
   request,
 }) => {
+  // Loading and drawing the 3D city on a software GPU takes a while under parallel load.
+  test.setTimeout(60000);
   const origin = "http://127.0.0.1:3000";
   const { key } = await (
     await request.post("/api/link/bootstrap", { data: {}, headers: { origin } })
@@ -35,20 +37,23 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
     const canvas = page.locator("canvas");
     await expect(canvas).toHaveCount(1);
-    await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true");
+    await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true", {
+      timeout: 30_000,
+    });
     const box = await canvas.boundingBox();
     if (!box) throw new Error("Canvas unavailable");
-    await page.touchscreen.tap(box.x + (250 / 960) * box.width, box.y + (305 / 600) * box.height);
+    // With motion reduced, そら and はる stand still in front of JR御茶ノ水駅 in the opening view.
+    await page.touchscreen.tap(box.x + (689 / 960) * box.width, box.y + (343 / 600) * box.height);
     const profile = page.getByRole("region", { name: "そら", exact: true });
     await expect(profile).toBeVisible({ timeout: 5000 });
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.locator(".tablet-portrait")).toHaveCount(0);
     await expect(profile).toHaveAttribute("data-actor-x", "480");
     await expect(profile).toHaveAttribute("data-actor-y", "490");
-    await expect(profile).toHaveAttribute("data-scale", "1.8");
-    await expect(profile).toHaveAttribute("data-world-x", "250");
-    await expect(profile).toHaveAttribute("data-world-y", "365");
-    await expect(profile).toHaveAttribute("data-camera-zoom", "2");
+    await expect(profile).toHaveAttribute("data-scale", "0.69");
+    await expect(profile).toHaveAttribute("data-world-x", "-121.5");
+    await expect(profile).toHaveAttribute("data-world-y", "38.5");
+    await expect(profile).toHaveAttribute("data-camera-zoom", "5");
     await expect(profile.getByText(/性格/)).toBeVisible();
     await expect(profile).toHaveAttribute("data-animated", "false");
     await expect(profile.getByText("架空の住民・イラスト見本", { exact: true })).toBeVisible();
@@ -59,7 +64,7 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     await page.touchscreen.tap(box.x + box.width * 0.92, box.y + box.height * 0.9);
     await expect(profile).toHaveCount(0);
     await expect(page.locator(".tablet-scene-canvas")).toHaveAttribute("data-camera-zoom", "1");
-    await page.touchscreen.tap(box.x + (710 / 960) * box.width, box.y + (305 / 600) * box.height);
+    await page.touchscreen.tap(box.x + (412 / 960) * box.width, box.y + (232 / 600) * box.height);
     const other = page.getByRole("region", { name: "はる", exact: true });
     await expect(other).toBeVisible();
     await expect(other).toHaveAttribute("data-actor-x", "480");
@@ -171,16 +176,19 @@ test("new residents wave at their city position, profiles have priority and remo
     await page.goto("/tablet");
     await page.getByLabel("8桁の接続コード").fill(pairing.code);
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
-    await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true");
+    await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true", {
+      timeout: 30_000,
+    });
     await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     const first = await publish("あ");
     const welcomeA = page.getByRole("region", { name: `ようこそ、${prefix}あさん！`, exact: true });
     await expect(welcomeA).toBeVisible();
     const portrait = welcomeA;
     await expect(portrait).toHaveAttribute("data-pose", "wave");
-    await expect(portrait).toHaveAttribute("data-camera-zoom", "1");
-    await expect(portrait).toHaveAttribute("data-world-x", "250");
-    await expect(portrait).toHaveAttribute("data-world-y", "365");
+    await expect(portrait).toHaveAttribute("data-camera-zoom", "1.4");
+    // Welcomed where they stand in the city, not at a staging spot.
+    await expect(portrait).toHaveAttribute("data-world-x", /^-?\d+(\.\d+)?$/);
+    await expect(portrait).toHaveAttribute("data-world-y", /^-?\d+(\.\d+)?$/);
     // Observe a real frame change in one browser round trip, within the 3-second welcome.
     const changed = await portrait.evaluate(
       (image) =>
@@ -237,7 +245,9 @@ test("new residents wave at their city position, profiles have priority and remo
     await expect(page.locator(".tablet-resident-speech")).toHaveCount(0, { timeout: 4500 });
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.reload();
-    await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true");
+    await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true", {
+      timeout: 30_000,
+    });
     await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     await page.getByText("住民のプロフィールを選ぶ", { exact: true }).click();
     await page.getByRole("button", { name: `${prefix}あのプロフィール`, exact: true }).click();
@@ -300,7 +310,9 @@ test("new residents wave at their city position, profiles have priority and remo
       data: { expectedRevision: beforeResume.control.revision, displayMode: "LIVE" },
       headers: postHeaders,
     });
-    await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true");
+    await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true", {
+      timeout: 30_000,
+    });
     await expect(page.locator(".tablet-resident-speech")).toHaveCount(0);
     await page.getByText("住民のプロフィールを選ぶ", { exact: true }).click();
     await page.getByRole("button", { name: `${prefix}いのプロフィール`, exact: true }).click();

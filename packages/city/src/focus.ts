@@ -1,36 +1,127 @@
+import { BOUNDS } from "./world";
+
+// Two coordinate systems: the world in metres (x east, y south, height up) and the 960×600
+// "screen" in which the HTML overlay and speech card are laid out. The 3D canvas keeps that
+// aspect; the pixel size stays inside the renderer.
+export const SCREEN = { width: 960, height: 600 } as const;
+/** Screen units per metre for the normal tour view: about 120 m across. */
+export const DEFAULT_ZOOM = SCREEN.width / 120;
+/** Far enough out to see most of the district. */
+export const MIN_ZOOM = SCREEN.width / 650;
+export const MAX_ZOOM = DEFAULT_ZOOM * 6;
+/** How much a profile enlarges the resident relative to the tour view. */
+export const PROFILE_MAGNIFICATION = 5;
+/** Residents stand 2.2 m tall: a little larger than life so faces read at street scale. */
+export const RESIDENT_HEIGHT = 2.2;
+/** A resident's artwork is 96×128 units. */
+export const RESIDENT_METRES_PER_UNIT = RESIDENT_HEIGHT / 128;
+
+/**
+ * A fixed orthographic view from the north-west, 35° above the horizon, like the Blender
+ * scene's own camera: the camera sits at `toCamera` from the point it looks at.
+ */
+const elevation = (35 * Math.PI) / 180;
+const azimuth = { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
+type Vector = { x: number; y: number; height: number };
+export const VIEW: { toCamera: Vector; right: Vector; up: Vector; groundUp: number } = {
+  toCamera: {
+    x: Math.cos(elevation) * azimuth.x,
+    y: Math.cos(elevation) * azimuth.y,
+    height: Math.sin(elevation),
+  },
+  right: { x: azimuth.y, y: -azimuth.x, height: 0 },
+  up: {
+    x: -Math.sin(elevation) * azimuth.x,
+    y: -Math.sin(elevation) * azimuth.y,
+    height: Math.cos(elevation),
+  },
+  /** Screen units a ground step of one metre away from the camera rises, per unit of zoom. */
+  groundUp: Math.sin(elevation),
+};
+
 export type ScenePresentation = { id: string; kind: "welcome" | "profile" };
 export type SceneTransform = { x: number; y: number; scale: number };
-export type SceneCamera = { scrollX: number; scrollY: number; zoom: number };
+/** The point the camera looks at, in metres, and zoom in screen units per metre. */
+export type SceneCamera = { centerX: number; centerY: number; height: number; zoom: number };
 export type ScenePresentationFrame = SceneTransform &
   ScenePresentation & {
-    pose: "idle" | "wave";
+    pose: "idle" | "wave" | "sit";
     frame: number;
     worldX: number;
     worldY: number;
+    /** Magnification relative to the tour view. */
     cameraZoom: number;
+    /** Generic description of what the resident is doing in town; never resident-supplied text. */
+    activity: string;
   };
+type Placed = { x: number; y: number; height: number };
+
+/** Keep the view inside the district. */
+export function clampCamera(camera: SceneCamera): SceneCamera {
+  const zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, camera.zoom));
+  const margin = 40;
+  const clamp = (value: number, low: number, size: number) =>
+    Math.min(low + size - margin, Math.max(low + margin, value));
+  return {
+    ...camera,
+    zoom,
+    centerX: clamp(camera.centerX, BOUNDS.x0, BOUNDS.width),
+    centerY: clamp(camera.centerY, BOUNDS.y0, BOUNDS.depth),
+  };
+}
 
 /** Visual placement only: never changes the resident's route or saved city position. */
 export function focusCamera(
-  actor: { x: number; y: number },
+  actor: Placed,
   kind: ScenePresentation["kind"] | null,
+  base: SceneCamera,
 ): SceneCamera {
-  return kind === "profile"
-    ? { scrollX: actor.x - 480, scrollY: actor.y - 300 - 190 / 2, zoom: 2 }
-    : { scrollX: 0, scrollY: 0, zoom: 1 };
+  if (kind === "profile") {
+    const zoom = DEFAULT_ZOOM * PROFILE_MAGNIFICATION;
+    // The resident lands at screen (480, 490), leaving room for the card above the head.
+    // Not clamped: a resident at the district edge still ends up under the card.
+    return { ...above(actor, 190 / zoom), zoom };
+  }
+  if (kind === "welcome") return { ...above(actor, 4), zoom: DEFAULT_ZOOM * 1.4 };
+  return base;
 }
 
-/** Phaser's centred camera projection; sprite and route remain in world coordinates. */
-export function projectResident(
-  actor: { x: number; y: number },
-  camera: SceneCamera,
-  scale: number,
-): SceneTransform {
+/** The point that projects `metres` (in screen space) straight above the actor. */
+function above(actor: Placed, metres: number) {
   return {
-    x: (actor.x - camera.scrollX - 480) * camera.zoom + 480,
-    y: (actor.y - camera.scrollY - 300) * camera.zoom + 300,
-    scale: scale * camera.zoom,
+    centerX: actor.x + VIEW.up.x * metres,
+    centerY: actor.y + VIEW.up.y * metres,
+    height: actor.height + VIEW.up.height * metres,
   };
+}
+
+/** Orthographic projection from metres to the 960×600 screen. */
+export function project(point: Placed, camera: SceneCamera): { x: number; y: number } {
+  const dx = point.x - camera.centerX;
+  const dy = point.y - camera.centerY;
+  const dh = point.height - camera.height;
+  const along = (axis: Vector) => dx * axis.x + dy * axis.y + dh * axis.height;
+  return {
+    x: SCREEN.width / 2 + along(VIEW.right) * camera.zoom,
+    y: SCREEN.height / 2 - along(VIEW.up) * camera.zoom,
+  };
+}
+
+/** Pan so the ground under the finger follows a drag of (dx, dy) screen units. */
+export function panCamera(camera: SceneCamera, dx: number, dy: number): SceneCamera {
+  const sideways = -dx / camera.zoom;
+  // Screen up is, on the ground, away from the camera.
+  const away = dy / (camera.zoom * VIEW.groundUp);
+  const length = Math.hypot(VIEW.toCamera.x, VIEW.toCamera.y);
+  return clampCamera({
+    ...camera,
+    centerX: camera.centerX + VIEW.right.x * sideways - (VIEW.toCamera.x / length) * away,
+    centerY: camera.centerY + VIEW.right.y * sideways - (VIEW.toCamera.y / length) * away,
+  });
+}
+
+export function projectResident(actor: Placed, camera: SceneCamera, scale: number): SceneTransform {
+  return { ...project(actor, camera), scale: scale * camera.zoom };
 }
 
 export function speechBounds(pose: SceneTransform, kind: ScenePresentation["kind"]) {

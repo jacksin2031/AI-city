@@ -12,6 +12,9 @@
   },
   "dependencies": {
     "@ai-city/contracts": "workspace:*",
-    "phaser": "4.2.1"
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.170.0"
   }
 }

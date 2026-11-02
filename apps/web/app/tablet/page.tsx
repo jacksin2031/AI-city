@@ -62,40 +62,42 @@ export default function Tablet() {
       </main>
     );
   const control = state.control;
+  const mode =
+    control.displayMode === "DEMO"
+      ? "架空の住民・イラスト見本"
+      : control.displayMode === "LIVE"
+        ? "参加者の街"
+        : "展示を休止中";
   return (
     <main className="tablet-display">
-      <header className="tablet-bar">
-        <div>
-          <h1>AIシティ</h1>
-          <p>
-            {control.displayMode === "DEMO"
-              ? "架空の住民・イラスト見本"
-              : control.displayMode === "LIVE"
-                ? "参加者の街"
-                : "展示を休止中"}
-          </p>
-        </div>
-        <div>
-          <span role="status" className="connection-pill">
-            スマホと連携中
-          </span>
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                if (document.fullscreenElement) await document.exitFullscreen();
-                else await document.documentElement.requestFullscreen();
-                setFullscreenError("");
-              } catch {
-                setFullscreenError("この端末では全画面に切り替えられません。");
-              }
-            }}
-          >
-            全画面
-          </button>
-        </div>
+      {/* The theme title floats over the full-screen city, top left. */}
+      <header className="tablet-title">
+        <h1>
+          <span>バーチャル御茶ノ水</span>
+          <small>～もうひとりの自分が暮らす街～</small>
+        </h1>
+        <p>{mode}</p>
       </header>
-      {fullscreenError && <p role="status">{fullscreenError}</p>}
+      <div className="tablet-controls">
+        <span role="status" className="connection-pill">
+          スマホと連携中
+        </span>
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              if (document.fullscreenElement) await document.exitFullscreen();
+              else await document.documentElement.requestFullscreen();
+              setFullscreenError("");
+            } catch {
+              setFullscreenError("この端末では全画面に切り替えられません。");
+            }
+          }}
+        >
+          全画面
+        </button>
+        {fullscreenError && <p role="status">{fullscreenError}</p>}
+      </div>
       {control.displayMode === "MAINTENANCE" ? (
         <section className="tablet-maintenance">
           <h2>ただいま準備中です</h2>
@@ -117,13 +119,13 @@ export default function Tablet() {
                   : "街の動きは端末の設定に合わせて表示します"}
               </span>
               <span>{state.snapshot.residents.length}人 · 仮のイラストと用意された会話</span>
+              <span className="tablet-note">
+                住民をタップすると公開プロフィールを表示します。写真からの生成・AIの会話ではありません。
+              </span>
             </footer>
           </>
         )
       )}
-      <p className="tablet-note">
-        住民をタップすると公開プロフィールを表示します。写真からの生成・AIの会話ではありません。展示の管理はスマホから行います。
-      </p>
     </main>
   );
 }

@@ -19,6 +19,8 @@ const actions: Record<CityAction, string> = {
   turn: "向きを変える",
   talk: "話す",
   wave: "手を振る",
+  sit: "ベンチに座る",
+  visit: "お店に入る",
 };
 const directions: [Direction, string][] = [
   ["front", "正面"],

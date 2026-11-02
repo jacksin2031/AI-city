@@ -1,71 +1,145 @@
+import { findPath, nearestWalkable, type Poi, type Point, type World } from "./world";
+
 export type Direction = "front" | "left" | "back" | "right";
-export type CityAction = "idle" | "walk" | "turn" | "talk" | "wave";
+export type CityAction = "idle" | "walk" | "turn" | "talk" | "wave" | "sit" | "visit";
 export type Actor = {
   x: number;
   y: number;
-  direction: Direction;
+  /** Facing in radians: 0 east, π/2 south. */
+  heading: number;
   action: CityAction;
   elapsed: number;
-  waypoint: number;
+  /** Remaining waypoints; the last one is the destination itself. */
+  path: Point[];
+  goal: string | null;
+  /** Deterministic per-resident choice of the next destination; no Math.random in tests. */
+  seed: number;
 };
-// A small, explicit loop around the plaza; this is a waypoint demo, not general pathfinding.
-const route = [
-  { x: 250, y: 365 },
-  { x: 710, y: 365 },
-  { x: 710, y: 505 },
-  { x: 250, y: 505 },
-];
-const directions: Direction[] = ["front", "left", "back", "right"];
+/** Walking pace in metres per second. */
+const speed = 1.35;
+/** Residents pick their next stop within a few minutes' walk. */
+const NEARBY = 220;
 
-export function createActor(index: number): Actor {
-  const waypoint = index % route.length;
-  const start = route[waypoint] ?? route[0];
+export function poiById(world: World, id: string | null): Poi | undefined {
+  return id ? world.pois.find((poi) => poi.id === id) : undefined;
+}
+
+export function createActor(world: World, index: number): Actor {
+  const start = world.spawns[index % Math.max(1, world.spawns.length)] ?? { x: 0, y: 0 };
+  const offset = Math.floor(index / Math.max(1, world.spawns.length)) * 1.2;
+  const spot = nearestWalkable(world.grid, { x: start.x + offset, y: start.y }, 6) ?? start;
   return {
-    x: start?.x ?? 250,
-    y: (start?.y ?? 365) + Math.floor(index / 4) * 9,
-    direction: "front",
+    ...spot,
+    // Facing the camera, which looks from the north-west.
+    heading: -(3 * Math.PI) / 4,
     action: "idle",
     elapsed: 0,
-    waypoint,
+    path: [],
+    goal: null,
+    seed: (index * 7919 + 17) % 9973,
   };
 }
-export function commandActor(actor: Actor, action: CityAction): Actor {
+
+/** Walk to a destination along the footways. */
+export function planTrip(world: World, actor: Actor, poi: Poi): Actor {
+  const path = findPath(world.grid, actor, poi);
+  if (!path.length) return { ...actor, action: "idle", elapsed: 0, path: [], goal: null };
+  return { ...actor, action: "walk", elapsed: 0, path, goal: poi.id };
+}
+
+function nextDestination(world: World, actor: Actor): Poi | undefined {
+  // Small LCG: stable sequences per resident, varied between residents.
+  const seed = (actor.seed * 1103 + 12345) % 9973;
+  const others = world.pois.filter((poi) => poi.id !== actor.goal);
+  const near = others.filter((poi) => Math.hypot(poi.x - actor.x, poi.y - actor.y) < NEARBY);
+  const candidates = near.length >= 3 ? near : others;
+  return candidates[seed % Math.max(1, candidates.length)];
+}
+
+function closest(world: World, actor: Actor, activity: Poi["activity"]): Poi | undefined {
+  return world.pois
+    .filter((poi) => poi.activity === activity)
+    .sort(
+      (a, b) => Math.hypot(a.x - actor.x, a.y - actor.y) - Math.hypot(b.x - actor.x, b.y - actor.y),
+    )[0];
+}
+
+export function commandActor(world: World, actor: Actor, action: CityAction): Actor {
+  if (action === "walk") {
+    const moved = { ...actor, seed: (actor.seed * 1103 + 12345) % 9973 };
+    const poi = nextDestination(world, actor);
+    return poi ? planTrip(world, moved, poi) : moved;
+  }
+  if (action === "sit" || action === "visit") {
+    const poi = closest(world, actor, action);
+    return poi ? planTrip(world, actor, poi) : actor;
+  }
+  // Leaving a shop or bench first: the resident stands where they were.
   return {
     ...actor,
     action,
     elapsed: 0,
-    direction:
-      action === "turn"
-        ? (directions[(directions.indexOf(actor.direction) + 1) % 4] ?? "front")
-        : actor.direction,
+    path: [],
+    goal: action === "idle" ? actor.goal : null,
+    heading: action === "turn" ? actor.heading + Math.PI / 2 : actor.heading,
   };
 }
-export function stepActor(actor: Actor, seconds: number, moving: boolean): Actor {
+
+export function stepActor(world: World, actor: Actor, seconds: number, moving: boolean): Actor {
   if (!moving) return actor;
-  const next = { ...actor, elapsed: actor.elapsed + Math.max(0, seconds) };
+  const delta = Math.max(0, seconds);
+  const next = { ...actor, elapsed: actor.elapsed + delta };
+  const poi = poiById(world, actor.goal);
   if (actor.action === "walk") {
-    const target = route[(actor.waypoint + 1) % route.length];
-    if (!target) return next;
-    const dx = target.x - actor.x;
-    const dy = target.y - actor.y;
-    const distance = Math.hypot(dx, dy);
-    const step = 46 * Math.max(0, seconds);
-    next.direction =
-      Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "front" : "back";
-    if (distance <= step)
-      return {
-        ...next,
-        x: target.x,
-        y: target.y,
-        waypoint: (actor.waypoint + 1) % route.length,
-        action: "idle",
-        elapsed: 0,
-      };
-    next.x += (dx / distance) * step;
-    next.y += (dy / distance) * step;
-  } else if (actor.action !== "idle" && next.elapsed >= 2.4) {
-    next.action = "idle";
-    next.elapsed = 0;
+    let budget = speed * delta;
+    let path = actor.path;
+    while (path.length && budget > 0) {
+      const target = path[0] as Point;
+      const dx = target.x - next.x;
+      const dy = target.y - next.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 0.01) next.heading = Math.atan2(dy, dx);
+      if (distance > budget) {
+        next.x += (dx / distance) * budget;
+        next.y += (dy / distance) * budget;
+        budget = 0;
+      } else {
+        next.x = target.x;
+        next.y = target.y;
+        budget -= distance;
+        path = path.slice(1);
+      }
+    }
+    next.path = path;
+    if (path.length) return next;
+    // Arrived at the destination: start its activity.
+    return {
+      ...next,
+      elapsed: 0,
+      heading: poi?.heading ?? next.heading,
+      action: poi?.activity === "sit" ? "sit" : poi?.activity === "visit" ? "visit" : "idle",
+    };
   }
+  if ((actor.action === "sit" || actor.action === "visit") && next.elapsed >= (poi?.seconds ?? 6)) {
+    // Step back out, facing the street.
+    return { ...next, action: "idle", elapsed: 0, heading: next.heading + Math.PI };
+  }
+  if (
+    (actor.action === "talk" || actor.action === "wave" || actor.action === "turn") &&
+    next.elapsed >= 2.4
+  )
+    return { ...next, action: "idle", elapsed: 0 };
   return next;
+}
+
+/** Public, generic description for the profile card. Never includes resident-supplied text. */
+export function describeActivity(world: World, actor: Actor): string {
+  const poi = poiById(world, actor.goal);
+  if (actor.action === "walk") return poi ? `${poi.place}へ向かっています` : "街を散歩中";
+  if (actor.action === "talk") return "近くの住民とおしゃべり中";
+  if (actor.action === "wave") return "手を振っています";
+  if (poi && (actor.action === "sit" || actor.action === "visit")) return poi.doing;
+  if (poi && actor.action === "idle" && Math.hypot(poi.x - actor.x, poi.y - actor.y) < 2)
+    return poi.doing;
+  return "御茶ノ水をのんびり散策中";
 }
