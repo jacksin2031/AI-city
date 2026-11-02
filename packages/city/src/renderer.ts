@@ -1,8 +1,8 @@
-import type { DialogueResult, PublicResident } from "@ai-city/contracts";
+import type { DialoguePlace, DialogueResult, PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { autumnLighting } from "./autumn";
-import { findEncounter } from "./encounter";
+import { encounterPlace, findEncounter } from "./encounter";
 import {
   clampCamera,
   DEFAULT_ZOOM,
@@ -160,7 +160,7 @@ export async function createDevelopmentCity(
     assetBase?: string;
     onSelect?: (id: string) => void;
     onSelectLandmark?: (landmark: Landmark | null) => void;
-    onEncounter?: (ids: [string, string]) => Promise<DialogueResult | null>;
+    onEncounter?: (ids: [string, string], place: DialoguePlace) => Promise<DialogueResult | null>;
     onAction?: (id: string, action: CityAction) => void;
     onReady?: () => void;
     onPresentationFrame?: (frame: ScenePresentationFrame | null) => void;
@@ -336,6 +336,7 @@ function startCity(
   } | null = null;
   let dialoguePending = false;
   let pendingPair: [string, string] | null = null;
+  const lastSpoke = new Map<string, number>();
   let nextEncounter = 10;
   let presentation: ScenePresentation | null = null;
   let lastFrame = "";
@@ -795,17 +796,28 @@ function startCity(
         [...entries.values()].map((entry) => ({
           id: entry.resident.residentId,
           actor: entry.actor,
+          personality: entry.resident.personalityLabel,
         })),
         selectedId,
         groundAt,
+        now,
+        lastSpoke,
       );
       if (pair) {
         const ids = pair;
+        const first = entries.get(ids[0]);
+        const second = entries.get(ids[1]);
+        if (!first || !second) return;
+        const place = encounterPlace(first.actor, second.actor, world.pois);
+        for (const entry of [first, second]) {
+          // Individual cooldowns remain bounded and never shorten the global request interval.
+          lastSpoke.set(entry.resident.residentId, now);
+        }
         nextEncounter = now + 45;
         dialoguePending = true;
         pendingPair = ids;
         void options
-          .onEncounter(ids)
+          .onEncounter(ids, place)
           .then((result) => {
             if (
               !destroyed &&

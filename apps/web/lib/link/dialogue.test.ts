@@ -69,13 +69,19 @@ describe("fictional dialogue boundary", () => {
       async () => "synthetic-token",
     );
     const residents = developmentCitySnapshot.residents;
-    const result = await dialogue.generate(input, residents);
+    const result = await dialogue.generate({ ...input, place: "station" }, residents);
     expect(result).toMatchObject({ source: "LIVE", safety: "PASSED", lines });
     const [url, init] = provider.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toContain("aiplatform.googleapis.com/v1/projects/test-project/locations/global/");
     expect(JSON.parse(String(init.body)).contents[0].parts[0].text).not.toContain(
       "synthetic-token",
     );
+    const context = JSON.parse(JSON.parse(String(init.body)).contents[0].parts[0].text);
+    expect(context.place).toBe("御茶ノ水の駅の近く");
+    expect(
+      context.residents.map((resident: { personality: string }) => resident.personality),
+    ).toEqual(["のんびり探検家", "好奇心いっぱい"]);
+    expect(context).not.toHaveProperty("coordinates");
     await expect(dialogue.generate(input, residents)).rejects.toMatchObject({
       code: "DIALOGUE_RATE_LIMITED",
     });
@@ -89,6 +95,9 @@ describe("fictional dialogue boundary", () => {
     const dialogue = new DialogueService(config, provider, Date.now, async () => "test");
     await expect(
       dialogue.generate({ ...input, rawAnswers: [1] }, developmentCitySnapshot.residents),
+    ).rejects.toThrow();
+    await expect(
+      dialogue.generate({ ...input, place: "任意内容" }, developmentCitySnapshot.residents),
     ).rejects.toThrow();
     await expect(
       dialogue.generate(
