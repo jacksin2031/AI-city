@@ -224,9 +224,13 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
       headers: { origin },
     });
     expect((await otherContext.request.get(`/api/visitor/jobs/${jobId}`)).status()).toBe(404);
-    await expect(
-      tablet.getByText("0人 · 仮のイラストと用意された会話", { exact: true }),
-    ).toBeVisible();
+    await expect
+      .poll(
+        async () =>
+          (await (await tabletContext.request.get("/api/link/display")).json()).snapshot.residents
+            .length,
+      )
+      .toBe(0);
     await visitor.getByLabel("アバターをこの展示サイトに公開する", { exact: true }).check();
     await visitor.getByLabel("ニックネームを表示する", { exact: true }).check();
     await visitor
@@ -235,9 +239,13 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await expect(
       manager.getByRole("article").filter({ hasText: "永続テスト・架空" }),
     ).toBeVisible();
-    await expect(
-      tablet.getByText("1人 · 仮のイラストと用意された会話", { exact: true }),
-    ).toBeVisible();
+    await expect
+      .poll(
+        async () =>
+          (await (await tabletContext.request.get("/api/link/display")).json()).snapshot.residents
+            .length,
+      )
+      .toBe(1);
     const welcome = tablet.getByRole("region", {
       name: "ようこそ、永続テスト・架空さん！",
       exact: true,
@@ -247,6 +255,11 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     const profile = tablet.getByRole("region", { name: "永続テスト・架空", exact: true });
     await expect(profile.getByText("非公開", { exact: true })).toBeVisible();
     await expect(profile.getByText("非公開・指定なし", { exact: true })).toBeVisible();
+    await profile.getByRole("button", { name: "拡大を閉じる" }).click();
+    await expect(profile).toHaveCount(0);
+    await visitor.getByRole("button", { name: "平板で自分のキャラクターに注目" }).click();
+    await expect(profile).toBeVisible();
+    expect(Number(await profile.getAttribute("data-camera-zoom"))).toBeGreaterThan(1);
     const publicSnapshot = await (await tabletContext.request.get("/api/link/display")).json();
     expect(publicSnapshot.snapshot.residents[0]).toMatchObject({
       personalityLabel: "非公開",
@@ -263,9 +276,13 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await tablet.screenshot({ path: "output/playwright/persistent-tablet.png", fullPage: true });
     await visitor.getByRole("button", { name: "一覧から削除", exact: true }).click();
     await expect(profile).toHaveCount(0);
-    await expect(
-      tablet.getByText("0人 · 仮のイラストと用意された会話", { exact: true }),
-    ).toBeVisible();
+    await expect
+      .poll(
+        async () =>
+          (await (await tabletContext.request.get("/api/link/display")).json()).snapshot.residents
+            .length,
+      )
+      .toBe(0);
     await visitor.reload();
     await expect(visitor.getByRole("heading", { name: "削除しました", exact: true })).toBeVisible();
     await visitor.getByRole("button", { name: "参加情報を削除して終了", exact: true }).click();

@@ -8,6 +8,8 @@ import { VisitorSessionRequestSchema } from "@ai-city/contracts/visitor";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
 import type { VisitorBoundary } from "./credentials";
+import { focusTarget } from "./focus";
+import { focusBroker } from "./focus-runtime";
 import type { VisitorService } from "./service";
 
 const messages: Record<string, string> = {
@@ -79,6 +81,18 @@ export async function handleVisitorRequest(
     if (path.startsWith("city/")) throw new DevelopmentServiceError("NOT_FOUND", 404);
     if (!token) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
     security.allow(`session:${rawCredential}`);
+    if (request.method === "POST" && path === "focus") {
+      EmptyDevelopmentRequestSchema.parse(await readJsonBody(request));
+      const view = await service.current(token);
+      const snapshot = await service.snapshot();
+      const target = focusTarget(
+        view,
+        snapshot.residents.map((resident) => resident.residentId),
+      );
+      if (!target) throw new DevelopmentServiceError("JOB_NOT_READY", 409);
+      focusBroker.publish(target);
+      return json({ mode: "MOCK" });
+    }
     if (request.method === "POST" && path === "logout") {
       EmptyDevelopmentRequestSchema.parse(await readJsonBody(request));
       await service.closeSession(token);

@@ -8,6 +8,52 @@ export default function Tablet() {
   const [busy, setBusy] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
+  const [focus, setFocus] = useState<{ id: string; residentId: string; expiresAt: number } | null>(
+    null,
+  );
+  const live = feed.state?.control.displayMode === "LIVE";
+  useEffect(() => {
+    if (!live) {
+      setFocus(null);
+      return;
+    }
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        const response = await fetch("/api/link/focus", {
+          credentials: "same-origin",
+          cache: "no-store",
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(4000)]),
+        });
+        const value: unknown = response.ok ? await response.json() : null;
+        if (value && typeof value === "object" && "focus" in value) {
+          const item = value.focus;
+          if (
+            item &&
+            typeof item === "object" &&
+            "id" in item &&
+            "residentId" in item &&
+            "expiresAt" in item &&
+            typeof item.id === "string" &&
+            typeof item.residentId === "string" &&
+            typeof item.expiresAt === "number" &&
+            item.expiresAt > Date.now()
+          )
+            setFocus({ id: item.id, residentId: item.residentId, expiresAt: item.expiresAt });
+        }
+      } catch {
+        /* Connection status is managed by the display feed. */
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(poll, 1000);
+      }
+    }
+    void poll();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [live]);
   useEffect(() => {
     const update = () => setFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", update);
@@ -101,6 +147,7 @@ export default function Tablet() {
               snapshot={state.snapshot}
               motion={control.motionEnabled}
               sample={control.displayMode === "DEMO"}
+              focus={focus}
             />
             <p className="tablet-disclaimer">
               {control.displayMode === "DEMO" ? "架空の住民" : "仮のイラスト"}・会話と交通は見本
