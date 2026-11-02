@@ -15,7 +15,8 @@ blender -b School.blend -S Ochanomizu --python scripts/blender/export-ochanomizu
 | 文件 | 内容 |
 | --- | --- |
 | `city.glb` | 静态场景（约 30 MB，未压缩）；建筑的 `base_z`、`name_ja` 作为 glTF extras |
-| `vehicles.glb` | JR 中央线·总武线、丸ノ内线与汽车，Follow Path 动画烘焙为 40 秒循环 |
+| `vehicles.glb` | JR 中央线·总武线、丸ノ内线与汽车模型；当前文件不含动画 |
+| `traffic.json` | 本地导出的道路及轨道折线、车辆初始位置、推定停车线和车站位置 |
 | `materials.json` | Blender 程序化材质的颜色与图案尺寸，由 `packages/city/src/materials.ts` 在着色器中重建 |
 | `nav.bin` | 1 m 步行网格：每格类型（人行道、空地、草地、支路、主路、不可走）与高度（cm） |
 | `places.json` | 网格范围、车辆循环长度，以及从店面雨棚找出的 215 处店铺位置与朝向 |
@@ -29,9 +30,11 @@ blender -b School.blend -S Ochanomizu --python scripts/blender/export-ochanomizu
 - 居民为面向镜头的 SVG 插画精灵，被建筑遮住时以半透明身影显示；放大展示中的居民总在最前。
 - 居民沿步行网格 A* 走到地标（JR 两个出口、两座桥、ソラシティ、ニコライ堂、湯島聖堂、明治大学等）或店铺门前。
 - 嵌入贴图通过 `<img>` 加载以符合 CSP 的 `connect-src 'self'`。
+- 交通使用本地模拟时钟：信号每 40 秒循环，汽车在匹配的黄灯及红灯前停车，并在同一路径保持间距。列车在推定的御茶ノ水站台停车至少 15 秒，于下一模拟分钟发车。显示的交通、信号周期和列车班次均非实时或实际时刻表。
+- `traffic.json` 从 Blender 管线的 `vehicles.json`、`signals.json` 生成，信号根据道路距离、朝向、高度匹配；月台中心由场景几何估算。重新生成：`python scripts/build-traffic.py <vehicles.json> <signals.json> apps/web/public/city3d/traffic.json`。重新导出模型后应同时重新生成并验证交通数据。
 
 ## 已知限制
 
 - `city.glb` 未压缩；量化或 meshopt 压缩需额外工具，尚未加入。
 - 目标平板的帧率、内存与长时间运行尚未实测。
-- 居民之间没有避让；车辆按烘焙路径行驶，不会因行人或信号停车。
+- 居民之间没有避让；汽车不避让行人，信号匹配及站位是推定值，不包含完整道路规则或实际列车调度。路线末端会重新进入，模拟时钟不会跨设备同步。

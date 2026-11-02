@@ -26,6 +26,7 @@ import {
   describeActivity,
   stepActor,
 } from "./simulation";
+import { createTraffic, type TrafficData } from "./traffic-scene";
 import { type CityPlaces, createWorld, heightAt, parseGrid, tour, type World } from "./world";
 
 export type IllustratedCity = {
@@ -193,8 +194,18 @@ export async function createDevelopmentCity(
       canvas.remove();
       throw error;
     });
-  const { cityModel, vehicleModel, characters, world, specs } = await loaded;
-  return startCity(parent, options, renderer, cityModel, vehicleModel, characters, world, specs);
+  const { cityModel, vehicleModel, characters, world, specs, trafficData } = await loaded;
+  return startCity(
+    parent,
+    options,
+    renderer,
+    cityModel,
+    vehicleModel,
+    characters,
+    world,
+    specs,
+    trafficData,
+  );
 }
 
 /** Fetch and parse everything the city needs; nothing here touches the page. */
@@ -202,7 +213,7 @@ async function loadScene(base: string, signal?: AbortSignal) {
   const aborted = () => {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
   };
-  const [cityBuffer, vehicleBuffer, gridBuffer, places, specs] = await Promise.all([
+  const [cityBuffer, vehicleBuffer, gridBuffer, places, specs, trafficData] = await Promise.all([
     fetchBuffer(`${base}city.glb`, signal),
     fetchBuffer(`${base}vehicles.glb`, signal),
     fetchBuffer(`${base}nav.bin`, signal),
@@ -211,6 +222,9 @@ async function loadScene(base: string, signal?: AbortSignal) {
     ),
     fetchBuffer(`${base}materials.json`, signal).then(
       (buffer) => JSON.parse(new TextDecoder().decode(buffer)) as MaterialSpecs,
+    ),
+    fetchBuffer(`${base}traffic.json`, signal).then(
+      (buffer) => JSON.parse(new TextDecoder().decode(buffer)) as TrafficData,
     ),
   ]);
   aborted();
@@ -245,7 +259,7 @@ async function loadScene(base: string, signal?: AbortSignal) {
   );
   aborted();
   const world: World = createWorld(parseGrid(places.grid, gridBuffer), places.shops);
-  return { cityModel, vehicleModel, characters, world, specs };
+  return { cityModel, vehicleModel, characters, world, specs, trafficData };
 }
 
 type CityOptions = Parameters<typeof createDevelopmentCity>[1] & {};
@@ -259,6 +273,7 @@ function startCity(
   characters: Map<string, THREE.Texture>,
   world: World,
   specs: MaterialSpecs,
+  trafficData: TrafficData,
 ): IllustratedCity {
   const canvas = renderer.domElement;
   // —— Scene and light ——
@@ -282,8 +297,7 @@ function startCity(
     if (mesh.isMesh) mesh.castShadow = true;
   });
   scene.add(vehicles);
-  const mixer = new THREE.AnimationMixer(vehicles);
-  for (const clip of vehicleModel.animations) mixer.clipAction(clip).play();
+  const traffic = createTraffic(trafficData, vehicles, city);
 
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 4000);
   const residentLayer = new THREE.Group();
@@ -580,7 +594,7 @@ function startCity(
   function update(seconds: number) {
     if (moving) {
       clock += seconds;
-      mixer.update(seconds);
+      traffic.update(seconds);
     }
     stepTour(seconds);
     // The camera keeps looking at street level as it pans over the slopes of 駿河台.
@@ -803,7 +817,6 @@ function startCity(
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("wheel", onWheel);
-      mixer.stopAllAction();
       scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
         if (mesh.isMesh || (object as THREE.Sprite).isSprite) {

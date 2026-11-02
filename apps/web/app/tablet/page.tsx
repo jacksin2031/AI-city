@@ -118,7 +118,9 @@ export default function Tablet() {
                   ? "動きは停止中"
                   : "街の動きは端末の設定に合わせて表示します"}
               </span>
-              <span>{state.snapshot.residents.length}人 · 仮のイラストと用意された会話</span>
+              <span>
+                {state.snapshot.residents.length}人 · 仮のイラスト・用意された会話・模擬交通
+              </span>
               <span className="tablet-note">
                 住民をタップすると公開プロフィールを表示します。写真からの生成・AIの会話ではありません。
               </span>

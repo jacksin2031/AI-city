@@ -1,0 +1,150 @@
+import * as THREE from "three";
+import {
+  advanceVehicle,
+  type Point3,
+  samplePath,
+  signalPhase,
+  type TrafficStop,
+  type VehicleState,
+} from "./traffic";
+
+type Route = {
+  name: string;
+  kind: "road" | "rail";
+  pts: Point3[];
+  length: number;
+  stops?: TrafficStop[];
+  stationCentre?: number | null;
+};
+type Vehicle = {
+  controller: string;
+  path: string;
+  s: number;
+  cars?: number;
+  car_length?: number;
+  gap?: number;
+};
+export type TrafficData = { paths: Route[]; vehicles: Vehicle[] };
+type RunningVehicle = {
+  route: Route;
+  state: VehicleState;
+  stops: TrafficStop[];
+  speed: number;
+  train: boolean;
+  parts: { object: THREE.Object3D; offset: number }[];
+};
+
+/** Simulated, local-only traffic. Coordinates in the source data are Blender ENU metres. */
+export function createTraffic(data: TrafficData, model: THREE.Object3D, city: THREE.Object3D) {
+  const routes = new Map(data.paths.map((route) => [route.name, route]));
+  const running: RunningVehicle[] = [];
+  const forward = new THREE.Vector3(1, 0, 0);
+  for (const entry of data.vehicles) {
+    const route = routes.get(entry.path);
+    if (!route || route.pts.length < 2) continue;
+    const train = route.kind === "rail";
+    const parts: RunningVehicle["parts"] = [];
+    if (train) {
+      for (let i = 0; i < (entry.cars ?? 0); i++) {
+        const object = model.getObjectByName(
+          `${entry.controller}_car${String(i + 1).padStart(2, "0")}`,
+        );
+        if (object)
+          parts.push({
+            object,
+            offset: (entry.car_length ?? 0) / 2 + i * ((entry.car_length ?? 0) + (entry.gap ?? 0)),
+          });
+      }
+    } else {
+      const object = model.getObjectByName(`${entry.controller}_body`);
+      if (object) parts.push({ object, offset: 0 });
+    }
+    const halfTrain =
+      ((entry.cars ?? 0) * ((entry.car_length ?? 0) + (entry.gap ?? 0)) - (entry.gap ?? 0)) / 2;
+    const stops =
+      train && route.stationCentre != null
+        ? [
+            {
+              distance: Math.min(route.length - 1, route.stationCentre + halfTrain),
+              group: "station",
+            },
+          ]
+        : (route.stops ?? []);
+    running.push({
+      route,
+      state: { distance: entry.s, dwell: 0, lastStop: -1 },
+      stops,
+      speed: train ? 10 : 8.33,
+      train,
+      parts,
+    });
+  }
+  const lamps = new Map<string, THREE.MeshStandardMaterial>();
+  city.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh || Array.isArray(mesh.material)) return;
+    const material = mesh.material as THREE.MeshStandardMaterial;
+    if (/^SG_(Veh|Ped)[AB]_[GYR]$/.test(material.name)) lamps.set(material.name, material);
+  });
+  let time = 0;
+  const direction = new THREE.Vector3();
+  const setPose = (v: RunningVehicle) => {
+    for (const part of v.parts) {
+      const distance = v.state.distance - part.offset;
+      part.object.visible = distance >= 0 && distance <= v.route.length;
+      if (!part.object.visible) continue;
+      const sample = samplePath(v.route.pts, distance);
+      part.object.position.set(sample.position[0], sample.position[2], -sample.position[1]);
+      direction.set(sample.direction[0], sample.direction[2], -sample.direction[1]).normalize();
+      part.object.quaternion.setFromUnitVectors(forward, direction);
+    }
+  };
+  const setLamps = () => {
+    const phase = ((time % 40) + 40) % 40;
+    for (const [name, material] of lamps) {
+      const group = name.includes("VehA") || name.includes("PedA") ? "A" : "B";
+      const colour = name.at(-1) ?? "R";
+      let lit = false;
+      if (name.includes("Veh")) lit = signalPhase(group, time) === colour;
+      else {
+        const walk = group === "A" ? phase >= 21 && phase < 35 : phase >= 0.5 && phase < 15;
+        const blink = group === "A" ? phase >= 31 : phase >= 11;
+        const green = walk && (!blink || Math.floor(phase * 2) % 2 === 0);
+        lit = colour === "G" ? green : !walk;
+      }
+      material.emissive.setHex(colour === "G" ? 0x00c2a8 : colour === "Y" ? 0xffb000 : 0xff2a1e);
+      material.emissiveIntensity = lit ? 3 : 0;
+    }
+  };
+  for (const v of running) setPose(v);
+  setLamps();
+  return {
+    update(seconds: number) {
+      let remaining = seconds;
+      while (remaining > 0) {
+        const dt = Math.min(remaining, 0.1);
+        for (const v of running) {
+          const previous = v.state.distance;
+          const next = advanceVehicle(v.state, dt, time, v.speed, v.stops, v.route.length, v.train);
+          if (!v.train && next.distance >= previous) {
+            for (const other of running) {
+              if (
+                other === v ||
+                other.route !== v.route ||
+                other.train ||
+                other.state.distance <= previous
+              )
+                continue;
+              next.distance = Math.max(previous, Math.min(next.distance, other.state.distance - 7));
+            }
+          }
+          v.state = next;
+        }
+        time += dt;
+        remaining -= dt;
+      }
+      for (const v of running) setPose(v);
+      setLamps();
+    },
+  };
+}
