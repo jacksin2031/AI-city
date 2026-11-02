@@ -7,6 +7,7 @@ import {
   type ScenePresentationFrame,
   updatePresentation,
 } from "@ai-city/city";
+import { DialogueResultSchema } from "@ai-city/contracts";
 import type { CitySnapshot } from "@ai-city/contracts/development";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ResidentSpeech } from "./resident-speech";
@@ -30,6 +31,7 @@ export function TabletCity({
   const [failed, setFailed] = useState(false);
   const [anchor, setAnchor] = useState<ScenePresentationFrame | null>(null);
   const [animated, setAnimated] = useState(false);
+  const [dialogueAvailable, setDialogueAvailable] = useState(false);
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
   const select = useCallback(
@@ -56,7 +58,21 @@ export function TabletCity({
   useEffect(() => {
     if (!parent.current) return;
     let active = true;
+    let aiEnabled = false;
     const lifetime = new AbortController();
+    void fetch("/api/link/dialogue", {
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: lifetime.signal,
+    })
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((value: unknown) => {
+        aiEnabled = Boolean(
+          value && typeof value === "object" && "available" in value && value.available === true,
+        );
+        if (active) setDialogueAvailable(aiEnabled);
+      })
+      .catch(() => {});
     const media = matchMedia("(prefers-reduced-motion: reduce)");
     const applyMotion = () => {
       const enabled = latest.current.motion && !media.matches;
@@ -72,6 +88,32 @@ export function TabletCity({
       signal: lifetime.signal,
       onSelect: (id) => {
         if (active) select(id);
+      },
+      onEncounter: async (residentIds) => {
+        if (!aiEnabled || !active) return null;
+        const response = await fetch("/api/link/dialogue", {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(15_000)]),
+          body: JSON.stringify({
+            schemaVersion: 1,
+            requestId: crypto.randomUUID(),
+            eventId: latest.current.snapshot.eventId,
+            residentIds,
+            locale: "ja-JP",
+            maxLines: 4,
+          }),
+        });
+        if (!response.ok) {
+          if (response.status === 503) {
+            aiEnabled = false;
+            if (active) setDialogueAvailable(false);
+          }
+          return null;
+        }
+        return DialogueResultSchema.parse(await response.json());
       },
       onClearSelection: () => {
         if (active && latest.current.active) close();
@@ -144,6 +186,9 @@ export function TabletCity({
         aria-label="街の住民をタップすると公開プロフィールを表示します。"
       >
         <div className="tablet-scene-canvas" ref={parent} />
+        <p className="tablet-dialogue-status">
+          {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
+        </p>
         <p className="canvas-failure" role="alert">
           街を表示できません。ページを読み直してください。
         </p>
