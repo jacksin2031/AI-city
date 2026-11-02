@@ -282,6 +282,38 @@ function randomFor(name: string) {
   return ((hash >>> 0) % 10007) / 10007;
 }
 
+/** Drop corrupt, hundreds-of-metres-long triangles in this one exported building. */
+function repairWaterrasGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  const positions = geometry.getAttribute("position");
+  const indices = geometry.getIndex();
+  if (!positions || !indices) return geometry;
+  const valid: number[] = [];
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  for (let i = 0; i + 2 < indices.count; i += 3) {
+    const ia = indices.getX(i),
+      ib = indices.getX(i + 1),
+      ic = indices.getX(i + 2);
+    a.fromBufferAttribute(positions, ia);
+    b.fromBufferAttribute(positions, ib);
+    c.fromBufferAttribute(positions, ic);
+    if (
+      a.distanceToSquared(b) > 250 ** 2 ||
+      b.distanceToSquared(c) > 250 ** 2 ||
+      c.distanceToSquared(a) > 250 ** 2
+    )
+      continue;
+    valid.push(ia, ib, ic);
+  }
+  if (valid.length === indices.count) return geometry;
+  geometry.setIndex(valid);
+  // Unreferenced bad vertices must not expand bounds used by culling and building fade.
+  const cleaned = geometry.toNonIndexed();
+  geometry.dispose();
+  return cleaned;
+}
+
 /**
  * Bake every static mesh into world space and merge them by material, turning ~1,000 draw
  * calls into about a hundred. Buildings keep their seed and base height per vertex.
@@ -311,7 +343,8 @@ export function mergeCity(
     const base = owner?.userData.base_z;
     const isBuilding = typeof base === "number";
     const seed = randomFor(owner && owner !== root ? owner.name : mesh.name);
-    const geometry = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+    let geometry = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+    if (mesh.name === "LM_waterras_tower_7") geometry = repairWaterrasGeometry(geometry);
     // Station signs use emissive textures rather than a base-colour map.
     const keep = new Set([
       "position",

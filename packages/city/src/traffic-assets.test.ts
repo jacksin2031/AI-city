@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
+import { mergeCity } from "./materials";
 import { type Actor, createActor, stepActor } from "./simulation";
 import { samplePath } from "./traffic";
 import { createTraffic, type TrafficData } from "./traffic-scene";
@@ -9,6 +10,51 @@ import { type CityPlaces, findPath, nearestWalkable, parseGrid, type World } fro
 
 const asset = (name: string) =>
   fileURLToPath(new URL(`../../../apps/web/public/city3d/${name}`, import.meta.url));
+
+it("removes the nine malformed Waterras triangles from the actual exported model", () => {
+  const glb = readFileSync(asset("city.glb"));
+  const jsonLength = glb.readUInt32LE(12);
+  const data = JSON.parse(glb.subarray(20, 20 + jsonLength).toString("utf8"));
+  const node = data.nodes.find((item: { name?: string }) => item.name === "LM_waterras_tower_7");
+  const primitive = data.meshes[node.mesh].primitives[0];
+  const binaryOffset = 28 + jsonLength;
+  const accessorValues = (index: number) => {
+    const accessor = data.accessors[index];
+    const view = data.bufferViews[accessor.bufferView];
+    const count = accessor.type === "VEC3" ? 3 : 1;
+    const size = accessor.componentType === 5126 || accessor.componentType === 5125 ? 4 : 2;
+    const start = binaryOffset + (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+    const stride = view.byteStride ?? size * count;
+    return Array.from({ length: accessor.count * count }, (_, i) => {
+      const offset = start + Math.floor(i / count) * stride + (i % count) * size;
+      if (accessor.componentType === 5126) return glb.readFloatLE(offset);
+      if (accessor.componentType === 5125) return glb.readUInt32LE(offset);
+      return glb.readUInt16LE(offset);
+    });
+  };
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(accessorValues(primitive.attributes.POSITION), 3),
+  );
+  geometry.setAttribute(
+    "normal",
+    new THREE.Float32BufferAttribute(accessorValues(primitive.attributes.NORMAL), 3),
+  );
+  const indices = accessorValues(primitive.indices);
+  geometry.setIndex(indices);
+  const object = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+  object.name = node.name;
+  object.userData = node.extras;
+  const root = new THREE.Group();
+  root.add(object);
+  const city = mergeCity(root, {});
+  const repaired = (city.children[0] as THREE.Mesh).geometry;
+  expect(repaired.getIndex()?.count).toBe(indices.length - 27);
+  repaired.computeBoundingBox();
+  expect(repaired.boundingBox?.max.z).toBeLessThan(300);
+  expect(repaired.boundingBox?.min.x).toBeGreaterThan(100);
+});
 
 describe("exported traffic assets", () => {
   it("maps every simulated vehicle to an existing route and model and gives every route stops", () => {

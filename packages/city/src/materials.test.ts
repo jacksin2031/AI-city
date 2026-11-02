@@ -79,6 +79,30 @@ it("keeps station-sign UVs and the emissive texture when merging meshes", () => 
   expect((mesh.material as THREE.MeshStandardMaterial).color).toEqual(new THREE.Color(0xffffff));
 });
 
+it("removes only stretched Waterras triangles and excludes their vertices from bounds", () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute([0, 0, 0, 10, 0, 0, 0, 0, 10, 600, 0, 600], 3),
+  );
+  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(new Array(12).fill(1), 3));
+  geometry.setIndex([0, 1, 2, 0, 1, 3]);
+  const root = new THREE.Group();
+  const source = new THREE.MeshStandardMaterial();
+  source.name = "test-building";
+  const affected = new THREE.Mesh(geometry, source);
+  affected.name = "LM_waterras_tower_7";
+  affected.userData.base_z = 0;
+  root.add(affected);
+  const fade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const result = mergeCity(root, {}, fade).children[0] as THREE.Mesh;
+  expect(result.geometry.getIndex()?.count).toBe(3);
+  expect(result.geometry.getAttribute("position").count).toBe(3);
+  const bounds = result.geometry.getAttribute("cityBounds");
+  expect([bounds.getX(0), bounds.getY(0), bounds.getZ(0), bounds.getW(0)]).toEqual([0, 0, 10, 10]);
+  expect(geometry.getIndex()?.count).toBe(6);
+});
+
 it("keeps building bounds separate and fades buildings without fading other scenery", () => {
   const root = new THREE.Group();
   const material = new THREE.MeshStandardMaterial();
