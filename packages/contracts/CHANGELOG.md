@@ -2,6 +2,10 @@
 
 每次 schema 变更在此记录版本、owner、兼容性和双方需要的调整。
 
+## 0.6.0（2026-11-02）
+
+Owner：A / Main。设备管理新增固定的虚构住民目录、严格的管理员增删请求及管理响应 `presetIds`。新客户端可读取没有该字段的旧响应；旧版严格客户端不能读取带新字段的响应，服务和管理端须一起更新。公开参与者 DTO 不变，预设仅在 MOCK 展示中合并，不能作为真人同意或真实 AI 生成的证据。
+
 ## 0.5.0（2026-10-19）
 
 Owner：A / Main。`createDevelopmentClient` 新增可选 apiPath（默认 /api/dev 不变；持久访客使用 /api/visitor）与 closeSession；Node cookie jar 根据通道隔离，4 秒请求限时，同时初始化共用同一个请求。新增传输负向及并发测试。

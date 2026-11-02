@@ -5,6 +5,7 @@ import {
 import {
   DeviceLoginSchema,
   DevicePairSchema,
+  DevicePresetUpdateSchema,
   DeviceRemoveSchema,
   DeviceUpdateSchema,
 } from "@ai-city/contracts/device-link";
@@ -84,6 +85,8 @@ export async function handleLinkRequest(
         return reply({ mode: "MOCK" }, 200, cookie(next, path === "login" ? 3600 : 28800));
       }
       if (path === "control") return reply(service.update(token, DeviceUpdateSchema.parse(input)));
+      if (path === "preset")
+        return reply(service.setPreset(token, DevicePresetUpdateSchema.parse(input)));
       if (path === "remove")
         return reply(service.removeResident(token, DeviceRemoveSchema.parse(input).residentId));
       EmptyDevelopmentRequestSchema.parse(input);

@@ -500,6 +500,20 @@ canvas {
   border-top: 1px solid #d2dbd4;
   overflow-wrap: anywhere;
 }
+.preset-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid #d2dbd4;
+}
+.preset-row p {
+  margin: 2px 0 0;
+  color: #52675b;
+  font-size: 0.9rem;
+}
 .device-page details summary {
   min-height: 44px;
   cursor: pointer;

@@ -122,7 +122,9 @@ export function ResidentSpeech({
                   </div>
                 </dl>
                 <p className="tablet-card-note">
-                  {sample ? "架空の住民・イラスト見本" : "仮のイラスト・本人の公開項目のみ"}
+                  {sample || resident.residentId.startsWith("preset-")
+                    ? "架空の住民・イラスト見本"
+                    : "仮のイラスト・本人の公開項目のみ"}
                 </p>
               </div>
               <button

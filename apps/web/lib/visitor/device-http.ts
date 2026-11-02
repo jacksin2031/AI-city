@@ -68,7 +68,9 @@ export async function handlePersistentDeviceRequest(
       payload.snapshot &&
       ("pairedDisplays" in payload || payload.control?.displayMode === "LIVE")
     ) {
-      payload.snapshot = await visitor.snapshot();
+      const snapshot = await visitor.snapshot();
+      payload.snapshot =
+        "pairedDisplays" in payload ? snapshot : device.withPresets(snapshot, "LIVE");
       return Response.json(payload, { status: response.status, headers: response.headers });
     }
     return response;

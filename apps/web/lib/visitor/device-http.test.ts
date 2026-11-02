@@ -158,3 +158,35 @@ describe("persistent snapshot device authorization", () => {
     expect((await new VisitorService(store, () => now).snapshot()).residents).toHaveLength(0);
   });
 });
+
+it("keeps presets on the persistent display without writing visitor records", async () => {
+  const store = new MemoryVisitorStore();
+  const visitor = new VisitorService(store);
+  const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+  const admin = device.login("a".repeat(64));
+  const display = device.pair(device.createPairing(admin).code);
+  device.update(admin, { expectedRevision: 0, displayMode: "LIVE" });
+  const before = await (
+    await handlePersistentDeviceRequest(request("display", display), device, visitor, true, base)
+  ).json();
+  const add = await handlePersistentDeviceRequest(
+    request("preset", admin, { expectedRevision: 1, presetId: "aoi", enabled: true }),
+    device,
+    visitor,
+    true,
+    base,
+  );
+  expect(add.status).toBe(200);
+  const managed = await add.json();
+  expect(managed.presetIds).toEqual(["aoi"]);
+  expect(managed.snapshot.residents).toEqual([]);
+  const after = await (
+    await handlePersistentDeviceRequest(request("display", display), device, visitor, true, base)
+  ).json();
+  expect(
+    after.snapshot.residents.map((resident: { residentId: string }) => resident.residentId),
+  ).toEqual(["preset-aoi"]);
+  expect(after.snapshot.streamId).toBe(before.snapshot.streamId);
+  expect(after.snapshot.eventSeq).toBeGreaterThan(before.snapshot.eventSeq);
+  expect((await visitor.snapshot()).residents).toEqual([]);
+});
