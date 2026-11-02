@@ -17,6 +17,7 @@ import {
   VIEW,
 } from "./focus";
 import { characterDataUrl, illustrationPalette } from "./illustrations";
+import { LANDMARKS, type Landmark } from "./landmarks";
 import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
 import {
   type Actor,
@@ -35,6 +36,7 @@ export type IllustratedCity = {
   setResidents(residents: PublicResident[], addedIds?: string[]): void;
   setMotionEnabled(enabled: boolean): void;
   select(id: string | null): void;
+  selectLandmark(id: number | null): void;
   act(id: string, action: CityAction): void;
   present(presentation: ScenePresentation | null): void;
   destroy(): void;
@@ -156,6 +158,7 @@ export async function createDevelopmentCity(
     /** Where the exported 3D city is served from (same origin). */
     assetBase?: string;
     onSelect?: (id: string) => void;
+    onSelectLandmark?: (landmark: Landmark | null) => void;
     onAction?: (id: string, action: CityAction) => void;
     onReady?: () => void;
     onPresentationFrame?: (frame: ScenePresentationFrame | null) => void;
@@ -291,7 +294,12 @@ function startCity(
   // Read this before mergeCity bakes the source mesh transforms into the combined geometry.
   const metroRailHeightOffset =
     cityModel.scene.getObjectByName("Rail_Metro_Marunouchi")?.position.y ?? 0;
-  const buildingFade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const buildingFade = {
+    center: { value: new THREE.Vector2() },
+    zoom: { value: 0 },
+    selected: { value: 0 },
+    pulse: { value: 0 },
+  };
   const city = mergeCity(cityModel.scene, specs, buildingFade);
   scene.add(city);
   const vehicles = vehicleModel.scene;
@@ -510,6 +518,17 @@ function startCity(
     const hit = raycaster.intersectObjects(ghosts, false)[0];
     return hit ? (hit.object.userData.residentId as string) : null;
   }
+  function landmarkAt(point: { x: number; y: number }): Landmark | null {
+    raycaster.setFromCamera(
+      new THREE.Vector2((point.x / SCREEN.width) * 2 - 1, -(point.y / SCREEN.height) * 2 + 1),
+      camera,
+    );
+    const hit = raycaster.intersectObjects(city.children, false)[0];
+    if (!hit?.face) return null;
+    const attribute = (hit.object as THREE.Mesh).geometry.getAttribute("cityLandmark");
+    const id = attribute?.getX(hit.face.a) ?? 0;
+    return LANDMARKS.find((item) => item.id === id) ?? null;
+  }
   function onPointerDown(event: PointerEvent) {
     canvas.setPointerCapture(event.pointerId);
     const point = toScreen(event);
@@ -552,10 +571,18 @@ function startCity(
       const id = residentAt(point);
       const entry = id ? entries.get(id) : undefined;
       if (id && entry) {
+        buildingFade.selected.value = 0;
+        options.onSelectLandmark?.(null);
         // A quick hop acknowledges the tap before the camera moves.
         if (moving) entry.hopUntil = now + 0.28;
         options.onSelect?.(id);
-      } else options.onClearSelection?.();
+      } else {
+        const landmark = landmarkAt(point);
+        buildingFade.selected.value = landmark?.id ?? 0;
+        options.onSelectLandmark?.(landmark);
+        if (landmark) hold();
+        else options.onClearSelection?.();
+      }
     }
     if (!pointers.size) drag = null;
   }
@@ -623,6 +650,7 @@ function startCity(
     }
     placeCamera(shown);
     updateBuildingFade(buildingFade, shown.centerX, shown.centerY, shown.zoom);
+    buildingFade.pulse.value = moving ? 0.3 + 0.25 * (1 + Math.sin(now * 4)) : 0.45;
     parent.dataset.cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
     const screenUnit = 1 / shown.zoom;
     let index = 0;
@@ -783,6 +811,9 @@ function startCity(
     },
     select(id) {
       selectedId = id;
+    },
+    selectLandmark(id) {
+      buildingFade.selected.value = id ?? 0;
     },
     present(next) {
       if (presentation?.id === next?.id && presentation?.kind === next?.kind) return;

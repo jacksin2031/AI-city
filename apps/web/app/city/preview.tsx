@@ -7,11 +7,14 @@ import {
   type Direction,
   getDevelopmentResidents,
   type IllustratedCity,
+  LANDMARKS,
+  type Landmark,
   reconcileRoster,
 } from "@ai-city/city";
 import { characterDataUrl } from "@ai-city/city/illustrations";
 import { createDevelopmentClient } from "@ai-city/contracts/development-client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LandmarkCard } from "../landmark-card";
 
 const actions: Record<CityAction, string> = {
   idle: "休む",
@@ -37,6 +40,7 @@ export function CityPreview({ mode }: { mode: "sample" | "participants" }) {
   const selectedRef = useRef<string | null>(null);
   const [residents, setResidents] = useState(residentsRef.current);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [landmark, setLandmark] = useState<Landmark | null>(null);
   const [currentActions, setCurrentActions] = useState<Record<string, CityAction>>({});
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -46,6 +50,10 @@ export function CityPreview({ mode }: { mode: "sample" | "participants" }) {
   const action = selectedId ? (currentActions[selectedId] ?? "idle") : "idle";
 
   const select = useCallback((id: string | null) => {
+    if (id) {
+      setLandmark(null);
+      controller.current?.selectLandmark(null);
+    }
     selectedRef.current = id;
     setSelectedId(id);
     controller.current?.select(id);
@@ -69,6 +77,11 @@ export function CityPreview({ mode }: { mode: "sample" | "participants" }) {
       signal: abort.signal,
       onSelect: (id) => {
         if (!disposed) select(id);
+      },
+      onSelectLandmark: (item) => {
+        if (disposed) return;
+        if (item) select(null);
+        setLandmark(item);
       },
       onAction: (id, next) => {
         if (!disposed) setCurrentActions((previous) => ({ ...previous, [id]: next }));
@@ -172,7 +185,7 @@ export function CityPreview({ mode }: { mode: "sample" | "participants" }) {
         <section
           className="city"
           ref={parent}
-          aria-label="簡易イラストの街。下の住民一覧からプロフィールと動作を選べます。"
+          aria-label="簡易イラストの街。住民や建物を選んで紹介を表示できます。"
         />
         {failed && <p role="alert">表示を開始できませんでした。ページを再読み込みしてください。</p>}
         {error && (
@@ -183,9 +196,26 @@ export function CityPreview({ mode }: { mode: "sample" | "participants" }) {
         {!residents.length && !error && (
           <p role="status">まだ参加者はいません。参加画面で確認してから追加してください。</p>
         )}
-        <p className="muted">
-          街の住民、または下のボタンを選んでみてください。会話は用意された例文です。
-        </p>
+        <p className="muted">街の住民や建物を選んでみてください。会話は用意された例文です。</p>
+        <details className="landmark-list">
+          <summary>建物・駅を選ぶ</summary>
+          <div>
+            {LANDMARKS.map((item) => (
+              <button
+                type="button"
+                key={item.key}
+                disabled={!ready || failed}
+                onClick={() => {
+                  select(null);
+                  setLandmark(item);
+                  controller.current?.selectLandmark(item.id);
+                }}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </details>
         <section className="city-roster" aria-label="住民一覧">
           {residents.map((resident) => (
             <button
@@ -203,8 +233,17 @@ export function CityPreview({ mode }: { mode: "sample" | "participants" }) {
           ))}
         </section>
       </div>
-      <aside className="city-profile" aria-label="住民のプロフィール">
-        {selected ? (
+      <aside className="city-profile" aria-label="街の紹介">
+        {landmark ? (
+          <LandmarkCard
+            key={landmark.key}
+            landmark={landmark}
+            close={() => {
+              setLandmark(null);
+              controller.current?.selectLandmark(null);
+            }}
+          />
+        ) : selected ? (
           <>
             <span className="city-eyebrow">
               {mode === "sample" ? "架空の住民・イラスト見本" : "公開に同意した項目"}

@@ -3,12 +3,15 @@ import {
   closePresentation,
   createDevelopmentCity,
   type IllustratedCity,
+  LANDMARKS,
+  type Landmark,
   openProfile,
   type ScenePresentationFrame,
   updatePresentation,
 } from "@ai-city/city";
 import type { CitySnapshot } from "@ai-city/contracts/development";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LandmarkCard } from "../landmark-card";
 import { ResidentSpeech } from "./resident-speech";
 export function TabletCity({
   snapshot,
@@ -28,15 +31,16 @@ export function TabletCity({
   const [failed, setFailed] = useState(false);
   const [anchor, setAnchor] = useState<ScenePresentationFrame | null>(null);
   const [animated, setAnimated] = useState(false);
+  const [landmark, setLandmark] = useState<Landmark | null>(null);
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
-  const select = useCallback(
-    (id: string) =>
-      setPresentation((previous) =>
-        openProfile(updatePresentation(previous, latest.current.snapshot), id),
-      ),
-    [],
-  );
+  const select = useCallback((id: string) => {
+    setLandmark(null);
+    city.current?.selectLandmark(null);
+    setPresentation((previous) =>
+      openProfile(updatePresentation(previous, latest.current.snapshot), id),
+    );
+  }, []);
   const close = useCallback(
     () =>
       setPresentation((previous) =>
@@ -63,6 +67,11 @@ export function TabletCity({
       signal: lifetime.signal,
       onSelect: (id) => {
         if (active) select(id);
+      },
+      onSelectLandmark: (item) => {
+        if (!active) return;
+        if (item && latest.current.active) close();
+        setLandmark(item);
       },
       onClearSelection: () => {
         if (active && latest.current.active) close();
@@ -107,6 +116,11 @@ export function TabletCity({
   const active = view.active;
   const resident = residents.find((item) => item.residentId === active?.id);
   useEffect(() => {
+    if (!active) return;
+    setLandmark(null);
+    city.current?.selectLandmark(null);
+  }, [active]);
+  useEffect(() => {
     if (!ready) return;
     city.current?.select(active?.id ?? null);
     city.current?.present(active);
@@ -132,12 +146,24 @@ export function TabletCity({
         className="tablet-city"
         data-ready={ready}
         data-failed={failed || undefined}
-        aria-label="街の住民をタップすると公開プロフィールを表示します。"
+        aria-label="街の住民や建物をタップすると紹介を表示します。"
       >
         <div className="tablet-scene-canvas" ref={parent} />
         <p className="canvas-failure" role="alert">
           街を表示できません。ページを読み直してください。
         </p>
+        {landmark && (
+          <aside className="tablet-landmark">
+            <LandmarkCard
+              key={landmark.key}
+              landmark={landmark}
+              close={() => {
+                setLandmark(null);
+                city.current?.selectLandmark(null);
+              }}
+            />
+          </aside>
+        )}
         {resident && active && anchor?.id === active.id && anchor.kind === active.kind && (
           <ResidentSpeech
             key={`${active.kind}:${active.id}`}
@@ -162,6 +188,25 @@ export function TabletCity({
           </div>
         </details>
       )}
+      <details className="tablet-landmark-list">
+        <summary>建物・駅を選ぶ</summary>
+        <div>
+          {LANDMARKS.map((item) => (
+            <button
+              type="button"
+              key={item.key}
+              disabled={!ready || failed}
+              onClick={() => {
+                if (view.active) close();
+                setLandmark(item);
+                city.current?.selectLandmark(item.id);
+              }}
+            >
+              {item.name}
+            </button>
+          ))}
+        </div>
+      </details>
     </>
   );
 }
