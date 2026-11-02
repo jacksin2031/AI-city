@@ -89,7 +89,7 @@ export function TabletCity({
       onSelect: (id) => {
         if (active) select(id);
       },
-      onEncounter: async (residentIds) => {
+      onEncounter: async (residentIds, place) => {
         if (!aiEnabled || !active) return null;
         const response = await fetch("/api/link/dialogue", {
           method: "POST",
@@ -102,6 +102,7 @@ export function TabletCity({
             requestId: crypto.randomUUID(),
             eventId: latest.current.snapshot.eventId,
             residentIds,
+            place,
             locale: "ja-JP",
             maxLines: 4,
           }),
