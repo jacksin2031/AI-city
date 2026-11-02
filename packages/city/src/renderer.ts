@@ -60,8 +60,6 @@ const preset = "こんにちは。広場でひと休みしよう！";
 const font = '"Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif';
 /** Character textures are rasterised at twice their 96×128 artwork size. */
 const CHARACTER_PIXELS = 2;
-/** Residents never shrink below this many screen units, so they stay findable zoomed out. */
-const MIN_RESIDENT_SCREEN = 20;
 const FRAME_SECONDS = 1 / 30;
 
 const ease = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
@@ -651,10 +649,7 @@ function startCity(
       );
       const ground = groundAt(entry.actor.x, entry.actor.y);
       const inside = entry.actor.action === "visit" && !presenting;
-      // Zoomed far out, residents keep a minimum size on screen so they can still be tapped.
-      const size = presenting
-        ? RESIDENT_HEIGHT
-        : Math.max(RESIDENT_HEIGHT, MIN_RESIDENT_SCREEN * screenUnit);
+      const size = RESIDENT_HEIGHT;
       const hop =
         entry.hopUntil > now ? Math.sin(((entry.hopUntil - now) / 0.28) * Math.PI) * 0.45 : 0;
       // Nudged towards the camera along its own axis: the same spot on screen, but the
