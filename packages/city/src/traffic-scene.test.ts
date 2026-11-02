@@ -74,3 +74,37 @@ describe("traffic scene", () => {
     expect(train.position.x).toBeGreaterThan(30);
   });
 });
+
+it("keeps cars and train carriages upright on a sloping reverse-direction route", () => {
+  const model = new THREE.Group();
+  for (const name of ["Car_reverse_body", "Train_reverse_car01"]) {
+    const object = new THREE.Object3D();
+    object.name = name;
+    model.add(object);
+  }
+  const data: TrafficData = {
+    paths: [
+      {
+        name: "reverse",
+        kind: "rail",
+        pts: [
+          [0, 0, 0],
+          [-100, 0, 5],
+        ],
+        length: 100.125,
+      },
+    ],
+    vehicles: [
+      { controller: "Train_reverse", path: "reverse", s: 20, cars: 1, car_length: 10, gap: 0 },
+    ],
+  };
+  createTraffic(data, model, new THREE.Group());
+  const train = model.getObjectByName("Train_reverse_car01") as THREE.Object3D;
+  expect(new THREE.Vector3(0, 1, 0).applyQuaternion(train.quaternion).y).toBeGreaterThan(0.99);
+
+  data.paths = data.paths.map((path) => ({ ...path, kind: "road" }));
+  data.vehicles = [{ controller: "Car_reverse", path: "reverse", s: 20 }];
+  createTraffic(data, model, new THREE.Group());
+  const car = model.getObjectByName("Car_reverse_body") as THREE.Object3D;
+  expect(new THREE.Vector3(0, 1, 0).applyQuaternion(car.quaternion).y).toBeGreaterThan(0.99);
+});

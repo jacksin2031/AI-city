@@ -38,7 +38,6 @@ type RunningVehicle = {
 export function createTraffic(data: TrafficData, model: THREE.Object3D, city: THREE.Object3D) {
   const routes = new Map(data.paths.map((route) => [route.name, route]));
   const running: RunningVehicle[] = [];
-  const forward = new THREE.Vector3(1, 0, 0);
   for (const entry of data.vehicles) {
     const route = routes.get(entry.path);
     if (!route || route.pts.length < 2) continue;
@@ -88,6 +87,10 @@ export function createTraffic(data: TrafficData, model: THREE.Object3D, city: TH
   });
   let time = 0;
   const direction = new THREE.Vector3();
+  const worldUp = new THREE.Vector3(0, 1, 0);
+  const side = new THREE.Vector3();
+  const up = new THREE.Vector3();
+  const orientation = new THREE.Matrix4();
   const setPose = (v: RunningVehicle) => {
     for (const part of v.parts) {
       const distance = v.state.distance - part.offset;
@@ -96,7 +99,13 @@ export function createTraffic(data: TrafficData, model: THREE.Object3D, city: TH
       const sample = samplePath(v.route.pts, distance);
       part.object.position.set(sample.position[0], sample.position[2], -sample.position[1]);
       direction.set(sample.direction[0], sample.direction[2], -sample.direction[1]).normalize();
-      part.object.quaternion.setFromUnitVectors(forward, direction);
+      // Preserve world-up while aligning the vehicle's +X axis with the path.
+      // A shortest-arc rotation alone can turn the roof upside down near -X.
+      side.crossVectors(direction, worldUp);
+      if (side.lengthSq() < 1e-12) side.set(0, 0, 1);
+      side.normalize();
+      up.crossVectors(side, direction).normalize();
+      part.object.quaternion.setFromRotationMatrix(orientation.makeBasis(direction, up, side));
     }
   };
   const setLamps = () => {
