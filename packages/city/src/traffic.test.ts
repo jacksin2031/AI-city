@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceVehicle, samplePath, signalPhase } from "./traffic";
+import { advanceVehicle, pedestrianPhase, samplePath, signalPhase } from "./traffic";
 
 describe("traffic simulation", () => {
   it("keeps vehicle signals complementary including amber and all-red", () => {
@@ -40,4 +40,14 @@ describe("traffic simulation", () => {
     expect(samplePath(pts, 15).position).toEqual([10, 5, 0]);
     expect(samplePath(pts, -1).position).toEqual([0, 0, 0]);
   });
+});
+
+it("uses the pedestrian lamp's steady, flashing and stop phases", () => {
+  expect(pedestrianPhase("A", 20)).toBe("stop");
+  expect(pedestrianPhase("A", 21)).toBe("walk");
+  expect(pedestrianPhase("A", 31)).toBe("flash");
+  expect(pedestrianPhase("A", 35)).toBe("stop");
+  expect(pedestrianPhase("B", 0.5)).toBe("walk");
+  expect(pedestrianPhase("B", 11)).toBe("flash");
+  expect(pedestrianPhase("B", 15)).toBe("stop");
 });

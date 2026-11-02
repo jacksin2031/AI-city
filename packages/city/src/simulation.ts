@@ -1,4 +1,5 @@
-import { findPath, nearestWalkable, type Poi, type Point, type World } from "./world";
+import { type PedestrianSignal, pedestrianStopFraction } from "./traffic";
+import { findPath, heightAt, nearestWalkable, type Poi, type Point, type World } from "./world";
 
 export type Direction = "front" | "left" | "back" | "right";
 export type CityAction = "idle" | "walk" | "turn" | "talk" | "wave" | "sit" | "visit";
@@ -14,6 +15,7 @@ export type Actor = {
   goal: string | null;
   /** Deterministic per-resident choice of the next destination; no Math.random in tests. */
   seed: number;
+  waitingForSignal?: boolean;
 };
 /** Walking pace in metres per second. */
 const speed = 1.35;
@@ -43,8 +45,9 @@ export function createActor(world: World, index: number): Actor {
 /** Walk to a destination along the footways. */
 export function planTrip(world: World, actor: Actor, poi: Poi): Actor {
   const path = findPath(world.grid, actor, poi);
-  if (!path.length) return { ...actor, action: "idle", elapsed: 0, path: [], goal: null };
-  return { ...actor, action: "walk", elapsed: 0, path, goal: poi.id };
+  if (!path.length)
+    return { ...actor, action: "idle", elapsed: 0, path: [], goal: null, waitingForSignal: false };
+  return { ...actor, action: "walk", elapsed: 0, path, goal: poi.id, waitingForSignal: false };
 }
 
 function nextDestination(world: World, actor: Actor): Poi | undefined {
@@ -66,7 +69,7 @@ function closest(world: World, actor: Actor, activity: Poi["activity"]): Poi | u
 
 export function commandActor(world: World, actor: Actor, action: CityAction): Actor {
   if (action === "walk") {
-    const moved = { ...actor, seed: (actor.seed * 1103 + 12345) % 9973 };
+    const moved = { ...actor, seed: (actor.seed * 1103 + 12345) % 9973, waitingForSignal: false };
     const poi = nextDestination(world, actor);
     return poi ? planTrip(world, moved, poi) : moved;
   }
@@ -82,13 +85,20 @@ export function commandActor(world: World, actor: Actor, action: CityAction): Ac
     path: [],
     goal: action === "idle" ? actor.goal : null,
     heading: action === "turn" ? actor.heading + Math.PI / 2 : actor.heading,
+    waitingForSignal: false,
   };
 }
 
-export function stepActor(world: World, actor: Actor, seconds: number, moving: boolean): Actor {
+export function stepActor(
+  world: World,
+  actor: Actor,
+  seconds: number,
+  moving: boolean,
+  traffic?: { signals: PedestrianSignal[]; time: number },
+): Actor {
   if (!moving) return actor;
   const delta = Math.max(0, seconds);
-  const next = { ...actor, elapsed: actor.elapsed + delta };
+  const next = { ...actor, elapsed: actor.elapsed + delta, waitingForSignal: false };
   const poi = poiById(world, actor.goal);
   if (actor.action === "walk") {
     let budget = speed * delta;
@@ -99,6 +109,27 @@ export function stepActor(world: World, actor: Actor, seconds: number, moving: b
       const dy = target.y - next.y;
       const distance = Math.hypot(dx, dy);
       if (distance > 0.01) next.heading = Math.atan2(dy, dx);
+      if (traffic && distance > 0.01) {
+        const travel = Math.min(distance, budget);
+        const proposed = {
+          x: next.x + (dx / distance) * travel,
+          y: next.y + (dy / distance) * travel,
+        };
+        const stop = pedestrianStopFraction(
+          next,
+          proposed,
+          heightAt(world.grid, next.x, next.y),
+          traffic.signals,
+          traffic.time,
+        );
+        if (stop !== null) {
+          next.x += (proposed.x - next.x) * stop;
+          next.y += (proposed.y - next.y) * stop;
+          next.path = path;
+          next.waitingForSignal = true;
+          return next;
+        }
+      }
       if (distance > budget) {
         next.x += (dx / distance) * budget;
         next.y += (dy / distance) * budget;
@@ -134,6 +165,7 @@ export function stepActor(world: World, actor: Actor, seconds: number, moving: b
 
 /** Public, generic description for the profile card. Never includes resident-supplied text. */
 export function describeActivity(world: World, actor: Actor): string {
+  if (actor.waitingForSignal) return "信号が青になるのを待っています";
   const poi = poiById(world, actor.goal);
   if (actor.action === "walk") return poi ? `${poi.place}へ向かっています` : "街を散歩中";
   if (actor.action === "talk") return "近くの住民とおしゃべり中";

@@ -11,7 +11,13 @@ vehicles_path, signals_path, output = sys.argv[1:]
 with open(vehicles_path, encoding="utf-8") as f:
     data = json.load(f)
 with open(signals_path, encoding="utf-8") as f:
-    signals = [h for h in json.load(f)["heads"] if h["kind"] == "vehicle"]
+    heads = json.load(f)["heads"]
+signals = [h for h in heads if h["kind"] == "vehicle"]
+data["pedestrianSignals"] = [
+    {"x": h["pos"][0], "y": -h["pos"][1], "height": round(h["pos"][2] - 2.75, 2),
+     "dx": h["facing"][0], "dy": -h["facing"][1], "group": h["group"]}
+    for h in heads if h["kind"] == "pedestrian"
+]
 
 
 def project(points, x, y, facing=None, height=None):

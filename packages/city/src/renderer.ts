@@ -396,7 +396,7 @@ function startCity(
   }
 
   function textureFor(entry: Entry, presenting: boolean) {
-    const action = entry.actor.action;
+    const action = entry.actor.waitingForSignal ? "idle" : entry.actor.action;
     const pose = presenting
       ? presentation?.kind === "welcome"
         ? "wave"
@@ -625,7 +625,10 @@ function startCity(
       // Keep the underlying route position. Camera focus never relocates the original sprite.
       entry.actor = presenting
         ? { ...entry.actor, elapsed: entry.actor.elapsed + (moving ? seconds : 0) }
-        : stepActor(world, entry.actor, seconds, moving);
+        : stepActor(world, entry.actor, seconds, moving, {
+            signals: trafficData.pedestrianSignals,
+            time: clock,
+          });
       if (
         moving &&
         id !== selectedId &&
@@ -635,7 +638,10 @@ function startCity(
       )
         entry.actor = commandActor(world, entry.actor, "walk");
       if (previousAction !== entry.actor.action) options.onAction?.(id, entry.actor.action);
-      entry.facing = facingFor(entry.actor.heading, entry.actor.action === "walk");
+      entry.facing = facingFor(
+        entry.actor.heading,
+        entry.actor.action === "walk" && !entry.actor.waitingForSignal,
+      );
       const ground = groundAt(entry.actor.x, entry.actor.y);
       const inside = entry.actor.action === "visit" && !presenting;
       // Zoomed far out, residents keep a minimum size on screen so they can still be tapped.

@@ -31,10 +31,11 @@ blender -b School.blend -S Ochanomizu --python scripts/blender/export-ochanomizu
 - 居民沿步行网格 A* 走到地标（JR 两个出口、两座桥、ソラシティ、ニコライ堂、湯島聖堂、明治大学等）或店铺门前。
 - 嵌入贴图通过 `<img>` 加载以符合 CSP 的 `connect-src 'self'`。
 - 交通使用本地模拟时钟：信号每 40 秒循环，汽车在匹配的黄灯及红灯前停车，并在同一路径保持间距。列车在推定的御茶ノ水站台停车至少 15 秒，于下一模拟分钟发车。显示的交通、信号周期和列车班次均非实时或实际时刻表。
-- `traffic.json` 从 Blender 管线的 `vehicles.json`、`signals.json` 生成，信号根据道路距离、朝向、高度匹配；月台中心由场景几何估算。重新生成：`python scripts/build-traffic.py <vehicles.json> <signals.json> apps/web/public/city3d/traffic.json`。重新导出模型后应同时重新生成并验证交通数据。
+- `traffic.json` 从 Blender 管线的 `vehicles.json`、`signals.json` 生成，信号根据道路距离、朝向、高度匹配；月台中心由场景几何估算。行人接近匹配方向及高度的行人信号时，在红灯和闪烁绿灯前等待，稳定绿灯时出发；已进入路口的行人继续通行。灯光与行人共用模拟时钟。重新生成：`python scripts/build-traffic.py <vehicles.json> <signals.json> apps/web/public/city3d/traffic.json`。重新导出模型后应同时重新生成并验证交通数据。
+- `/city` 的「イラストの見本」提供 12 名虚构居民作演示；新增角色共用占位画风，不写入参与者数据或服务端。
 
 ## 已知限制
 
 - `city.glb` 未压缩；量化或 meshopt 压缩需额外工具，尚未加入。
 - 目标平板的帧率、内存与长时间运行尚未实测。
-- 居民之间没有避让；汽车不避让行人，信号匹配及站位是推定值，不包含完整道路规则或实际列车调度。路线末端会重新进入，模拟时钟不会跨设备同步。
+- 居民之间没有避让；汽车不避让行人。行人仍可走未设置信号的道路，寻路不会强制经过斑马线；行人信号的位置和识别范围、汽车信号匹配及站位均为推定值，不包含完整道路规则或实际列车调度。路线末端会重新进入，模拟时钟不会跨设备同步。

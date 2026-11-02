@@ -155,7 +155,7 @@ export function CityPreview({ mode }: { mode: "sample" | "participants" }) {
         <div className="city-toolbar">
           <span>
             {mode === "sample"
-              ? "架空の住民 2人"
+              ? `架空の住民 ${residents.length}人`
               : `公開中の住民 ${residents.length}人（最大20人）`}
           </span>
           <button

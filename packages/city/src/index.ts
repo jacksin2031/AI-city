@@ -2,7 +2,31 @@ import type { PublicResident } from "@ai-city/contracts";
 import { developmentCitySnapshot } from "@ai-city/contracts/development";
 
 export function getDevelopmentResidents(): PublicResident[] {
-  return structuredClone(developmentCitySnapshot.residents);
+  const residents = structuredClone(developmentCitySnapshot.residents);
+  const template = residents[0];
+  if (!template) return residents;
+  const names = [
+    "あおい",
+    "かえで",
+    "みなと",
+    "ひなた",
+    "ゆい",
+    "れん",
+    "さくら",
+    "なぎ",
+    "りく",
+    "つむぎ",
+  ];
+  return residents.concat(
+    names.map((name, index) => ({
+      ...template,
+      residentId: `fixture-crowd-${index + 1}`,
+      nickname: `見本 ${name}`,
+      avatarVersion: "fixture-guest-v1",
+      personalityLabel: "サンプル",
+      interests: [],
+    })),
+  );
 }
 
 export { type ScenePresentationFrame, speechBounds } from "./focus";

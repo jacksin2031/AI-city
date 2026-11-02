@@ -16,6 +16,7 @@ function fixture() {
     city.add(new THREE.Mesh(new THREE.BufferGeometry(), material));
   }
   const data: TrafficData = {
+    pedestrianSignals: [],
     paths: [
       {
         name: "road",
@@ -83,6 +84,7 @@ it("keeps cars and train carriages upright on a sloping reverse-direction route"
     model.add(object);
   }
   const data: TrafficData = {
+    pedestrianSignals: [],
     paths: [
       {
         name: "reverse",
@@ -116,6 +118,7 @@ it("uses the carriage span to avoid pitching on a single noisy track point", () 
   model.add(train);
   const centre = 17 + Math.sqrt(18);
   const data: TrafficData = {
+    pedestrianSignals: [],
     paths: [
       {
         name: "track",

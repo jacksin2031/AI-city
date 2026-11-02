@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import {
   advanceVehicle,
+  type PedestrianSignal,
   type Point3,
+  pedestrianPhase,
   samplePath,
   signalPhase,
   type TrafficStop,
@@ -24,7 +26,11 @@ type Vehicle = {
   car_length?: number;
   gap?: number;
 };
-export type TrafficData = { paths: Route[]; vehicles: Vehicle[] };
+export type TrafficData = {
+  paths: Route[];
+  vehicles: Vehicle[];
+  pedestrianSignals: PedestrianSignal[];
+};
 type RunningVehicle = {
   route: Route;
   state: VehicleState;
@@ -132,10 +138,9 @@ export function createTraffic(data: TrafficData, model: THREE.Object3D, city: TH
       let lit = false;
       if (name.includes("Veh")) lit = signalPhase(group, time) === colour;
       else {
-        const walk = group === "A" ? phase >= 21 && phase < 35 : phase >= 0.5 && phase < 15;
-        const blink = group === "A" ? phase >= 31 : phase >= 11;
-        const green = walk && (!blink || Math.floor(phase * 2) % 2 === 0);
-        lit = colour === "G" ? green : !walk;
+        const ped = pedestrianPhase(group, time);
+        const green = ped === "walk" || (ped === "flash" && Math.floor(phase * 2) % 2 === 0);
+        lit = colour === "G" ? green : ped === "stop";
       }
       material.emissive.setHex(colour === "G" ? 0x00c2a8 : colour === "Y" ? 0xffb000 : 0xff2a1e);
       material.emissiveIntensity = lit ? 3 : 0;

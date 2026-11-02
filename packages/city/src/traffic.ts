@@ -1,7 +1,54 @@
 export type TrafficStop = { distance: number; group: string };
 export type VehicleState = { distance: number; dwell: number; lastStop: number };
 export type Point3 = [number, number, number];
+export type PedestrianSignal = {
+  x: number;
+  y: number;
+  height: number;
+  dx: number;
+  dy: number;
+  group: "A" | "B";
+};
 const pathDistances = new WeakMap<Point3[], number[]>();
+
+/** Flashing green means pedestrians already crossing may finish, but should not start. */
+export function pedestrianPhase(group: "A" | "B", seconds: number): "walk" | "flash" | "stop" {
+  const t = ((seconds % 40) + 40) % 40;
+  if (group === "A") return t >= 21 && t < 31 ? "walk" : t >= 31 && t < 35 ? "flash" : "stop";
+  return t >= 0.5 && t < 11 ? "walk" : t >= 11 && t < 15 ? "flash" : "stop";
+}
+
+/** Earliest stop-line intersection for a walker approaching a signal, or null. */
+export function pedestrianStopFraction(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  height: number,
+  signals: PedestrianSignal[],
+  time: number,
+): number | null {
+  let earliest: number | null = null;
+  for (const signal of signals) {
+    if (pedestrianPhase(signal.group, time) === "walk" || Math.abs(height - signal.height) > 3)
+      continue;
+    const length = Math.hypot(signal.dx, signal.dy);
+    if (!length) continue;
+    const dx = signal.dx / length,
+      dy = signal.dy / length;
+    const mx = to.x - from.x,
+      my = to.y - from.y;
+    const advance = mx * dx + my * dy;
+    if (advance <= 0.00001 || advance / Math.hypot(mx, my) < 0.5) continue;
+    // One metre back from the signal face, outside the crossing.
+    const gx = signal.x - dx,
+      gy = signal.y - dy;
+    const start = (from.x - gx) * dx + (from.y - gy) * dy;
+    if (start > 0.00001 || start + advance < 0) continue;
+    const fraction = Math.max(0, -start / advance);
+    const lateral = (from.x + fraction * mx - gx) * -dy + (from.y + fraction * my - gy) * dx;
+    if (Math.abs(lateral) <= 4 && (earliest === null || fraction < earliest)) earliest = fraction;
+  }
+  return earliest;
+}
 
 export function signalPhase(group: string, seconds: number): "G" | "Y" | "R" {
   const t = ((seconds % 40) + 40) % 40;
