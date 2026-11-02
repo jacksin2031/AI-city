@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { cityMaterial, mergeCity } from "./materials";
+import { cityMaterial, mergeCity, updateBuildingFade } from "./materials";
 
 const spec = {
   kind: "facade" as const,
@@ -76,4 +76,42 @@ it("keeps station-sign UVs and the emissive texture when merging meshes", () => 
   expect((mesh.material as THREE.MeshStandardMaterial).emissiveMap).toBe(sign.emissiveMap);
   expect((mesh.material as THREE.MeshStandardMaterial).map).toBe(sign.emissiveMap);
   expect((mesh.material as THREE.MeshStandardMaterial).color).toEqual(new THREE.Color(0xffffff));
+});
+
+it("keeps building bounds separate and fades buildings without fading other scenery", () => {
+  const root = new THREE.Group();
+  const material = new THREE.MeshStandardMaterial();
+  material.name = "shared";
+  const building = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 6), material);
+  building.position.set(30, 4, -20);
+  building.userData.base_z = 0;
+  const road = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 2), material);
+  root.add(building, road);
+  const fade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const city = mergeCity(root, {}, fade);
+  expect(city.children).toHaveLength(2);
+  const buildingMesh = city.children.find((child) =>
+    (child as THREE.Mesh).geometry.hasAttribute("cityBounds"),
+  ) as THREE.Mesh;
+  const groundMesh = city.children.find((child) => child !== buildingMesh) as THREE.Mesh;
+  const bounds = buildingMesh.geometry.getAttribute("cityBounds");
+  expect([bounds.getX(0), bounds.getY(0), bounds.getZ(0), bounds.getW(0)]).toEqual([
+    25, -23, 35, -17,
+  ]);
+  expect((buildingMesh.material as THREE.MeshStandardMaterial).transparent).toBe(true);
+  expect((groundMesh.material as THREE.MeshStandardMaterial).transparent).toBe(false);
+  updateBuildingFade(fade, 30, 20, 24);
+  expect(fade.center.value).toEqual(new THREE.Vector2(30, -20));
+  expect(fade.zoom.value).toBe(24);
+  const shader = {
+    uniforms: {},
+    vertexShader: "#include <common>\n#include <begin_vertex>",
+    fragmentShader: "#include <common>\n#include <alphahash_fragment>",
+  };
+  (buildingMesh.material as THREE.MeshStandardMaterial).onBeforeCompile(
+    shader as never,
+    {} as never,
+  );
+  expect(shader.fragmentShader).toContain("diffuseColor.a *= 1.0 - 0.7 * nearby * closeZoom");
+  expect(shader.uniforms).toMatchObject({ cityFadeCenter: fade.center, cityFadeZoom: fade.zoom });
 });

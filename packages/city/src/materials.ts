@@ -23,6 +23,48 @@ export type MaterialSpec = {
   };
 };
 export type MaterialSpecs = Record<string, MaterialSpec>;
+export type BuildingFade = {
+  center: { value: THREE.Vector2 };
+  zoom: { value: number };
+};
+
+/** Fade buildings near the view target as the orthographic camera zooms in. */
+export function updateBuildingFade(fade: BuildingFade, x: number, y: number, zoom: number) {
+  fade.center.value.set(x, -y);
+  fade.zoom.value = zoom;
+}
+
+function enableBuildingFade(material: THREE.MeshStandardMaterial, fade: BuildingFade) {
+  const compile = material.onBeforeCompile;
+  const cacheKey = material.customProgramCacheKey();
+  material.transparent = true;
+  material.customProgramCacheKey = () => `${cacheKey}-building-fade`;
+  material.onBeforeCompile = (shader, renderer) => {
+    compile.call(material, shader, renderer);
+    shader.uniforms.cityFadeCenter = fade.center;
+    shader.uniforms.cityFadeZoom = fade.zoom;
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nattribute vec4 cityBounds;\nvarying vec4 vCityBounds;",
+      )
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCityBounds = cityBounds;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nvarying vec4 vCityBounds;\nuniform vec2 cityFadeCenter;\nuniform float cityFadeZoom;",
+      )
+      .replace(
+        "#include <alphahash_fragment>",
+        `
+        vec2 nearest = clamp(cityFadeCenter, vCityBounds.xy, vCityBounds.zw);
+        float nearby = 1.0 - smoothstep(8.0, 35.0, distance(cityFadeCenter, nearest));
+        float closeZoom = smoothstep(8.0, 20.0, cityFadeZoom);
+        diffuseColor.a *= 1.0 - 0.7 * nearby * closeZoom;
+        #include <alphahash_fragment>`,
+      );
+  };
+}
 
 const luminance = (c: Colour) => c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722;
 const vec3 = (c: Colour) => new THREE.Vector3(...c);
@@ -242,11 +284,20 @@ function randomFor(name: string) {
  * Bake every static mesh into world space and merge them by material, turning ~1,000 draw
  * calls into about a hundred. Buildings keep their seed and base height per vertex.
  */
-export function mergeCity(root: THREE.Object3D, specs: MaterialSpecs): THREE.Group {
+export function mergeCity(
+  root: THREE.Object3D,
+  specs: MaterialSpecs,
+  fade?: BuildingFade,
+): THREE.Group {
   root.updateMatrixWorld(true);
   const groups = new Map<
     string,
-    { source: THREE.MeshStandardMaterial; geometries: THREE.BufferGeometry[] }
+    {
+      name: string;
+      source: THREE.MeshStandardMaterial;
+      geometries: THREE.BufferGeometry[];
+      building: boolean;
+    }
   >();
   root.traverse((object) => {
     const mesh = object as THREE.Mesh;
@@ -256,6 +307,7 @@ export function mergeCity(root: THREE.Object3D, specs: MaterialSpecs): THREE.Gro
     let owner: THREE.Object3D | null = mesh;
     while (owner && owner.userData.base_z === undefined && owner !== root) owner = owner.parent;
     const base = owner?.userData.base_z;
+    const isBuilding = typeof base === "number";
     const seed = randomFor(owner && owner !== root ? owner.name : mesh.name);
     const geometry = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
     // Station signs use emissive textures rather than a base-colour map.
@@ -276,17 +328,28 @@ export function mergeCity(root: THREE.Object3D, specs: MaterialSpecs): THREE.Gro
       building[index * 2 + 1] = typeof base === "number" ? base : -1000;
     }
     geometry.setAttribute("cityBuilding", new THREE.BufferAttribute(building, 2));
-    const group = groups.get(name) ?? { source, geometries: [] };
+    if (isBuilding) {
+      geometry.computeBoundingBox();
+      const bounds = geometry.boundingBox;
+      const values = new Float32Array(count * 4);
+      if (bounds)
+        for (let index = 0; index < count; index++)
+          values.set([bounds.min.x, bounds.min.z, bounds.max.x, bounds.max.z], index * 4);
+      geometry.setAttribute("cityBounds", new THREE.BufferAttribute(values, 4));
+    }
+    const key = `${name}:${isBuilding ? "building" : "other"}`;
+    const group = groups.get(key) ?? { name, source, geometries: [], building: isBuilding };
     group.geometries.push(geometry);
-    groups.set(name, group);
+    groups.set(key, group);
   });
   const city = new THREE.Group();
   city.name = "ochanomizu";
-  for (const [name, { source, geometries }] of groups) {
+  for (const { name, source, geometries, building } of groups.values()) {
     const merged = mergeGeometries(geometries, false);
     for (const geometry of geometries) geometry.dispose();
     if (!merged) continue;
     const { material } = cityMaterial(name, specs[name], source);
+    if (building && fade) enableBuildingFade(material, fade);
     const mesh = new THREE.Mesh(merged, material);
     mesh.name = name;
     mesh.matrixAutoUpdate = false;

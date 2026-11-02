@@ -17,7 +17,7 @@ import {
   VIEW,
 } from "./focus";
 import { characterDataUrl, illustrationPalette } from "./illustrations";
-import { type MaterialSpecs, mergeCity } from "./materials";
+import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
 import {
   type Actor,
   type CityAction,
@@ -291,7 +291,8 @@ function startCity(
   // Read this before mergeCity bakes the source mesh transforms into the combined geometry.
   const metroRailHeightOffset =
     cityModel.scene.getObjectByName("Rail_Metro_Marunouchi")?.position.y ?? 0;
-  const city = mergeCity(cityModel.scene, specs);
+  const buildingFade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const city = mergeCity(cityModel.scene, specs, buildingFade);
   scene.add(city);
   const vehicles = vehicleModel.scene;
   vehicles.traverse((object) => {
@@ -621,6 +622,7 @@ function startCity(
       shown = target;
     }
     placeCamera(shown);
+    updateBuildingFade(buildingFade, shown.centerX, shown.centerY, shown.zoom);
     parent.dataset.cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
     const screenUnit = 1 / shown.zoom;
     let index = 0;
