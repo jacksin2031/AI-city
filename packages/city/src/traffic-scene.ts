@@ -31,7 +31,7 @@ type RunningVehicle = {
   stops: TrafficStop[];
   speed: number;
   train: boolean;
-  parts: { object: THREE.Object3D; offset: number }[];
+  parts: { object: THREE.Object3D; offset: number; halfSpan: number }[];
 };
 
 /** Simulated, local-only traffic. Coordinates in the source data are Blender ENU metres. */
@@ -52,11 +52,12 @@ export function createTraffic(data: TrafficData, model: THREE.Object3D, city: TH
           parts.push({
             object,
             offset: (entry.car_length ?? 0) / 2 + i * ((entry.car_length ?? 0) + (entry.gap ?? 0)),
+            halfSpan: (entry.car_length ?? 0) * 0.4,
           });
       }
     } else {
       const object = model.getObjectByName(`${entry.controller}_body`);
-      if (object) parts.push({ object, offset: 0 });
+      if (object) parts.push({ object, offset: 0, halfSpan: 0 });
     }
     const halfTrain =
       ((entry.cars ?? 0) * ((entry.car_length ?? 0) + (entry.gap ?? 0)) - (entry.gap ?? 0)) / 2;
@@ -94,11 +95,26 @@ export function createTraffic(data: TrafficData, model: THREE.Object3D, city: TH
   const setPose = (v: RunningVehicle) => {
     for (const part of v.parts) {
       const distance = v.state.distance - part.offset;
-      part.object.visible = distance >= 0 && distance <= v.route.length;
+      part.object.visible =
+        distance - part.halfSpan >= 0 && distance + part.halfSpan <= v.route.length;
       if (!part.object.visible) continue;
       const sample = samplePath(v.route.pts, distance);
       part.object.position.set(sample.position[0], sample.position[2], -sample.position[1]);
       direction.set(sample.direction[0], sample.direction[2], -sample.direction[1]).normalize();
+      if (part.halfSpan > 0) {
+        // A carriage is rigid: use its two bogie positions rather than one short track segment.
+        const rear = samplePath(v.route.pts, distance - part.halfSpan).position;
+        const front = samplePath(v.route.pts, distance + part.halfSpan).position;
+        part.object.position.set(
+          (front[0] + rear[0]) / 2,
+          (front[2] + rear[2]) / 2,
+          -(front[1] + rear[1]) / 2,
+        );
+        direction.set(front[0] - rear[0], front[2] - rear[2], rear[1] - front[1]);
+        if (direction.lengthSq() > 1e-12) direction.normalize();
+        else
+          direction.set(sample.direction[0], sample.direction[2], -sample.direction[1]).normalize();
+      }
       // Preserve world-up while aligning the vehicle's +X axis with the path.
       // A shortest-arc rotation alone can turn the roof upside down near -X.
       side.crossVectors(direction, worldUp);

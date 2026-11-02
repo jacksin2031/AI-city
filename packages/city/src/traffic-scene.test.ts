@@ -108,3 +108,34 @@ it("keeps cars and train carriages upright on a sloping reverse-direction route"
   const car = model.getObjectByName("Car_reverse_body") as THREE.Object3D;
   expect(new THREE.Vector3(0, 1, 0).applyQuaternion(car.quaternion).y).toBeGreaterThan(0.99);
 });
+
+it("uses the carriage span to avoid pitching on a single noisy track point", () => {
+  const model = new THREE.Group();
+  const train = new THREE.Object3D();
+  train.name = "Train_spike_car01";
+  model.add(train);
+  const centre = 17 + Math.sqrt(18);
+  const data: TrafficData = {
+    paths: [
+      {
+        name: "track",
+        kind: "rail",
+        pts: [
+          [0, 0, 0],
+          [17, 0, 0],
+          [20, 0, 3],
+          [23, 0, 0],
+          [50, 0, 0],
+        ],
+        length: 52.5,
+      },
+    ],
+    vehicles: [
+      { controller: "Train_spike", path: "track", s: centre + 10, cars: 1, car_length: 20, gap: 0 },
+    ],
+  };
+  createTraffic(data, model, new THREE.Group());
+  const forward = new THREE.Vector3(1, 0, 0).applyQuaternion(train.quaternion);
+  expect(Math.abs(forward.y)).toBeLessThan(0.05);
+  expect(Math.abs(train.position.y)).toBeLessThan(0.1);
+});
