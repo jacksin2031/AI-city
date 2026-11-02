@@ -49,12 +49,11 @@ GitHub 的当前基线、PR 依赖、Issue 缺口和整合方案见 [工作索�
 
 仓库默认关闭持久访客和免代码入场开关；使用说明见 [持久访客](docs/PERSISTENT_VISITORS.md)，免代码流程及验证见 [简化参加入口](docs/CODE_FREE_JOIN.md)。原邀请式云端版本证据保留在[访客发布记录](docs/releases/2026-10-19-persistent-visitors-preview.md)，不把历史邀请步骤当成新页面要求。所有模式仍使用虚构插画，浏览器不等于实机验收。
 
-| 主责 | 目录 | 工作范围 |
-| --- | --- | --- |
-| A | `apps/web`（city 除外）、`infra` | 参与流程、任务可靠性、同步、权限、文本服务、运营 |
-| B | `packages/city`、`apps/web/app/city` | 角色素材、动画、城市、行为调度、平板展示 |
-| 共同接口 | `packages/contracts` | schema、版本、fixture；先讨论兼容变化，单人提交 |
-
+| 主责     | 目录                                 | 工作范围                                         |
+| -------- | ------------------------------------ | ------------------------------------------------ |
+| A        | `apps/web`（city 除外）、`infra`     | 参与流程、任务可靠性、同步、权限、文本服务、运营 |
+| B        | `packages/city`、`apps/web/app/city` | 角色素材、动画、城市、行为调度、平板展示         |
+| 共同接口 | `packages/contracts`                 | schema、版本、fixture；先讨论兼容变化，单人提交  |
 1. 从 `main` 建立短分支，例如 `feature/a-consent` 或 `feature/b-avatar`。
 2. 一个 Issue 指定一个实际负责人；把范围、验收和必要上下文交给 AI。
 3. 运行验证，提交 PR，另一位开发者检查证据后合并。不要让两个 AI 同时修改同一个工作目录。

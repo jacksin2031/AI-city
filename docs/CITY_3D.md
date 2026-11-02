@@ -12,14 +12,14 @@ blender -b School.blend -S Ochanomizu --python scripts/blender/export-ochanomizu
 
 约 15 秒，输出到 `apps/web/public/city3d/`：
 
-| 文件 | 内容 |
-| --- | --- |
-| `city.glb` | 静态场景（约 30 MB，未压缩）；建筑的 `base_z`、`name_ja` 作为 glTF extras |
-| `vehicles.glb` | JR 中央线·总武线、丸ノ内线与汽车模型；当前文件不含动画 |
-| `traffic.json` | 本地导出的道路及轨道折线、车辆初始位置、推定停车线和车站位置 |
+| 文件             | 内容                                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| `city.glb`       | 静态场景（约 30 MB，未压缩）；建筑的 `base_z`、`name_ja` 作为 glTF extras              |
+| `vehicles.glb`   | JR 中央线·总武线、丸ノ内线与汽车模型；当前文件不含动画                                 |
+| `traffic.json`   | 本地导出的道路及轨道折线、车辆初始位置、推定停车线和车站位置                           |
 | `materials.json` | Blender 程序化材质的颜色与图案尺寸，由 `packages/city/src/materials.ts` 在着色器中重建 |
-| `nav.bin` | 1 m 步行网格：每格类型（人行道、空地、草地、支路、主路、不可走）与高度（cm） |
-| `places.json` | 网格范围、车辆循环长度，以及从店面雨棚找出的 215 处店铺位置与朝向 |
+| `nav.bin`        | 1 m 步行网格：每格类型（人行道、空地、草地、支路、主路、不可走）与高度（cm）           |
+| `places.json`    | 网格范围、车辆循环长度，以及从店面雨棚找出的 215 处店铺位置与朝向                      |
 
 隐藏集合（导航网格、地下、路径、控制器）不导出。地下铁隧道等不可见物体不进入网页。
 

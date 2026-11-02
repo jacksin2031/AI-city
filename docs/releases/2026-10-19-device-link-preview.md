@@ -13,21 +13,21 @@
 
 ## 精确发布身份
 
-| 项目 | 实际值 |
-| --- | --- |
-| Google Cloud 项目 / 区域 | ai-city-511822 / asia-northeast1 |
-| 源码 | 746db211d515f8365b1a1e3f914d2978b1f4cc95，PR #15 |
-| 构建输入 | git archive 只包含该 commit 的跟踪文件，不上传本地环境或未跟踪文件 |
-| 源码归档 SHA-256 | 8B1954A652800BA337991B8AE1C02E93DF22BCF2D67BF51734A90F5D19C27ADF |
-| Cloud Build | fa386bc0-6803-400d-a034-e9eeb26aa6e3，SUCCESS |
-| 镜像 tag | asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/device-link:746db21 |
-| 镜像 digest | sha256:7379d425c31302314da5c53d5b57d168f950f4c3fa6ac27553d380c4340d536c |
-| Cloud Run 服务 | ai-city-link-preview |
-| Ready revision / 流量 | ai-city-link-preview-origin746db21 / 100% |
-| 运行规格 | 1 CPU、512Mi、concurrency 20、请求 timeout 30 秒、port 8080 |
-| 实例限制 | service 和 revision 均 max 1，min 0；内存 mock，不支持多实例 |
-| Secret 注入 | AI_CITY_ADMIN_KEY → ai-city-preview-admin:1；未打印其值 |
-| 环境 | AI_CITY_ENABLE_LOCAL_MOCK=1；AI_CITY_PUBLIC_ORIGIN 为上面的精确 HTTPS origin |
+| 项目                     | 实际值                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| Google Cloud 项目 / 区域 | ai-city-511822 / asia-northeast1                                             |
+| 源码                     | 746db211d515f8365b1a1e3f914d2978b1f4cc95，PR #15                             |
+| 构建输入                 | git archive 只包含该 commit 的跟踪文件，不上传本地环境或未跟踪文件           |
+| 源码归档 SHA-256         | 8B1954A652800BA337991B8AE1C02E93DF22BCF2D67BF51734A90F5D19C27ADF             |
+| Cloud Build              | fa386bc0-6803-400d-a034-e9eeb26aa6e3，SUCCESS                                |
+| 镜像 tag                 | asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/device-link:746db21    |
+| 镜像 digest              | sha256:7379d425c31302314da5c53d5b57d168f950f4c3fa6ac27553d380c4340d536c      |
+| Cloud Run 服务           | ai-city-link-preview                                                         |
+| Ready revision / 流量    | ai-city-link-preview-origin746db21 / 100%                                    |
+| 运行规格                 | 1 CPU、512Mi、concurrency 20、请求 timeout 30 秒、port 8080                  |
+| 实例限制                 | service 和 revision 均 max 1，min 0；内存 mock，不支持多实例                 |
+| Secret 注入              | AI_CITY_ADMIN_KEY → ai-city-preview-admin:1；未打印其值                      |
+| 环境                     | AI_CITY_ENABLE_LOCAL_MOCK=1；AI_CITY_PUBLIC_ORIGIN 为上面的精确 HTTPS origin |
 
 构建实际运行 infra/app/Dockerfile，Node 24.18.0、pnpm 11.9.0，frozen lockfile 安装后 build，非 root node 启动 scripts/start-remote.mjs。Cloud Build 使用 CLOUD_LOGGING_ONLY；成功状态与镜像 digest 已核对，没有声称已读到不存在的 stdout 日志。
 
@@ -35,13 +35,13 @@
 
 ## 新增资源与权限范围
 
-| 身份 / 资源 | 本次权限 |
-| --- | --- |
-| ai-city-preview-builder | 项目 logging.logWriter；仅 ai-city 仓库 artifactregistry.writer；仅新源码桶 storage.objectViewer |
-| ai-city-preview-runtime | 仅 ai-city-preview-admin Secret 的 secretmanager.secretAccessor；无项目级角色，无数据或模型角色 |
-| ai-city-511822-preview-builds | 东京、uniform bucket-level access、public access prevention enforced；对象 age 1 天异步删除 |
-| ai-city-preview-admin | 东京复制，版本 1；64 字符随机钥匙；没有服务账号 JSON key |
-| ai-city-link-preview | 仅该服务允许公网 invoker；应用管理/展示会话仍必需 |
+| 身份 / 资源                   | 本次权限                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| ai-city-preview-builder       | 项目 logging.logWriter；仅 ai-city 仓库 artifactregistry.writer；仅新源码桶 storage.objectViewer |
+| ai-city-preview-runtime       | 仅 ai-city-preview-admin Secret 的 secretmanager.secretAccessor；无项目级角色，无数据或模型角色  |
+| ai-city-511822-preview-builds | 东京、uniform bucket-level access、public access prevention enforced；对象 age 1 天异步删除      |
+| ai-city-preview-admin         | 东京复制，版本 1；64 字符随机钥匙；没有服务账号 JSON key                                         |
+| ai-city-link-preview          | 仅该服务允许公网 invoker；应用管理/展示会话仍必需                                                |
 
 原 ai-city-ci、ai-city-runtime、GitHub OIDC 和两个原私有数据桶未修改；默认 compute 身份没有用于本次构建/运行。源码暂存桶保留创建时的项目 owner/editor/viewer 继承访问，没有额外开放公网。没有设置或更改全局 gcloud configuration / ADC。
 
@@ -51,22 +51,22 @@
 
 云端真实 HTTPS 验证：
 
-| 检查 | 结果 |
-| --- | --- |
-| 私有阶段无 Cloud IAM 身份访问 | 403 |
-| 公开阶段 /api/health、/admin、/tablet | 200 |
-| 未登录管理/展示 API | 401 / 401 |
-| 未登录远端参与快照、远端 bootstrap | 403 / 403 |
-| 管理登录、管理员状态、跨 origin 控制 | 200 / 200 / 403 |
-| 独立 cookie context 平板配对 | PASS；只读 DISPLAY 控制请求 403 |
-| DEMO / LIVE / MAINTENANCE、动作开关 | PASS；休止时清除 canvas，恢复后只有一个 canvas |
-| 虚构样例准备、分项确认、公开同步 | PASS；确认前 0，确认后 1；consentVersion 2，未同意性格/兴趣不公开 |
-| 手机删除、平板刷新、参与页删除状态 | PASS；公开快照恢复 0，参与页显示删除 |
-| 挂起展示请求 4 秒限时 | PASS；清除旧画面并显示重连，解除拦截后恢复一个 canvas |
-| 手机解除全部平板、管理退出 | PASS；展示/管理 API 均返回 401，平板 canvas 为 0 |
-| Cookie 属性 | HttpOnly、Secure、SameSite Strict、Path=/api |
-| 375px 管理 / 1024×768 展示 | document width 分别 375 / 1024，无横向溢出 |
-| CSP / JS | 无异常；199 条控制台记录均为登录前/撤销后的预期 401/403 网络拒绝 |
+| 检查                                  | 结果                                                              |
+| ------------------------------------- | ----------------------------------------------------------------- |
+| 私有阶段无 Cloud IAM 身份访问         | 403                                                               |
+| 公开阶段 /api/health、/admin、/tablet | 200                                                               |
+| 未登录管理/展示 API                   | 401 / 401                                                         |
+| 未登录远端参与快照、远端 bootstrap    | 403 / 403                                                         |
+| 管理登录、管理员状态、跨 origin 控制  | 200 / 200 / 403                                                   |
+| 独立 cookie context 平板配对          | PASS；只读 DISPLAY 控制请求 403                                   |
+| DEMO / LIVE / MAINTENANCE、动作开关   | PASS；休止时清除 canvas，恢复后只有一个 canvas                    |
+| 虚构样例准备、分项确认、公开同步      | PASS；确认前 0，确认后 1；consentVersion 2，未同意性格/兴趣不公开 |
+| 手机删除、平板刷新、参与页删除状态    | PASS；公开快照恢复 0，参与页显示删除                              |
+| 挂起展示请求 4 秒限时                 | PASS；清除旧画面并显示重连，解除拦截后恢复一个 canvas             |
+| 手机解除全部平板、管理退出            | PASS；展示/管理 API 均返回 401，平板 canvas 为 0                  |
+| Cookie 属性                           | HttpOnly、Secure、SameSite Strict、Path=/api                      |
+| 375px 管理 / 1024×768 展示            | document width 分别 375 / 1024，无横向溢出                        |
+| CSP / JS                              | 无异常；199 条控制台记录均为登录前/撤销后的预期 401/403 网络拒绝  |
 
 HTTPS Chrome 使用两个隔离 BrowserContext，不是两部真实设备。截图位于忽略目录 output/playwright/cloud-phone-admin.png、cloud-tablet-live.png、cloud-phone-clean.png、cloud-tablet-demo.png，已逐张实际检查；管理截图中的配对码已消费且过期。
 

@@ -10,11 +10,11 @@ updates:
         dependency-type: development
     # Node 类型与运行时主版本一致；升级 Node 时一并评估此限制。
     ignore:
-      - dependency-name: '@types/node'
-        update-types: ['version-update:semver-major']
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
       # Next tsserver 插件仍需旧语言服务 API；TS 7 单独迁移验收后再解除。
       - dependency-name: typescript
-        versions: ['>=7']
+        versions: [">=7"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

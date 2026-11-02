@@ -49,16 +49,16 @@ Node 工具可传 `baseUrl: "http://127.0.0.1:3000"`；同一个 client 会在�
 
 共享包版本为 0.3.0，旧 v0.2 导出保持兼容。新接口在 `development` 子路径验证业务必要字段，B 原有调用方无需立即修改。
 
-| 能力 | HTTP | 结果 |
-| --- | --- | --- |
-| 建立/复用会话 | `POST /api/dev/session`，body `{}` | `mode: MOCK`，服务器设置 cookie |
-| 创建样例任务 | `POST /api/dev/jobs` | `ParticipationView`；同一会话/requestId/内容复用，内容冲突返回 409 |
-| 刷新恢复 | `GET /api/dev/jobs/current` | 当前 `ParticipationView` 或 `null` |
-| 查询任务 | `GET /api/dev/jobs/{jobId}` | 仅本人会话可读 |
-| 确认显示 | `POST /api/dev/jobs/{jobId}/confirm` | 验证本人会话、READY 及分项同意，创建一个居民和加入事件 |
-| 取消/重试/撤回 | `POST /api/dev/jobs/{jobId}/cancel`、`retry`、`remove`，body `{}` | 已显示任务须 remove；终止后不复活 |
-| 当前名单 | `GET /api/dev/city/snapshot?eventId=fixture-event` | `CitySnapshot` |
-| 增量事件 | `GET /api/dev/city/events?eventId=fixture-event&streamId=...&afterSeq=0` | `CityEventPage` |
+| 能力           | HTTP                                                                     | 结果                                                               |
+| -------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| 建立/复用会话  | `POST /api/dev/session`，body `{}`                                       | `mode: MOCK`，服务器设置 cookie                                    |
+| 创建样例任务   | `POST /api/dev/jobs`                                                     | `ParticipationView`；同一会话/requestId/内容复用，内容冲突返回 409 |
+| 刷新恢复       | `GET /api/dev/jobs/current`                                              | 当前 `ParticipationView` 或 `null`                                 |
+| 查询任务       | `GET /api/dev/jobs/{jobId}`                                              | 仅本人会话可读                                                     |
+| 确认显示       | `POST /api/dev/jobs/{jobId}/confirm`                                     | 验证本人会话、READY 及分项同意，创建一个居民和加入事件             |
+| 取消/重试/撤回 | `POST /api/dev/jobs/{jobId}/cancel`、`retry`、`remove`，body `{}`        | 已显示任务须 remove；终止后不复活                                  |
+| 当前名单       | `GET /api/dev/city/snapshot?eventId=fixture-event`                       | `CitySnapshot`                                                     |
+| 增量事件       | `GET /api/dev/city/events?eventId=fixture-event&streamId=...&afterSeq=0` | `CityEventPage`                                                    |
 
 创建字段：`eventId: fixture-event`、`requestId`、虚构 `nickname`、`sampleId`（sora/haru）、`answers`（六个 0–2 整数，或 null 跳过）、`scenario`。拒绝照片、额外字段及其他活动。具体类型以 schema 为准。
 
@@ -100,13 +100,13 @@ pnpm test:e2e
 
 ### 本次实际结果（2026-10-18）
 
-| 验证 | 结果 |
-| --- | --- |
-| `pnpm check` | PASS：格式、三个包类型检查、68 项测试、生产构建 |
-| `pnpm test:rules` | PASS：demo-ai-city 本地 Firestore/Storage emulator，98 项 |
-| `CI=true PLAYWRIGHT_CHANNEL=chrome pnpm test:e2e`（Windows 用相应环境变量语法） | PASS：11 项，含会话丢失后页面内恢复 |
-| 生产构建 `AI_CITY_ENABLE_LOCAL_MOCK=0` | 实际请求返回 404 MOCK_DISABLED |
-| 浏览器截图检查 | 375px 预览和问卷无横向溢出；名单读取与撤回已验证，证据在忽略目录 `output/playwright/` |
-| Luna Max 独立只读审查 | 0 Critical；Node cookie 和 session recovery 两项由 A 修正，分别完成真实 HTTP 与浏览器红→绿回归 |
+| 验证                                                                            | 结果                                                                                           |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `pnpm check`                                                                    | PASS：格式、三个包类型检查、68 项测试、生产构建                                                |
+| `pnpm test:rules`                                                               | PASS：demo-ai-city 本地 Firestore/Storage emulator，98 项                                      |
+| `CI=true PLAYWRIGHT_CHANNEL=chrome pnpm test:e2e`（Windows 用相应环境变量语法） | PASS：11 项，含会话丢失后页面内恢复                                                            |
+| 生产构建 `AI_CITY_ENABLE_LOCAL_MOCK=0`                                          | 实际请求返回 404 MOCK_DISABLED                                                                 |
+| 浏览器截图检查                                                                  | 375px 预览和问卷无横向溢出；名单读取与撤回已验证，证据在忽略目录 `output/playwright/`          |
+| Luna Max 独立只读审查                                                           | 0 Critical；Node cookie 和 session recovery 两项由 A 修正，分别完成真实 HTTP 与浏览器红→绿回归 |
 
 独立 reviewer 没有复审修正后的代码；修正后完整测试由 A 运行并核对。没有剩余已知 Critical/Important finding。B 对契约及素材兼容性的人工审查、真实图片/生成/云端接入、手机实机与目标平板验收均未完成。真实生成 P95、费用和展场效果未测量，不能使用本地模拟延迟代替。
