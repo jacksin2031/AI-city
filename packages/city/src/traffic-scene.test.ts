@@ -142,3 +142,73 @@ it("uses the carriage span to avoid pitching on a single noisy track point", () 
   expect(Math.abs(forward.y)).toBeLessThan(0.05);
   expect(Math.abs(train.position.y)).toBeLessThan(0.1);
 });
+
+it("adds a shared-model car without overlapping traffic when a route loops", () => {
+  const model = new THREE.Group();
+  const source = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 1), new THREE.MeshStandardMaterial());
+  source.name = "Car_source_body";
+  model.add(source);
+  const data: TrafficData = {
+    pedestrianSignals: [],
+    paths: [
+      {
+        name: "road",
+        kind: "road",
+        pts: [
+          [0, 0, 0],
+          [100, 0, 0],
+        ],
+        length: 100,
+        stops: [],
+      },
+    ],
+    vehicles: [
+      { controller: "Car_source", path: "road", s: 98 },
+      { controller: "Car_extra", sourceController: "Car_source", path: "road", s: 2 },
+    ],
+  };
+  const traffic = createTraffic(data, model, new THREE.Group());
+  const extra = model.getObjectByName("Car_extra_body") as THREE.Mesh;
+  expect(extra).toBeDefined();
+  expect(extra.geometry).toBe(source.geometry);
+  expect(extra.material).toBe(source.material);
+  traffic.update(0.5);
+  expect(source.position.x).toBeGreaterThan(90);
+  traffic.update(1.5);
+  expect(source.position.x).toBeLessThan(extra.position.x);
+  expect(extra.position.x - source.position.x).toBeGreaterThanOrEqual(6.99);
+});
+
+it("makes added cars obey the same red and green signals", () => {
+  const model = new THREE.Group();
+  const source = new THREE.Object3D();
+  source.name = "Car_source_body";
+  model.add(source);
+  const data: TrafficData = {
+    pedestrianSignals: [],
+    paths: [
+      {
+        name: "road",
+        kind: "road",
+        pts: [
+          [0, 0, 0],
+          [500, 0, 0],
+        ],
+        length: 500,
+        stops: [{ distance: 165, group: "A" }],
+      },
+    ],
+    vehicles: [
+      { controller: "Car_source", path: "road", s: 300 },
+      { controller: "Car_extra", sourceController: "Car_source", path: "road", s: 0 },
+    ],
+  };
+  const traffic = createTraffic(data, model, new THREE.Group());
+  const extra = model.getObjectByName("Car_extra_body") as THREE.Object3D;
+  traffic.update(20);
+  expect(extra.position.x).toBeCloseTo(165);
+  traffic.update(19);
+  expect(extra.position.x).toBeCloseTo(165);
+  traffic.update(2);
+  expect(extra.position.x).toBeGreaterThan(165);
+});

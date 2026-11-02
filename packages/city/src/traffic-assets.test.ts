@@ -19,6 +19,16 @@ describe("exported traffic assets", () => {
     const names = new Set(model.nodes.map((node) => node.name));
     const routes = new Map(data.paths.map((path) => [path.name, path]));
     expect(data.vehicles.length).toBeGreaterThan(0);
+    const cars = data.vehicles.filter((vehicle) => routes.get(vehicle.path)?.kind === "road");
+    expect(cars).toHaveLength(41);
+    expect(cars.filter((vehicle) => vehicle.sourceController)).toHaveLength(16);
+    for (const road of data.paths.filter((path) => path.kind === "road")) {
+      const onRoad = cars.filter((vehicle) => vehicle.path === road.name);
+      expect(onRoad.length).toBeGreaterThanOrEqual(2);
+      for (let i = 0; i < onRoad.length; i++)
+        for (let j = i + 1; j < onRoad.length; j++)
+          expect(Math.abs((onRoad[i]?.s ?? 0) - (onRoad[j]?.s ?? 0))).toBeGreaterThanOrEqual(7);
+    }
     expect(data.pedestrianSignals.length).toBeGreaterThan(100);
     for (const signal of data.pedestrianSignals) {
       expect(["A", "B"]).toContain(signal.group);
@@ -34,7 +44,7 @@ describe("exported traffic assets", () => {
         for (let i = 1; i <= (vehicle.cars ?? 0); i++)
           expect(names.has(`${vehicle.controller}_car${String(i).padStart(2, "0")}`)).toBe(true);
       } else {
-        expect(names.has(`${vehicle.controller}_body`)).toBe(true);
+        expect(names.has(`${vehicle.sourceController ?? vehicle.controller}_body`)).toBe(true);
         expect(route?.stops?.length).toBeGreaterThan(0);
       }
     }

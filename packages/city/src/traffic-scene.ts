@@ -20,6 +20,7 @@ type Route = {
 };
 type Vehicle = {
   controller: string;
+  sourceController?: string;
   path: string;
   s: number;
   cars?: number;
@@ -62,7 +63,15 @@ export function createTraffic(data: TrafficData, model: THREE.Object3D, city: TH
           });
       }
     } else {
-      const object = model.getObjectByName(`${entry.controller}_body`);
+      let object = model.getObjectByName(`${entry.controller}_body`);
+      if (!object && entry.sourceController) {
+        const source = model.getObjectByName(`${entry.sourceController}_body`);
+        if (source) {
+          object = source.clone();
+          object.name = `${entry.controller}_body`;
+          model.add(object);
+        }
+      }
       if (object) parts.push({ object, offset: 0, halfSpan: 0 });
     }
     const halfTrain =
@@ -156,6 +165,17 @@ export function createTraffic(data: TrafficData, model: THREE.Object3D, city: TH
         for (const v of running) {
           const previous = v.state.distance;
           const next = advanceVehicle(v.state, dt, time, v.speed, v.stops, v.route.length, v.train);
+          if (!v.train && next.distance < previous) {
+            // The road is an open path; do not respawn on top of a car near its start.
+            const blocked = running.some(
+              (other) =>
+                other !== v &&
+                !other.train &&
+                other.route === v.route &&
+                other.state.distance < next.distance + 7,
+            );
+            if (blocked) next.distance = previous;
+          }
           if (!v.train && next.distance >= previous) {
             for (const other of running) {
               if (

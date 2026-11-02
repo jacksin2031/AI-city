@@ -56,5 +56,20 @@ for path in data["paths"]:
         match = project(points, *centre)
         path["stationCentre"] = round(match[1], 2) if match and match[0] < 40 else None
 
+# Add one sample car per road using an existing model; place it in the largest free span.
+# The GLB geometry is reused at runtime and these additional cars are still simulated.
+for index, path in enumerate(p for p in data["paths"] if p["kind"] == "road"):
+    existing = [v for v in data["vehicles"] if v["path"] == path["name"]]
+    if not existing:
+        continue
+    positions = [0.0] + sorted(v["s"] for v in existing) + [path["length"]]
+    lo, hi = max(zip(positions, positions[1:]), key=lambda pair: pair[1] - pair[0])
+    if hi - lo < 14:
+        continue
+    source = existing[index % len(existing)]
+    data["vehicles"].append({"controller": "Car_extra_%02d" % (index + 1),
+                             "sourceController": source["controller"], "model": source["model"],
+                             "path": path["name"], "s": round((lo + hi) / 2, 2)})
+
 with open(output, "w", encoding="utf-8") as f:
     json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
