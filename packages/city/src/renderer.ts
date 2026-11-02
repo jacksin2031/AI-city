@@ -45,13 +45,10 @@ type Entry = {
   sprite: THREE.Sprite;
   ghost: THREE.Sprite;
   ring: THREE.Mesh;
-  label: Label;
   bubble: Label;
   welcomeUntil: number;
   hopUntil: number;
-  nickname: string;
   facing: Direction;
-  shown: string;
 };
 
 const directions: Direction[] = ["front", "left", "back", "right"];
@@ -419,21 +416,13 @@ function startCity(
     for (const [id, entry] of entries)
       if (!ids.has(id)) {
         residentLayer.remove(entry.group);
-        entry.label.sprite.material.map?.dispose();
         entry.bubble.sprite.material.map?.dispose();
         entries.delete(id);
       }
     for (const [index, resident] of visible.entries()) {
       const existing = entries.get(resident.residentId);
-      const nickname =
-        [...resident.nickname].slice(0, 12).join("") +
-        ([...resident.nickname].length > 12 ? "…" : "");
       if (existing) {
         existing.resident = resident;
-        if (existing.nickname !== nickname) {
-          existing.nickname = nickname;
-          existing.shown = "";
-        }
         continue;
       }
       const actor = createActor(world, focused === resident ? residents.indexOf(resident) : index);
@@ -454,12 +443,10 @@ function startCity(
       ghost.userData.residentId = resident.residentId;
       const ring = new THREE.Mesh(ringGeometry, ringMaterial);
       ring.renderOrder = 5;
-      const label = textLabel({ background: "rgba(255,255,255,0.88)", color: "#243b30", size: 26 });
-      label.sprite.center.set(0.5, 1.15);
       const bubble = textLabel({ background: "#ffffff", color: "#2c3a33", size: 24, wrap: 300 });
       bubble.sprite.center.set(0.5, 0);
       const group = new THREE.Group();
-      group.add(ring, sprite, ghost, label.sprite, bubble.sprite);
+      group.add(ring, sprite, ghost, bubble.sprite);
       residentLayer.add(group);
       entries.set(resident.residentId, {
         actor,
@@ -468,11 +455,8 @@ function startCity(
         sprite,
         ghost,
         ring,
-        label,
         bubble,
-        nickname,
         facing: "front",
-        shown: "",
         hopUntil: 0,
         welcomeUntil: addedIds.includes(resident.residentId) ? now + 1.8 : 0,
       });
@@ -671,16 +655,6 @@ function startCity(
       entry.ring.visible = (id === selectedId || presenting) && !inside;
       entry.ring.scale.setScalar(size / RESIDENT_HEIGHT);
       entry.ring.position.y = 0.06;
-      // Inside a shop the name tag stays at the door so viewers know who went in.
-      const name = inside ? `${entry.nickname}（店内）` : entry.nickname;
-      if (entry.shown !== name) {
-        entry.label.set(name);
-        entry.shown = name;
-      }
-      const labelHeight = 15 * screenUnit;
-      entry.label.sprite.scale.set(labelHeight * entry.label.aspect, labelHeight, 1);
-      entry.label.sprite.position.y = inside ? size * 0.5 : -0.1;
-      entry.label.sprite.visible = !presenting;
       const speech =
         entry.actor.action === "talk" ? preset : now < entry.welcomeUntil ? "ようこそ！" : "";
       if (entry.bubble.sprite.userData.text !== speech) {
