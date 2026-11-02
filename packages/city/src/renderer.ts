@@ -1,6 +1,7 @@
 import type { PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { autumnLighting } from "./autumn";
 import {
   clampCamera,
   DEFAULT_ZOOM,
@@ -278,11 +279,11 @@ function startCity(
   const canvas = renderer.domElement;
   // —— Scene and light ——
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color().setRGB(0.66, 0.63, 0.585);
-  // Blender's world colour lights the scene from every side; the sun is low in the south-west.
-  scene.add(new THREE.HemisphereLight(0xfff3e0, 0x8a7d6a, 2.1));
-  const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(1, 0.86, 0.68), 4.6);
-  const sunDirection = new THREE.Vector3(-0.47, 0.574, 0.671).normalize();
+  scene.background = new THREE.Color();
+  const ambient = new THREE.HemisphereLight();
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight();
+  const sunDirection = new THREE.Vector3();
   sun.castShadow = true;
   sun.shadow.mapSize.set(4096, 4096);
   sun.shadow.bias = -0.0004;
@@ -321,7 +322,24 @@ function startCity(
   let destroyed = false;
   let clock = 0;
   let now = 0;
+  let lastLightingMinute = -1;
   const entries = new Map<string, Entry>();
+
+  function updateLighting() {
+    const local = new Date();
+    const minute = local.getHours() * 60 + local.getMinutes();
+    if (minute === lastLightingMinute) return;
+    lastLightingMinute = minute;
+    const light = autumnLighting(local);
+    ambient.color.copy(light.sky);
+    ambient.groundColor.copy(light.ground);
+    ambient.intensity = light.hemisphereIntensity;
+    sun.color.copy(light.sun);
+    sun.intensity = light.sunIntensity;
+    sunDirection.copy(light.direction);
+    (scene.background as THREE.Color).copy(light.background);
+    renderer.toneMappingExposure = light.exposure;
+  }
 
   // —— Camera: tour/user view, plus a glide whenever the target changes ——
   const groundAt = (x: number, y: number) => heightAt(world.grid, x, y);
@@ -577,6 +595,7 @@ function startCity(
   }
 
   function update(seconds: number) {
+    updateLighting();
     if (moving) {
       clock += seconds;
       traffic.update(seconds);
