@@ -27,6 +27,24 @@ export type MaterialSpecs = Record<string, MaterialSpec>;
 const luminance = (c: Colour) => c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722;
 const vec3 = (c: Colour) => new THREE.Vector3(...c);
 
+// Parameters from blender_materials.build_facades(); these cannot be inferred from colour pairs.
+const facadeParameters: Record<
+  string,
+  { window: [number, number, number, number]; roof?: number; shop?: boolean }
+> = {
+  F_OfficeWhite: { window: [0.07, 0.93, 0.32, 0.82] },
+  F_OfficeGrey: { window: [0.225, 0.775, 0.32, 0.8] },
+  F_Residential: { window: [0.25, 0.75, 0.22, 0.77] },
+  F_BrickTile: { window: [0.275, 0.725, 0.3, 0.8] },
+  F_SmallShop: { window: [0.3, 0.7, 0.32, 0.77] },
+  F_GlassTower: { window: [0.07, 1, 0.16, 1] },
+  F_SolaCity: { window: [0.38, 1, 0.05, 1] },
+  F_Waterras: { window: [0.05, 1, 0.08, 1] },
+  F_Nikolai: { window: [0.36, 0.64, 0.3, 0.75], roof: 0.2, shop: false },
+  F_Seido: { window: [0.15, 0.85, 0.12, 0.72], roof: 0.2, shop: false },
+  F_JRStation: { window: [0.05, 0.95, 0.3, 0.85] },
+};
+
 const noiseChunk = /* glsl */ `
 float cityHash(vec3 p) {
   p = fract(p * 0.3183099 + vec3(0.11, 0.17, 0.13));
@@ -62,7 +80,7 @@ function pattern(name: string, spec: MaterialSpec) {
   const scales = [...(spec.noise ?? [])].sort((a, b) => a - b);
   if (spec.kind === "facade" && twos.length >= 3) {
     // Curtain walls (Sola City, the glass towers) are vertical glass bands, not punched windows.
-    const curtain = !singles.length || pairs[0]?.length === 2;
+    const facade = facadeParameters[name];
     const [wall, glass, roof, alt] = twos as [Colour[], Colour[], Colour[], Colour[] | undefined];
     const [across, storey] = spec.grid ?? [2.5, 3.6];
     return {
@@ -77,14 +95,14 @@ function pattern(name: string, spec: MaterialSpec) {
         altB: vec3((alt?.[1] ?? roof[1]) as Colour),
         dirt: vec3(dirt ?? (wall[0] as Colour)),
         cellSize: new THREE.Vector2(across, storey),
-        windowBox: curtain
-          ? new THREE.Vector4(0.38, 1.0, 0.05, 1.0)
-          : new THREE.Vector4(0.12, 0.88, 0.32, 0.82),
+        windowBox: new THREE.Vector4(...(facade?.window ?? [0.12, 0.88, 0.32, 0.82])),
+        roofThreshold: facade?.roof ?? 0.6,
+        hasShop: facade?.shop === false ? 0 : 1,
       },
       code: /* glsl */ `
-        vec3 n = normalize(vCityNormal);
+        vec3 n = normalize(vCityNormal) * (gl_FrontFacing ? 1.0 : -1.0);
         float seed = vCityBuilding.x;
-        if (n.y > 0.6) {
+        if (n.y > roofThreshold) {
           vec3 roofColour = mix(roofA, roofB, cityNoise(vCityPos * 1.6));
           vec3 altColour = seed > 0.85 ? vec3(0.262, 0.292, 0.242) : (seed > 0.55 ? altB : altA);
           diffuseColor.rgb = mix(roofColour, altColour, 0.55);
@@ -95,7 +113,7 @@ function pattern(name: string, spec: MaterialSpec) {
           float upper = step(windowBox.x, f.x) * step(f.x, windowBox.y)
             * step(windowBox.z, f.y) * step(f.y, windowBox.w);
           float shopfront = step(0.05, f.x) * step(rel, 3.4);
-          float window = mix(upper, shopfront, step(0.15, rel) * step(rel, 4.2));
+          float window = mix(upper, shopfront, hasShop * step(0.15, rel) * step(rel, 4.2));
           vec3 wall = mix(wallA, wallB, seed);
           wall = mix(wall, dirt, cityFbm(vCityPos * 0.08) * 0.35);
           vec3 pane = mix(glassA, glassB, cityHash(vec3(floor(uv), seed * 97.0)));
