@@ -1,7 +1,8 @@
-import type { PublicResident } from "@ai-city/contracts";
+import type { DialogueResult, PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { autumnLighting } from "./autumn";
+import { findEncounter } from "./encounter";
 import {
   clampCamera,
   DEFAULT_ZOOM,
@@ -159,6 +160,7 @@ export async function createDevelopmentCity(
     assetBase?: string;
     onSelect?: (id: string) => void;
     onSelectLandmark?: (landmark: Landmark | null) => void;
+    onEncounter?: (ids: [string, string]) => Promise<DialogueResult | null>;
     onAction?: (id: string, action: CityAction) => void;
     onReady?: () => void;
     onPresentationFrame?: (frame: ScenePresentationFrame | null) => void;
@@ -327,6 +329,14 @@ function startCity(
   let residents = options.residents ?? [];
   let moving = options.motionEnabled ?? true;
   let selectedId: string | null = null;
+  let exchange: {
+    ids: [string, string];
+    lines: DialogueResult["lines"];
+    startedAt: number;
+  } | null = null;
+  let dialoguePending = false;
+  let pendingPair: [string, string] | null = null;
+  let nextEncounter = 10;
   let presentation: ScenePresentation | null = null;
   let lastFrame = "";
   let destroyed = false;
@@ -653,17 +663,37 @@ function startCity(
     buildingFade.pulse.value = moving ? 0.3 + 0.25 * (1 + Math.sin(now * 4)) : 0.45;
     parent.dataset.cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
     const screenUnit = 1 / shown.zoom;
+    const lineIndex = exchange ? Math.floor((now - exchange.startedAt) / 3.5) : -1;
+    if (
+      exchange &&
+      (lineIndex >= exchange.lines.length || !moving || exchange.ids.some((id) => !entries.has(id)))
+    ) {
+      for (const id of exchange.ids) {
+        const entry = entries.get(id);
+        if (entry?.actor.action === "talk") entry.actor = commandActor(world, entry.actor, "idle");
+      }
+      exchange = null;
+    }
     let index = 0;
     for (const [id, entry] of entries) {
       const previousAction = entry.actor.action;
       const presenting = id === presentation?.id;
       // Keep the underlying route position. Camera focus never relocates the original sprite.
-      entry.actor = presenting
-        ? { ...entry.actor, elapsed: entry.actor.elapsed + (moving ? seconds : 0) }
-        : stepActor(world, entry.actor, seconds, moving, {
-            signals: trafficData.pedestrianSignals,
-            time: clock,
-          });
+      const conversing = Boolean(exchange?.ids.includes(id));
+      entry.actor = pendingPair?.includes(id)
+        ? entry.actor
+        : conversing
+          ? {
+              ...entry.actor,
+              action: "talk",
+              elapsed: entry.actor.elapsed + (moving ? seconds : 0),
+            }
+          : presenting
+            ? { ...entry.actor, elapsed: entry.actor.elapsed + (moving ? seconds : 0) }
+            : stepActor(world, entry.actor, seconds, moving, {
+                signals: trafficData.pedestrianSignals,
+                time: clock,
+              });
       if (
         moving &&
         id !== selectedId &&
@@ -703,8 +733,16 @@ function startCity(
       entry.ring.visible = (id === selectedId || presenting) && !inside;
       entry.ring.scale.setScalar(size / RESIDENT_HEIGHT);
       entry.ring.position.y = 0.06;
-      const speech =
-        entry.actor.action === "talk" ? preset : now < entry.welcomeUntil ? "ようこそ！" : "";
+      const currentLine = exchange?.lines[lineIndex];
+      const speech = conversing
+        ? currentLine?.residentId === id
+          ? `AI：${currentLine.text}`
+          : ""
+        : entry.actor.action === "talk"
+          ? preset
+          : now < entry.welcomeUntil
+            ? "ようこそ！"
+            : "";
       if (entry.bubble.sprite.userData.text !== speech) {
         entry.bubble.sprite.userData.text = speech;
         if (speech) entry.bubble.set(speech);
@@ -743,6 +781,50 @@ function startCity(
         }
       }
       index++;
+    }
+    if (
+      moving &&
+      options.onEncounter &&
+      !exchange &&
+      !dialoguePending &&
+      now >= nextEncounter &&
+      !presentation
+    ) {
+      nextEncounter = now + 2;
+      const pair = findEncounter(
+        [...entries.values()].map((entry) => ({
+          id: entry.resident.residentId,
+          actor: entry.actor,
+        })),
+        selectedId,
+        groundAt,
+      );
+      if (pair) {
+        const ids = pair;
+        nextEncounter = now + 45;
+        dialoguePending = true;
+        pendingPair = ids;
+        void options
+          .onEncounter(ids)
+          .then((result) => {
+            if (
+              !destroyed &&
+              moving &&
+              !presentation &&
+              !ids.includes(selectedId ?? "") &&
+              result?.safety === "PASSED" &&
+              result.source === "LIVE" &&
+              ids.every((id) => entries.has(id)) &&
+              result.lines.every((line) => ids.includes(line.residentId))
+            )
+              exchange = { ids, lines: result.lines, startedAt: now };
+          })
+          .catch(() => {})
+          .finally(() => {
+            dialoguePending = false;
+            pendingPair = null;
+          });
+      }
     }
   }
 

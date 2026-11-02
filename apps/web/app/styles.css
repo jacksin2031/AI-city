@@ -644,6 +644,19 @@ canvas {
   background: #cfe3c1;
   overflow: hidden;
 }
+.tablet-dialogue-status {
+  position: absolute;
+  z-index: 2;
+  left: 12px;
+  bottom: 32px;
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgb(255 253 246 / 82%);
+  color: #52675b;
+  font-size: 0.7rem;
+  pointer-events: none;
+}
 .tablet-landmark {
   position: absolute;
   z-index: 2;
