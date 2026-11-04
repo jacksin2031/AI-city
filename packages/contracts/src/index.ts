@@ -21,7 +21,7 @@ const AtlasDataReference = z
   .regex(/^\/avatars\/[A-Za-z0-9/_-]+\.json$/, "Expected a scoped avatar atlas JSON path");
 
 // A bundle lives in one immutable version directory; paths never point to private storage.
-const SpineBundleSchema = z
+export const SpineBundleSchema = z
   .strictObject({
     runtime: z.literal("4.3"),
     skeleton: z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/skeleton\.json$/),
