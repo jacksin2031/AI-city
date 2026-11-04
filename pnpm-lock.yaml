@@ -72,6 +72,9 @@ importers:
       '@ai-city/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@esotericsoftware/spine-canvas':
+        specifier: 4.3.13
+        version: 4.3.13
       three:
         specifier: 0.170.0
         version: 0.170.0
@@ -188,6 +191,12 @@ packages:
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
+
+  '@esotericsoftware/spine-canvas@4.3.13':
+    resolution: {integrity: sha512-L4iIkYUAYJxnzBfNqZTs5Be2HifgvaN2f/KM3aopIG0tbQYQQdAcgbjf5HsvwKgM65studN+/9gGIX3QoRLDIA==}
+
+  '@esotericsoftware/spine-core@4.3.13':
+    resolution: {integrity: sha512-iGs/40qOWSQYicABebDzFSwFOS1Nsm0dCCS8sGqbpVuThRKdLYeI1cVJpmATSpEmtcetEABTmh97NoBnt7XLDw==}
 
   '@firebase/ai@3.0.0':
     resolution: {integrity: sha512-66jJAi6JUmyXna89xaDONmfvupO1wNc3f2BegPwUImagbbpKdVeycE3kMqbU4jiDLL14N5PHzadovvxpaqD2hw==}
@@ -3527,6 +3536,12 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
+
+  '@esotericsoftware/spine-canvas@4.3.13':
+    dependencies:
+      '@esotericsoftware/spine-core': 4.3.13
+
+  '@esotericsoftware/spine-core@4.3.13': {}
 
   '@firebase/ai@3.0.0(@firebase/app-types@0.9.6)(@firebase/app@0.16.4)':
     dependencies:
