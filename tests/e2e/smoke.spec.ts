@@ -21,8 +21,6 @@ function collectProblems(page: Page) {
 for (const [path, heading] of [
   ["/", "あなたの分身を、この街へ。"],
   ["/join", "AIシティへの参加"],
-  ["/city", "街の開発サンプル"],
-  ["/integration", "ローカル連携サンプル"],
 ] as const) {
   test(`${path} renders in Japanese under a nonce CSP without errors`, async ({ page }) => {
     const problems = collectProblems(page);
@@ -56,22 +54,6 @@ test("nonces differ per request", async ({ request }) => {
   );
   expect(nonces[0]).toBeTruthy();
   expect(nonces[0]).not.toBe(nonces[1]);
-});
-
-test("the city sample keeps exactly one 3D canvas across navigation", async ({ page }) => {
-  const problems = collectProblems(page);
-  await page.goto("/city");
-  const canvas = page.locator("section.city canvas");
-  await expect(canvas).toHaveCount(1);
-  await expect(canvas).toBeVisible();
-  await expect(page.getByText("動作確認用です")).toBeVisible();
-
-  await page.getByRole("link", { name: "戻る" }).click();
-  await expect(page).toHaveURL("/");
-  await page.getByRole("link", { name: "街のサンプルを見る" }).click();
-  await expect(canvas).toHaveCount(1);
-  await expect(page.locator("canvas")).toHaveCount(1);
-  expect(problems).toEqual([]);
 });
 
 test("health stays honest about the mock and denies document use", async ({ request }) => {

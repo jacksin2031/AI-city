@@ -36,7 +36,6 @@ export default function Join() {
       />
       <nav aria-label="サンプルの移動">
         <Link href="/">戻る</Link>
-        {!persistent && <Link href="/integration">連携用の一覧を見る</Link>}
       </nav>
     </main>
   );

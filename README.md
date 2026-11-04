@@ -20,8 +20,6 @@ pnpm dev
 
 - 首页：<http://localhost:3000>
 - A 参与流程入口：<http://localhost:3000/join>
-- A/B 本地接入预览：<http://localhost:3000/integration>（确认后才加入列表，图片素材尚未接入）
-- B 城市开发样例：<http://localhost:3000/city>；本地确认后的居民：<http://localhost:3000/city?mode=participants>
 - 健康状态：<http://localhost:3000/api/health>
 - 手机管理：<http://localhost:3000/admin>；平板展示：<http://localhost:3000/tablet>；本机准备：<http://localhost:3000/setup>
 
