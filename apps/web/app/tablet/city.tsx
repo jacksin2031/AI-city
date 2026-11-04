@@ -3,6 +3,7 @@ import {
   closePresentation,
   createDevelopmentCity,
   type IllustratedCity,
+  loadChibiDemo,
   openProfile,
   type ScenePresentationFrame,
   updatePresentation,
@@ -30,6 +31,7 @@ export function TabletCity({
   const [failed, setFailed] = useState(false);
   const [anchor, setAnchor] = useState<ScenePresentationFrame | null>(null);
   const [animated, setAnimated] = useState(false);
+  const [spineSample, setSpineSample] = useState<"loading" | "ready" | "failed" | null>(null);
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
   const select = useCallback(
@@ -57,6 +59,7 @@ export function TabletCity({
     if (!parent.current) return;
     let active = true;
     const lifetime = new AbortController();
+    let sampleAssets: Awaited<ReturnType<typeof loadChibiDemo>> | undefined;
     const media = matchMedia("(prefers-reduced-motion: reduce)");
     const applyMotion = () => {
       const enabled = latest.current.motion && !media.matches;
@@ -65,28 +68,56 @@ export function TabletCity({
     };
     applyMotion();
     media.addEventListener("change", applyMotion);
-    createDevelopmentCity(parent.current, {
-      residents: latest.current.residents,
-      fillViewport: true,
-      motionEnabled: latest.current.motion && !media.matches,
-      signal: lifetime.signal,
-      onSelect: (id) => {
-        if (active) select(id);
-      },
-      onClearSelection: () => {
-        if (active && latest.current.active) close();
-      },
-      onPresentationFrame: (frame) => {
-        if (active) setAnchor(frame);
-      },
-      onReady: () => {
-        if (active) setReady(true);
-      },
-    })
+    const container = parent.current;
+    const loadSample = sample
+      ? loadChibiDemo(lifetime.signal)
+          .then((assets) => {
+            if (!active) {
+              assets.dispose();
+              return undefined;
+            }
+            sampleAssets = assets;
+            return assets;
+          })
+          .catch(() => {
+            if (active) setSpineSample("failed");
+            return undefined;
+          })
+      : Promise.resolve(undefined);
+    if (sample) setSpineSample("loading");
+    else setSpineSample(null);
+    loadSample
+      .then((assets) => {
+        if (!active) return;
+        const sampleId = latest.current.residents[0]?.residentId;
+        return createDevelopmentCity(container, {
+          residents: latest.current.residents,
+          fillViewport: true,
+          motionEnabled: latest.current.motion && !media.matches,
+          signal: lifetime.signal,
+          createAnimatedCharacter: assets
+            ? (resident) => (resident.residentId === sampleId ? assets.create() : null)
+            : undefined,
+          onSelect: (id) => {
+            if (active) select(id);
+          },
+          onClearSelection: () => {
+            if (active && latest.current.active) close();
+          },
+          onPresentationFrame: (frame) => {
+            if (active) setAnchor(frame);
+          },
+          onReady: () => {
+            if (active) setReady(true);
+          },
+        });
+      })
       .then((instance) => {
+        if (!instance) return;
         if (!active) instance.destroy();
         else {
           city.current = instance;
+          if (sampleAssets) setSpineSample("ready");
           instance.setResidents(latest.current.residents);
           instance.select(latest.current.active?.id ?? null);
           instance.present(latest.current.active);
@@ -102,8 +133,9 @@ export function TabletCity({
       media.removeEventListener("change", applyMotion);
       city.current?.destroy();
       city.current = null;
+      sampleAssets?.dispose();
     };
-  }, [select, close]);
+  }, [select, close, sample]);
   useEffect(() => {
     setPresentation((previous) => updatePresentation(previous, snapshot));
   }, [snapshot]);
@@ -141,6 +173,7 @@ export function TabletCity({
         className="tablet-city"
         data-ready={ready}
         data-failed={failed || undefined}
+        data-spine-sample={spineSample ?? undefined}
         aria-label="街の住民をタップすると公開プロフィールを表示します。"
       >
         <div className="tablet-scene-canvas" ref={parent} />
@@ -159,6 +192,9 @@ export function TabletCity({
           />
         )}
       </section>
+      {spineSample === "failed" && (
+        <p role="status">公式サンプルを読み込めなかったため、見本イラストを表示しています。</p>
+      )}
       {residents.length > 0 && (
         <details className="tablet-resident-list">
           <summary>住民のプロフィールを選ぶ</summary>

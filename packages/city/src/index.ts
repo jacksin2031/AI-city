@@ -30,6 +30,7 @@ export function getDevelopmentResidents(): PublicResident[] {
 }
 
 export type { AnimatedCharacter } from "./animated-character";
+export { loadChibiDemo } from "./chibi-demo";
 export { type ScenePresentationFrame, speechBounds } from "./focus";
 export {
   closePresentation,
