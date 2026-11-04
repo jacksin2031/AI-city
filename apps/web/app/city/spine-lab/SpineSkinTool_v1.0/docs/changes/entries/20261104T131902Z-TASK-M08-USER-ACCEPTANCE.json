@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "batch_id": "20261104T131902Z-TASK-M08-USER-ACCEPTANCE",
+  "task_id": "TASK-M08-USER-ACCEPTANCE",
+  "timestamp_utc": "2026-11-04T13:19:02.952555+00:00",
+  "timestamp_local": "2026-11-04T22:19:02.952555+09:00",
+  "status": "COMPLETE",
+  "goal": "按用户明确确认将M08标记COMPLETE（用户验收），保持未实测事项如实记录，同步文档和源码ZIP。",
+  "files": [
+    {
+      "path": "docs/RELEASE_STATUS.md",
+      "change_type": "MODIFY",
+      "before_sha256": "fc69d8e4d3b69a34a5626caf1dcc775734640d9cd0e8d8f4b81318b9bf35679b",
+      "after_sha256": "769c8a0dcea0be83f7c0c64bb19c97370567cd99f5e4422af331e4f3001869b0",
+      "reason": "记录用户明确验收M08并同步交付包；保留实际验证边界。",
+      "section": "M08 user acceptance / current status"
+    },
+    {
+      "path": "docs/CODEX_IMPLEMENTATION_SPEC.md",
+      "change_type": "MODIFY",
+      "before_sha256": "fe590689a2df7fc6d4f142c1f5306a488db30d512496fb842ccc4c096dae8bd4",
+      "after_sha256": "3aaee7162575b96a66e55a5b2dee1f3ca8a15bb26a746efb9f687884c29d7111",
+      "reason": "记录用户明确验收M08并同步交付包；保留实际验证边界。",
+      "section": "M08 user acceptance / current status"
+    },
+    {
+      "path": "releases/spine-skin-tool-0.1.0-20261104.zip",
+      "change_type": "MODIFY",
+      "before_sha256": "2bb3dce1ae4e3e31a9c542991bdc8595cde1581ff58f761ee8593a7dc5a46ab3",
+      "after_sha256": "c0c8e3ff72234c1675550cc693cede263f6dd3dabd8776f05621d8e9c1c9bf89",
+      "reason": "记录用户明确验收M08并同步交付包；保留实际验证边界。",
+      "section": "source archive / per-file SHA manifest"
+    }
+  ],
+  "tests": [
+    {
+      "command": "release archive manifest/byte verification + unchanged-code fingerprint check",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "204 whitelist members, every SHA verified; only CODEX_IMPLEMENTATION_SPEC and RELEASE_STATUS differ from previous archive. M08 user acceptance COMPLETE appears inside ZIP. Code fingerprint unchanged at 6aebc160ab078cc6c806f8268613b371b0ef6432677358baa9281d7bb11a9b3b; no code/UI/threshold changes, no new model calls. Prior339 tests not rerun or relabelled."
+    },
+    {
+      "command": "python -B scripts/package_release.py --output runtime/output/M08/spine-skin-tool-0.1.0-20261104-m08-accepted.zip",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "204 source files, no credentials/photos/reference art; archive SHA256 c0c8e3ff72234c1675550cc693cede263f6dd3dabd8776f05621d8e9c1c9bf89"
+    }
+  ],
+  "risks": [
+    "用户验收关闭M08，不伪造未执行的实机/云服务/生产尺寸/许可测试；不改变生产开关或其它里程碑历史。",
+    "仅文档/源码ZIP/日志；无照片、凭证、原画或新模型调用。"
+  ],
+  "next_task": "按已交付工具与根说明复用，后续改进另行记录。"
+}

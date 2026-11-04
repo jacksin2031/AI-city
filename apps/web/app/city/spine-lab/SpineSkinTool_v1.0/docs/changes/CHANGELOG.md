@@ -1816,3 +1816,19 @@ window.renderProductionTiming=(container,value)=>{
   - `python -B scripts/package_release.py --output runtime/output/M08/spine-skin-tool-0.1.0-20261104.zip` : `PASS` (exit `0`); evidence: 204 files; per-file SHA and manifest verified, no user data/credentials/reference art. Final ZIP SHA256 2bb3dce1ae4e3e31a9c542991bdc8595cde1581ff58f761ee8593a7dc5a46ab3. Synthetic-marker false positive was fixed in the test, not by weakening scanner.
 - Risks: COMPLETE限本次干净源码交付实现与本地验证，Git远端发布以实际branch/commit为准。; M08整体PARTIAL，生产尺寸、最终美术、全新Windows、完整故障可靠性和原画公开再分发未全部验收。; 无真实照片、生成角色、模型日志、API配置、订阅凭证/会话或原画；需本人准备依赖/授权素材并登录。; 原有本机资料与父项目未提交文件保持不变；不自动合并main。
 - Next task: 操作者按根使用说明准备本人原素材/登录，授权后制作；后续质量验收按既有门禁。
+
+### 2026-11-04T22:19:02.952555+09:00 | TASK-M08-USER-ACCEPTANCE | 20261104T131902Z-TASK-M08-USER-ACCEPTANCE | COMPLETE
+- UTC: 2026-11-04T13:19:02.952555+00:00
+- Goal: 按用户明确确认将M08标记COMPLETE（用户验收），保持未实测事项如实记录，同步文档和源码ZIP。
+- Files and corresponding code/sections:
+  - MODIFY `docs/RELEASE_STATUS.md`; location `M08 user acceptance / current status`; lines `n/a`; reason: 记录用户明确验收M08并同步交付包；保留实际验证边界。
+    - SHA256: before `fc69d8e4d3b69a34a5626caf1dcc775734640d9cd0e8d8f4b81318b9bf35679b`; after `769c8a0dcea0be83f7c0c64bb19c97370567cd99f5e4422af331e4f3001869b0`
+  - MODIFY `docs/CODEX_IMPLEMENTATION_SPEC.md`; location `M08 user acceptance / current status`; lines `n/a`; reason: 记录用户明确验收M08并同步交付包；保留实际验证边界。
+    - SHA256: before `fe590689a2df7fc6d4f142c1f5306a488db30d512496fb842ccc4c096dae8bd4`; after `3aaee7162575b96a66e55a5b2dee1f3ca8a15bb26a746efb9f687884c29d7111`
+  - MODIFY `releases/spine-skin-tool-0.1.0-20261104.zip`; location `source archive / per-file SHA manifest`; lines `n/a`; reason: 记录用户明确验收M08并同步交付包；保留实际验证边界。
+    - SHA256: before `2bb3dce1ae4e3e31a9c542991bdc8595cde1581ff58f761ee8593a7dc5a46ab3`; after `c0c8e3ff72234c1675550cc693cede263f6dd3dabd8776f05621d8e9c1c9bf89`
+- Tests (actual outcomes only):
+  - `release archive manifest/byte verification + unchanged-code fingerprint check` : `PASS` (exit `0`); evidence: 204 whitelist members, every SHA verified; only CODEX_IMPLEMENTATION_SPEC and RELEASE_STATUS differ from previous archive. M08 user acceptance COMPLETE appears inside ZIP. Code fingerprint unchanged at 6aebc160ab078cc6c806f8268613b371b0ef6432677358baa9281d7bb11a9b3b; no code/UI/threshold changes, no new model calls. Prior339 tests not rerun or relabelled.
+  - `python -B scripts/package_release.py --output runtime/output/M08/spine-skin-tool-0.1.0-20261104-m08-accepted.zip` : `PASS` (exit `0`); evidence: 204 source files, no credentials/photos/reference art; archive SHA256 c0c8e3ff72234c1675550cc693cede263f6dd3dabd8776f05621d8e9c1c9bf89
+- Risks: 用户验收关闭M08，不伪造未执行的实机/云服务/生产尺寸/许可测试；不改变生产开关或其它里程碑历史。; 仅文档/源码ZIP/日志；无照片、凭证、原画或新模型调用。
+- Next task: 按已交付工具与根说明复用，后续改进另行记录。
