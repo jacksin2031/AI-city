@@ -11,15 +11,15 @@
 
 ## 未完成事项
 
-| Issue | 范围与剩余验收 |
-| --- | --- |
-| [#1](https://github.com/jacksin2031/AI-city/issues/1) | 共享契约及双方人工签核，真实生成和素材协议待冻结。 |
-| [#2](https://github.com/jacksin2031/AI-city/issues/2) | 日语参与流程：示例界面已合并；真实照片授权与输入、Android / iPhone 实机验收待完成。 |
-| [#3](https://github.com/jacksin2031/AI-city/issues/3) | 照片外观提取、正式角色与视觉质量验收尚未完成。 |
+| Issue                                                 | 范围与剩余验收                                                                                       |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [#1](https://github.com/jacksin2031/AI-city/issues/1) | 共享契约及双方人工签核，真实生成和素材协议待冻结。                                                   |
+| [#2](https://github.com/jacksin2031/AI-city/issues/2) | 日语参与流程：示例界面已合并；真实照片授权与输入、Android / iPhone 实机验收待完成。                  |
+| [#3](https://github.com/jacksin2031/AI-city/issues/3) | 照片外观提取、正式角色与视觉质量验收尚未完成。                                                       |
 | [#4](https://github.com/jacksin2031/AI-city/issues/4) | 城市原型：当前为 3D 场景，原 Phaser 目标与当前实现的验收关系需确认；真实平板性能及长时间运行待验收。 |
-| [#5](https://github.com/jacksin2031/AI-city/issues/5) | 真实生成、云队列、费用对账及性能目标待完成。 |
-| [#6](https://github.com/jacksin2031/AI-city/issues/6) | 正式照片到角色的完整链、故障恢复及最新版本实机展场验收待完成。 |
-| [#7](https://github.com/jacksin2031/AI-city/issues/7) | 协作者账号与权限映射、预算提醒及分支保护方案待负责人决定。 |
+| [#5](https://github.com/jacksin2031/AI-city/issues/5) | 真实生成、云队列、费用对账及性能目标待完成。                                                         |
+| [#6](https://github.com/jacksin2031/AI-city/issues/6) | 正式照片到角色的完整链、故障恢复及最新版本实机展场验收待完成。                                       |
+| [#7](https://github.com/jacksin2031/AI-city/issues/7) | 协作者账号与权限映射、预算提醒及分支保护方案待负责人决定。                                           |
 
 所有 Issue 保留 open 和既有验收要求；不要将示例数据、桌面浏览器或历史版本实机结果当成正式展场验收。
 
