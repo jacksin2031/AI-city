@@ -1,7 +1,7 @@
 import type { PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { type AnimatedCharacter, animationFor } from "./animated-character";
+import { type AnimatedCharacter, animationFor, characterAspect } from "./animated-character";
 import { autumnLighting } from "./autumn";
 import {
   clampCamera,
@@ -749,7 +749,11 @@ function startCity(
           sprite.material.map = texture;
           sprite.material.needsUpdate = true;
         }
-        sprite.scale.set(size * 0.75 * pop, size * pop, 1);
+        sprite.scale.set(
+          size * characterAspect(entry.animated?.source.canvas) * pop,
+          size * pop,
+          1,
+        );
         sprite.position.y = hop;
         sprite.visible = !inside;
       }

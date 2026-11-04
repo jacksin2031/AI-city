@@ -7,6 +7,11 @@ export interface AnimatedCharacter {
   dispose(): void;
 }
 
+/** Preserve the source texture's proportions; legacy artwork is 96 by 128. */
+export function characterAspect(canvas: { width: number; height: number } | undefined): number {
+  return canvas && canvas.width > 0 && canvas.height > 0 ? canvas.width / canvas.height : 0.75;
+}
+
 export function animationFor(
   action: CityAction,
   direction: Direction,
