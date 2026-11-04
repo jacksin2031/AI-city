@@ -7,6 +7,60 @@ import { isKnownCiDriverWarning } from "../helpers/browser-console";
 
 const codeFree = process.env.AI_CITY_TEST_CODE_FREE === "1";
 
+test("photo stays on the device and is cleared on withdrawal and leaving the step", async ({
+  page,
+}) => {
+  test.skip(!codeFree, "Local photo flow uses code-free participation");
+  const submissions: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() !== "GET") submissions.push(request.postData() ?? "");
+  });
+  await page.goto("/join");
+  await page.getByLabel("ニックネーム", { exact: true }).fill("架空テスト");
+  await page.getByRole("button", { name: "次へ", exact: true }).click();
+  const input = page.getByLabel("写真を選ぶ", { exact: true });
+  await expect(input).toBeDisabled();
+  const consent = page.getByLabel("自分の写真をこの端末で一時表示することに同意します");
+  await consent.check();
+  await input.setInputFiles({
+    name: "fictional.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("not-a-png"),
+  });
+  await expect(page.getByRole("alert").filter({ hasText: "JPEG・PNG・WebP" })).toBeVisible();
+  const image = {
+    name: "fictional.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lXcAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  };
+  await input.setInputFiles(image);
+  const preview = page.getByRole("img", { name: "この端末だけの写真プレビュー" });
+  await expect(preview).toBeVisible();
+  await page.getByRole("button", { name: "写真のプレビューを削除" }).click();
+  await expect(preview).toHaveCount(0);
+  await input.setInputFiles(image);
+  await expect(preview).toBeVisible();
+  await consent.uncheck();
+  await expect(preview).toHaveCount(0);
+  await consent.check();
+  await input.setInputFiles(image);
+  await expect(preview).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
+  await expect(preview).toHaveCount(0);
+  await expect(consent).not.toBeChecked();
+  await consent.check();
+  await input.setInputFiles(image);
+  await expect(preview).toBeVisible();
+  await page.getByRole("button", { name: "写真を使わずにカスタマイズ" }).click();
+  await expect(preview).toHaveCount(0);
+  await page.getByRole("button", { name: "戻る" }).click();
+  await expect(consent).not.toBeChecked();
+  expect(submissions).toEqual([]);
+});
+
 async function prepareNewParticipant(page: Page, name: string, answer = false) {
   await page.getByLabel("ニックネーム", { exact: true }).fill(name);
   await page.getByRole("button", { name: "次へ", exact: true }).click();

@@ -11,8 +11,9 @@ import {
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
+import { LocalPhoto } from "./local-photo";
 import "./participant.css";
 
 const questions = [
@@ -74,9 +75,52 @@ export function ParticipantExperience() {
   const [question, setQuestion] = useState(0);
   const [view, setView] = useState<ParticipationView | null>(null);
   const [avatarConsent, setAvatarConsent] = useState(false);
+  const [photoConsent, setPhotoConsent] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState("");
+  const localPhoto = useRef<LocalPhoto | null>(null);
+  localPhoto.current ??= new LocalPhoto({
+    create: (file) => URL.createObjectURL(file),
+    revoke: (url) => URL.revokeObjectURL(url),
+  });
   const [fields, setFields] = useState({ nickname: false, personality: false, interests: false });
   const requestId = useRef<string | null>(null);
   const waitUntil = useRef(0);
+
+  useEffect(() => {
+    const discard = () => {
+      localPhoto.current?.clear();
+      setPhotoUrl(null);
+      setPhotoConsent(false);
+    };
+    window.addEventListener("pagehide", discard);
+    return () => {
+      window.removeEventListener("pagehide", discard);
+      localPhoto.current?.clear();
+    };
+  }, []);
+
+  function discardPhoto() {
+    localPhoto.current?.clear();
+    setPhotoUrl(null);
+    setPhotoError("");
+  }
+  function leavePhoto(next: "name" | "custom") {
+    discardPhoto();
+    setPhotoConsent(false);
+    setStage(next);
+  }
+  async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!photoConsent || !file || !localPhoto.current) return;
+    setPhotoUrl(null);
+    setPhotoError("");
+    const result = await localPhoto.current.select(file);
+    if (result.status === "ready") setPhotoUrl(result.url);
+    else if (result.status === "too-large") setPhotoError("写真は8 MB以下を選んでください。");
+    else if (result.status === "invalid") setPhotoError("JPEG・PNG・WebPの写真を選んでください。");
+  }
 
   useEffect(() => {
     let live = true;
@@ -295,15 +339,84 @@ export function ParticipantExperience() {
               <>
                 <p className="pf-step">ステップ 2 / 4</p>
                 <h2>写真について</h2>
-                <p>写真からアバターを作る機能を準備しています。</p>
+                <p>写真はこの端末で一時的に確認できます。</p>
                 <div className="pf-note">
-                  <strong>写真の撮影・送信はできません</strong>
-                  <p>写真を使わず、サンプルを選んで参加できます。</p>
+                  <strong>写真はアップロードされません</strong>
+                  <p>
+                    この画面を離れるか削除すると、アプリ内の一時プレビューを破棄します。端末の写真アプリにある元の写真は削除されません。
+                  </p>
+                  <p>
+                    写真からのアバター生成はまだ利用できません。次の画面ではサンプルを選びます。
+                  </p>
                 </div>
-                <button className="pf-primary" type="button" onClick={() => setStage("custom")}>
+                <label className="pf-check">
+                  <input
+                    type="checkbox"
+                    checked={photoConsent}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      if (!checked) discardPhoto();
+                      setPhotoConsent(checked);
+                    }}
+                  />
+                  自分の写真をこの端末で一時表示することに同意します
+                </label>
+                <div className="pf-photo-actions">
+                  <label className="pf-back">
+                    写真を選ぶ
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={!photoConsent}
+                      onChange={choosePhoto}
+                    />
+                  </label>
+                  <label className="pf-back">
+                    写真を撮る
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      capture="user"
+                      disabled={!photoConsent}
+                      onChange={choosePhoto}
+                    />
+                  </label>
+                </div>
+                {photoError && (
+                  <p role="alert" className="pf-error">
+                    {photoError}
+                  </p>
+                )}
+                {photoUrl && (
+                  <div className="pf-photo-preview">
+                    <img
+                      src={photoUrl}
+                      alt="この端末だけの写真プレビュー"
+                      onError={() => {
+                        discardPhoto();
+                        setPhotoError("写真を読み込めませんでした。別の写真を選んでください。");
+                      }}
+                      onLoad={(event) => {
+                        const image = event.currentTarget;
+                        if (
+                          !image.naturalWidth ||
+                          !image.naturalHeight ||
+                          image.naturalWidth * image.naturalHeight > 20_000_000
+                        ) {
+                          discardPhoto();
+                          setPhotoError("写真のサイズが大きすぎるか、読み込めませんでした。");
+                        }
+                      }}
+                    />
+                    <button type="button" className="pf-back" onClick={discardPhoto}>
+                      写真のプレビューを削除
+                    </button>
+                  </div>
+                )}
+                <button className="pf-primary" type="button" onClick={() => leavePhoto("custom")}>
                   写真を使わずにカスタマイズ
                 </button>
-                <button className="pf-back" type="button" onClick={() => setStage("name")}>
+                <button className="pf-back" type="button" onClick={() => leavePhoto("name")}>
                   戻る
                 </button>
               </>
