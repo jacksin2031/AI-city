@@ -4,7 +4,15 @@ import {
   SkeletonJson,
   type TextureAtlas,
 } from "@esotericsoftware/spine-canvas";
+import type { AnimatedCharacter } from "./animated-character";
 import { createSpinePlayer } from "./spine-player";
+
+/** The official sample names left and right from the character's perspective. */
+export function chibiAnimationForScreen(animation: string): string {
+  if (animation.endsWith("-left")) return `${animation.slice(0, -5)}-right`;
+  if (animation.endsWith("-right")) return `${animation.slice(0, -6)}-left`;
+  return animation;
+}
 
 /** Official Chibi Stickers, noncommercial example only. The caller owns the lifetime. */
 export async function loadChibiDemo(signal: AbortSignal) {
@@ -20,10 +28,22 @@ export async function loadChibiDemo(signal: AbortSignal) {
     ).readSkeletonData(json);
     let disposed = false;
     return {
-      create() {
+      create(): AnimatedCharacter {
         if (disposed) throw new Error("DEMO_DISPOSED");
         // The official sample already contains its own direction-specific attachment timelines.
-        return createSpinePlayer(data, document.createElement("canvas"), () => {}, "spineboy");
+        const player = createSpinePlayer(
+          data,
+          document.createElement("canvas"),
+          () => {},
+          "spineboy",
+        );
+        return {
+          canvas: player.canvas,
+          advance(animation, direction, seconds) {
+            player.advance(chibiAnimationForScreen(animation), direction, seconds);
+          },
+          dispose: () => player.dispose(),
+        };
       },
       dispose() {
         if (!disposed) {

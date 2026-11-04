@@ -721,7 +721,6 @@ function startCity(
         entry.actor.action === "walk" && !entry.actor.waitingForSignal,
       );
       const ground = groundAt(entry.actor.x, entry.actor.y);
-      const inside = entry.actor.action === "visit" && !presenting;
       const size = RESIDENT_HEIGHT;
       const hopBase =
         entry.hopUntil > now ? Math.sin(((entry.hopUntil - now) / 0.28) * Math.PI) * 0.45 : 0;
@@ -755,7 +754,8 @@ function startCity(
           1,
         );
         sprite.position.y = hop;
-        sprite.visible = !inside;
+        // Destinations are placed on the public footway, so arrivals stay visible.
+        sprite.visible = true;
       }
       entry.sprite.material.opacity = fade;
       entry.ghost.material.opacity = 0.45 * fade;
@@ -775,7 +775,7 @@ function startCity(
         entry.sprite.material.depthTest = !presenting;
         entry.sprite.renderOrder = presenting ? 15 : 0;
       }
-      entry.ring.visible = (id === selectedId || presenting) && !inside && !leaving;
+      entry.ring.visible = (id === selectedId || presenting) && !leaving;
       entry.ring.scale.setScalar(size / RESIDENT_HEIGHT);
       entry.ring.position.y = 0.06;
       const speech =
@@ -787,7 +787,7 @@ function startCity(
       const bubbleHeight = 13 * ((entry.bubble.sprite.userData.lines as number) || 1) * screenUnit;
       entry.bubble.sprite.scale.set(bubbleHeight * entry.bubble.aspect, bubbleHeight, 1);
       entry.bubble.sprite.position.y = size + 0.3 + hop;
-      entry.bubble.sprite.visible = !presenting && !inside && !leaving && Boolean(speech);
+      entry.bubble.sprite.visible = !presenting && !leaving && Boolean(speech);
       if (presenting && presentation) {
         const projected = projectResident(
           { ...entry.actor, height: ground },
