@@ -20,6 +20,39 @@ const AtlasDataReference = z
   .max(512)
   .regex(/^\/avatars\/[A-Za-z0-9/_-]+\.json$/, "Expected a scoped avatar atlas JSON path");
 
+// A bundle lives in one immutable version directory; paths never point to private storage.
+const SpineBundleSchema = z
+  .strictObject({
+    runtime: z.literal("4.3"),
+    skeleton: z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/skeleton\.json$/),
+    atlas: z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/skeleton\.atlas$/),
+    pages: z
+      .array(z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.png$/))
+      .min(1)
+      .max(16),
+    orientationPolicy: z
+      .string()
+      .regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/orientation-policy\.json$/),
+    buildManifest: z
+      .string()
+      .regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/build-manifest\.json$/),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .refine((bundle) => {
+    const directory = bundle.skeleton.slice(0, bundle.skeleton.lastIndexOf("/") + 1);
+    const paths = [
+      bundle.skeleton,
+      bundle.atlas,
+      bundle.orientationPolicy,
+      bundle.buildManifest,
+      ...bundle.pages,
+    ];
+    return (
+      paths.every((path) => path.slice(0, path.lastIndexOf("/") + 1) === directory) &&
+      new Set(paths).size === paths.length
+    );
+  }, "Spine bundle assets must be unique and in one version directory");
+
 // Fields added in v0.2 are optional so that v0.1 documents and callers stay valid.
 
 export const AvatarSpecSchema = z.strictObject({
@@ -56,6 +89,7 @@ export const AvatarManifestSchema = z.strictObject({
   atlas: z.strictObject({ image: AssetReference, data: AtlasDataReference }).optional(),
   // True when this asset set is a template or Fast Mode fallback, not the requested result.
   fallback: z.boolean().optional(),
+  spine: SpineBundleSchema.optional(),
 });
 
 // Shape validation is NOT proof of a real consent record or authorization.
