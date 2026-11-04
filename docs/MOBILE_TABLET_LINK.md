@@ -4,12 +4,12 @@ Owner：A / Main；分支 codex/mobile-tablet-link，基于 PR #14。用户要�
 
 ## 入口与本地使用
 
-| 入口 | 用途 |
-| --- | --- |
-| /setup | 电脑 loopback 开发领取临时管理钥匙；远端禁用 |
-| /admin | 手机管理：登录、配对码、模式、动作开关、删除公开居民、撤销展示连接 |
-| /tablet | 只读平板：8 位码连接、展示、全屏、休止、断线清空与恢复 |
-| /join | 样例参与；远端仅已登录管理员可创建虚构样例 |
+| 入口    | 用途                                                               |
+| ------- | ------------------------------------------------------------------ |
+| /setup  | 电脑 loopback 开发领取临时管理钥匙；远端禁用                       |
+| /admin  | 手机管理：登录、配对码、模式、动作开关、删除公开居民、撤销展示连接 |
+| /tablet | 只读平板：8 位码连接、展示、全屏、休止、断线清空与恢复             |
+| /join   | 样例参与；远端仅已登录管理员可创建虚构样例                         |
 
 运行 pnpm dev，电脑打开 http://127.0.0.1:3000/setup 领取临时管理钥匙，在独立浏览器的 /admin 登录；发码后在另一个独立浏览器的 /tablet 输入。这个 loopback 地址只在该电脑有效，不是实际手机连接地址。production 构建本地验收时先设置 AI_CITY_ENABLE_LOCAL_MOCK=1，再运行 pnpm start。
 
@@ -21,12 +21,12 @@ Owner：A / Main；分支 codex/mobile-tablet-link，基于 PR #14。用户要�
 
 已准备 infra/app/Dockerfile 和 pnpm start:remote。启动前服务端必须配置：
 
-| 环境项 | 要求 |
-| --- | --- |
-| AI_CITY_PUBLIC_ORIGIN | 精确 HTTPS origin，无路径、尾斜线、凭证或 query |
-| AI_CITY_ADMIN_KEY | 唯一随机 32–256 字符密钥，通过 Secret Manager/受控环境注入，不打印、不提交 |
-| AI_CITY_ENABLE_LOCAL_MOCK | 显式 1，仅使用虚构数据 |
-| PORT | 默认 8080 |
+| 环境项                    | 要求                                                                       |
+| ------------------------- | -------------------------------------------------------------------------- |
+| AI_CITY_PUBLIC_ORIGIN     | 精确 HTTPS origin，无路径、尾斜线、凭证或 query                            |
+| AI_CITY_ADMIN_KEY         | 唯一随机 32–256 字符密钥，通过 Secret Manager/受控环境注入，不打印、不提交 |
+| AI_CITY_ENABLE_LOCAL_MOCK | 显式 1，仅使用虚构数据                                                     |
+| PORT                      | 默认 8080                                                                  |
 
 Dockerfile 从根目录构建，运行非 root node；.dockerignore 排除环境、凭证、工具与输出。本机没有 Docker；2026-10-19 已通过 Cloud Build 实际构建并在 Cloud Run 验证。远端脚本验证配置后才绑定 0.0.0.0；本机脚本仅绑定 127.0.0.1 并设置进程标记。bootstrap 不依赖 Host 声称来自本机：没有受信任启动标记就拒绝；远端永远禁用。缺少远端 origin 也没有本机标记时 API 停用。
 

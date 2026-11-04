@@ -4,21 +4,21 @@
 
 ## 资源设计
 
-| 资源 | 用途及限制 |
-| --- | --- |
-| Standard Firestore `(default)` | 东京，启用删除保护；初始规则拒绝所有客户端访问 |
-| `ai-city-511822-private` | 私有临时照片输入，uniform access / public access prevention |
-| `ai-city-511822-assets` | 受控素材，仍为私有；没有对外开放 bucket |
-| Artifact Registry `ai-city` | 已存放设备联动预览镜像；正式运行版本使用 digest 固定 |
-| Cloud Tasks `avatar-generation-dev` | 并发 2、每秒最多 1 次、最多 2 次尝试；当前无处理器或任务 |
-| `ai-city-runtime` | 无 key 的未来 runtime 身份，目前不预授予数据/模型权限 |
-| `ai-city-ci` | 仅项目元数据和启用 API 列表读取；不能部署、读取数据或调用 Gemini |
-| Cloud Run `ai-city-link-preview` | 2026-10-19 经用户确认部署的 HTTPS mock 预览；单实例、应用层管理/配对鉴权 |
-| `ai-city-preview-builder` / `ai-city-preview-runtime` | 独立预览构建及运行身份；不升级原 CI/runtime，不使用默认 compute 身份 |
-| `ai-city-511822-preview-builds` | 东京私有源码暂存桶，UBLA/PAP，一天异步生命周期清理 |
-| Secret `ai-city-preview-admin` | 随机管理钥匙，仅预览 runtime 可读，值不进入 Git/前端/聊天 |
-| Secret `ai-city-preview-visitor-hmac` | 经用户批准新增，独立访客签名秘密；东京复制、版本 1，仅 preview runtime 可读 |
-| `aiCityPreviewVisitor` | 专用 preview runtime 的 5 项文档 CRUD/事务权限；IAM condition 只允许 `(default)` 数据库，不含 query/list 或管理权限 |
+| 资源                                                  | 用途及限制                                                                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Standard Firestore `(default)`                        | 东京，启用删除保护；初始规则拒绝所有客户端访问                                                                      |
+| `ai-city-511822-private`                              | 私有临时照片输入，uniform access / public access prevention                                                         |
+| `ai-city-511822-assets`                               | 受控素材，仍为私有；没有对外开放 bucket                                                                             |
+| Artifact Registry `ai-city`                           | 已存放设备联动预览镜像；正式运行版本使用 digest 固定                                                                |
+| Cloud Tasks `avatar-generation-dev`                   | 并发 2、每秒最多 1 次、最多 2 次尝试；当前无处理器或任务                                                            |
+| `ai-city-runtime`                                     | 无 key 的未来 runtime 身份，目前不预授予数据/模型权限                                                               |
+| `ai-city-ci`                                          | 仅项目元数据和启用 API 列表读取；不能部署、读取数据或调用 Gemini                                                    |
+| Cloud Run `ai-city-link-preview`                      | 2026-10-19 经用户确认部署的 HTTPS mock 预览；单实例、应用层管理/配对鉴权                                            |
+| `ai-city-preview-builder` / `ai-city-preview-runtime` | 独立预览构建及运行身份；不升级原 CI/runtime，不使用默认 compute 身份                                                |
+| `ai-city-511822-preview-builds`                       | 东京私有源码暂存桶，UBLA/PAP，一天异步生命周期清理                                                                  |
+| Secret `ai-city-preview-admin`                        | 随机管理钥匙，仅预览 runtime 可读，值不进入 Git/前端/聊天                                                           |
+| Secret `ai-city-preview-visitor-hmac`                 | 经用户批准新增，独立访客签名秘密；东京复制、版本 1，仅 preview runtime 可读                                         |
+| `aiCityPreviewVisitor`                                | 专用 preview runtime 的 5 项文档 CRUD/事务权限；IAM condition 只允许 `(default)` 数据库，不含 query/list 或管理权限 |
 
 `infra/bootstrap.ps1` 可由项目 owner 运行，先查询再创建；检查 project number、bucket 安全与区域、CI 角色权限与额外绑定，以及 WIF 唯一 provider、issuer、mapping 和条件。发生漂移时停止，不静默扩大权限。不覆盖已有数据库，不运行模型或应用部署。资源是否创建成功以 `SETUP_STATUS.md` 的实际记录为准。
 

@@ -500,56 +500,39 @@ canvas {
   border-top: 1px solid #d2dbd4;
   overflow-wrap: anywhere;
 }
+.preset-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid #d2dbd4;
+}
+.preset-row p {
+  margin: 2px 0 0;
+  color: #52675b;
+  font-size: 0.9rem;
+}
 .device-page details summary {
   min-height: 44px;
   cursor: pointer;
 }
-/* Venue tablet: the city fills the screen; title, controls and notes float above it. */
+/* Venue tablet: the city fills the screen. */
 .tablet-display {
   position: fixed;
   inset: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
   overflow: hidden;
   background: #cfe3c1;
   color: #20342c;
 }
-.tablet-title {
-  position: absolute;
-  top: 14px;
-  left: 16px;
-  z-index: 3;
-  max-width: min(46vw, 460px);
-  padding: 10px 16px 10px 14px;
-  border-left: 5px solid #3f7ad1;
-  border-radius: 6px 16px 16px 6px;
-  background: rgb(255 253 246 / 88%);
-  box-shadow: 0 6px 18px rgb(29 49 41 / 14%);
-  pointer-events: none;
-  animation: tablet-title-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.tablet-title h1 {
-  margin: 0;
-  line-height: 1.2;
-}
-.tablet-title h1 span {
-  display: block;
-  font-size: clamp(1.2rem, 2.6vw, 2rem);
-  letter-spacing: 0.04em;
-}
-.tablet-title h1 small {
-  display: block;
-  margin-top: 2px;
-  color: #2f6a8a;
-  font-size: clamp(0.75rem, 1.4vw, 1.05rem);
-}
-.tablet-title p {
-  margin: 4px 0 0;
-  color: #52675b;
-  font-size: 0.8rem;
-}
 .tablet-controls {
   position: absolute;
-  top: 14px;
-  right: 16px;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
@@ -578,23 +561,6 @@ canvas {
   outline: 3px solid #bc7826;
   outline-offset: 4px;
 }
-.connection-pill {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgb(255 253 246 / 88%);
-  color: #244d3c;
-  font-size: 0.85rem;
-}
-.connection-pill::before {
-  content: "";
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 6px;
-  border-radius: 50%;
-  background: #4fae6b;
-  vertical-align: 1px;
-}
 .tablet-city {
   position: absolute;
   inset: 0;
@@ -603,6 +569,7 @@ canvas {
 }
 .tablet-city canvas {
   display: block;
+  max-width: none;
 }
 .canvas-failure {
   display: none;
@@ -611,22 +578,18 @@ canvas {
   display: block;
   padding: 24px;
 }
-.tablet-footer {
+.tablet-disclaimer {
   position: absolute;
-  left: 16px;
-  bottom: 12px;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(8px, env(safe-area-inset-bottom));
   z-index: 3;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  max-width: 62vw;
-  padding: 6px 12px;
-  border-radius: 10px;
+  margin: 0;
+  padding: 3px 8px;
+  border-radius: 6px;
   background: rgb(255 253 246 / 82%);
-  font-size: 0.75rem;
-}
-.tablet-note {
   color: #52675b;
+  font-size: 0.7rem;
+  pointer-events: none;
 }
 .tablet-scene-canvas,
 .tablet-scene-overlay {
@@ -830,12 +793,6 @@ details.tablet-resident-list > summary {
   place-content: center;
   text-align: center;
 }
-@keyframes tablet-title-in {
-  from {
-    opacity: 0;
-    transform: translateX(-16px);
-  }
-}
 @keyframes tablet-card-in {
   from {
     opacity: 0;
@@ -852,19 +809,6 @@ details.tablet-resident-list > summary {
   50% {
     transform: scale(1.6);
     opacity: 0.5;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .tablet-title {
-    animation: none;
-  }
-}
-@media (max-width: 720px) {
-  .tablet-title {
-    max-width: 60vw;
-  }
-  .tablet-footer {
-    display: none;
   }
 }
 .visitor-code {

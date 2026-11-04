@@ -1,7 +1,7 @@
 "use client";
-import { type ScenePresentationFrame, speechBounds } from "@ai-city/city";
+import { clampSpeechToViewport, type ScenePresentationFrame, speechBounds } from "@ai-city/city";
 import type { PublicResident } from "@ai-city/contracts";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** HTML controls in an SVG coordinate overlay; no modal, backdrop or second avatar. */
 export function ResidentSpeech({
@@ -20,7 +20,19 @@ export function ResidentSpeech({
   showProfile: () => void;
 }) {
   const closeButton = useRef<HTMLButtonElement>(null);
+  const overlay = useRef<SVGSVGElement>(null);
+  const [viewport, setViewport] = useState({ width: 960, height: 600 });
   const welcome = anchor.kind === "welcome";
+  useEffect(() => {
+    const svg = overlay.current;
+    if (!svg) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry && entry.contentRect.width > 0 && entry.contentRect.height > 0)
+        setViewport({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     const previous = document.activeElement;
     if (!welcome) closeButton.current?.focus({ preventScroll: true });
@@ -34,10 +46,20 @@ export function ResidentSpeech({
         previous.focus({ preventScroll: true });
     };
   }, [close, welcome]);
-  const bounds = speechBounds(anchor, anchor.kind);
+  const bounds = clampSpeechToViewport(
+    speechBounds(anchor, anchor.kind),
+    viewport.width,
+    viewport.height,
+  );
   const tailX = Math.max(bounds.x + 20, Math.min(bounds.x + bounds.width - 20, anchor.x));
   return (
-    <svg className="tablet-scene-overlay" viewBox="0 0 960 600" aria-label="住民の吹き出し">
+    <svg
+      ref={overlay}
+      className="tablet-scene-overlay"
+      viewBox="0 0 960 600"
+      preserveAspectRatio="xMidYMid slice"
+      aria-label="住民の吹き出し"
+    >
       <title>住民の吹き出し</title>
       <path
         className="tablet-speech-tail"
@@ -100,7 +122,9 @@ export function ResidentSpeech({
                   </div>
                 </dl>
                 <p className="tablet-card-note">
-                  {sample ? "架空の住民・イラスト見本" : "仮のイラスト・本人の公開項目のみ"}
+                  {sample || resident.residentId.startsWith("preset-")
+                    ? "架空の住民・イラスト見本"
+                    : "仮のイラスト・本人の公開項目のみ"}
                 </p>
               </div>
               <button

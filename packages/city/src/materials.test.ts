@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { cityMaterial } from "./materials";
+import { cityMaterial, mergeCity, updateBuildingFade } from "./materials";
 
 const spec = {
   kind: "facade" as const,
@@ -51,7 +51,7 @@ describe("Blender facade parameters", () => {
   });
 });
 
-it("treats the visible back of a downward-facing roof as an upward-facing roof", () => {
+it("classifies horizontal roofs independently of face direction and inverted normals", () => {
   const source = new THREE.MeshStandardMaterial({ side: THREE.DoubleSide });
   const { material } = cityMaterial("F_OfficeGrey", spec, source);
   const shader = {
@@ -61,4 +61,82 @@ it("treats the visible back of a downward-facing roof as an upward-facing roof",
   };
   material.onBeforeCompile(shader as never, {} as never);
   expect(shader.fragmentShader).toContain("gl_FrontFacing ? 1.0 : -1.0");
+  expect(shader.fragmentShader).toContain("if (abs(n.y) > roofThreshold)");
+});
+
+it("keeps station-sign UVs and the emissive texture when merging meshes", () => {
+  const root = new THREE.Group();
+  const sign = new THREE.MeshStandardMaterial({ emissiveMap: new THREE.Texture() });
+  sign.name = "SIGN_ekimei_local_wl";
+  const board = new THREE.PlaneGeometry(2, 1);
+  root.add(new THREE.Mesh(board, sign), new THREE.Mesh(board.clone(), sign));
+  const merged = mergeCity(root, {});
+  const mesh = merged.getObjectByName("SIGN_ekimei_local_wl") as THREE.Mesh;
+  expect(mesh).toBeDefined();
+  expect(mesh.geometry.getAttribute("uv").count).toBe(8);
+  expect((mesh.material as THREE.MeshStandardMaterial).emissiveMap).toBe(sign.emissiveMap);
+  expect((mesh.material as THREE.MeshStandardMaterial).map).toBe(sign.emissiveMap);
+  expect((mesh.material as THREE.MeshStandardMaterial).color).toEqual(new THREE.Color(0xffffff));
+});
+
+it("removes only stretched Waterras triangles and excludes their vertices from bounds", () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute([0, 0, 0, 10, 0, 0, 0, 0, 10, 600, 0, 600], 3),
+  );
+  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(new Array(12).fill(1), 3));
+  geometry.setIndex([0, 1, 2, 0, 1, 3]);
+  const root = new THREE.Group();
+  const source = new THREE.MeshStandardMaterial();
+  source.name = "test-building";
+  const affected = new THREE.Mesh(geometry, source);
+  affected.name = "LM_waterras_tower_7";
+  affected.userData.base_z = 0;
+  root.add(affected);
+  const fade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const result = mergeCity(root, {}, fade).children[0] as THREE.Mesh;
+  expect(result.geometry.getIndex()?.count).toBe(3);
+  expect(result.geometry.getAttribute("position").count).toBe(3);
+  const bounds = result.geometry.getAttribute("cityBounds");
+  expect([bounds.getX(0), bounds.getY(0), bounds.getZ(0), bounds.getW(0)]).toEqual([0, 0, 10, 10]);
+  expect(geometry.getIndex()?.count).toBe(6);
+});
+
+it("keeps building bounds separate and fades buildings without fading other scenery", () => {
+  const root = new THREE.Group();
+  const material = new THREE.MeshStandardMaterial();
+  material.name = "shared";
+  const building = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 6), material);
+  building.position.set(30, 4, -20);
+  building.userData.base_z = 0;
+  const road = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 2), material);
+  root.add(building, road);
+  const fade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const city = mergeCity(root, {}, fade);
+  expect(city.children).toHaveLength(2);
+  const buildingMesh = city.children.find((child) =>
+    (child as THREE.Mesh).geometry.hasAttribute("cityBounds"),
+  ) as THREE.Mesh;
+  const groundMesh = city.children.find((child) => child !== buildingMesh) as THREE.Mesh;
+  const bounds = buildingMesh.geometry.getAttribute("cityBounds");
+  expect([bounds.getX(0), bounds.getY(0), bounds.getZ(0), bounds.getW(0)]).toEqual([
+    25, -23, 35, -17,
+  ]);
+  expect((buildingMesh.material as THREE.MeshStandardMaterial).transparent).toBe(true);
+  expect((groundMesh.material as THREE.MeshStandardMaterial).transparent).toBe(false);
+  updateBuildingFade(fade, 30, 20, 24);
+  expect(fade.center.value).toEqual(new THREE.Vector2(30, -20));
+  expect(fade.zoom.value).toBe(24);
+  const shader = {
+    uniforms: {},
+    vertexShader: "#include <common>\n#include <begin_vertex>",
+    fragmentShader: "#include <common>\n#include <alphahash_fragment>",
+  };
+  (buildingMesh.material as THREE.MeshStandardMaterial).onBeforeCompile(
+    shader as never,
+    {} as never,
+  );
+  expect(shader.fragmentShader).toContain("diffuseColor.a *= 1.0 - 0.7 * nearby * closeZoom");
+  expect(shader.uniforms).toMatchObject({ cityFadeCenter: fade.center, cityFadeZoom: fade.zoom });
 });

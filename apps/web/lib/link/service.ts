@@ -6,14 +6,23 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
-import { developmentCitySnapshot } from "@ai-city/contracts/development";
+import {
+  type CitySnapshot,
+  CitySnapshotSchema,
+  developmentAvatars,
+  developmentCitySnapshot,
+} from "@ai-city/contracts/development";
 import {
   DeviceAdminSchema,
   type DeviceControl,
   DeviceDisplaySchema,
+  type DevicePresetId,
+  DevicePresetUpdateSchema,
   type DeviceUpdate,
   DeviceUpdateSchema,
+  PRESET_CHARACTERS,
 } from "@ai-city/contracts/device-link";
+import type { z } from "zod";
 import type { LocalParticipationService } from "../development/service";
 
 export class DeviceLinkError extends Error {
@@ -33,6 +42,12 @@ export class DeviceLinkService {
   private pairing: { digest: string; expiresAt: number } | null = null;
   private attempts = new Map<string, { count: number; until: number }>();
   private control: DeviceControl;
+  private presetIds = new Set<DevicePresetId>();
+  private presetVersion = 0;
+  private displayStreams = new Map<
+    string,
+    { streamId: string; baseSeq: number; presetVersion: number; seq: number }
+  >();
   constructor(
     private participation: LocalParticipationService,
     private key = randomBytes(32).toString("hex"),
@@ -133,6 +148,7 @@ export class DeviceLinkService {
     return DeviceAdminSchema.parse({
       control: this.control,
       snapshot: this.participation.snapshot(),
+      presetIds: [...this.presetIds],
       pairedDisplays: displays.length,
       connectedDisplays: displays.filter((session) => this.now() - session.lastSeen < 10_000)
         .length,
@@ -149,9 +165,87 @@ export class DeviceLinkService {
         this.control.displayMode === "MAINTENANCE"
           ? null
           : this.control.displayMode === "DEMO"
-            ? developmentCitySnapshot
-            : this.participation.snapshot(),
+            ? this.withPresets(developmentCitySnapshot, "DEMO")
+            : this.withPresets(this.participation.snapshot(), "LIVE"),
     });
+  }
+  /** The display has its own monotonic stream because presets are not participant events. */
+  withPresets(snapshot: CitySnapshot, mode: "DEMO" | "LIVE"): CitySnapshot {
+    const key = `${mode}:${snapshot.streamId}`;
+    let stream = this.displayStreams.get(key);
+    if (!stream) {
+      if (this.displayStreams.size >= 16)
+        this.displayStreams.delete(this.displayStreams.keys().next().value as string);
+      stream = {
+        streamId: randomUUID(),
+        baseSeq: snapshot.eventSeq,
+        presetVersion: this.presetVersion,
+        seq: 0,
+      };
+      this.displayStreams.set(key, stream);
+    } else if (snapshot.eventSeq < stream.baseSeq) {
+      // Never make an older snapshot look newer after an out-of-order store read.
+      throw new DeviceLinkError("STALE_SNAPSHOT", 409);
+    } else if (
+      stream.baseSeq !== snapshot.eventSeq ||
+      stream.presetVersion !== this.presetVersion
+    ) {
+      stream.baseSeq = snapshot.eventSeq;
+      stream.presetVersion = this.presetVersion;
+      stream.seq++;
+    }
+    const room = Math.max(0, 200 - snapshot.residents.length);
+    const presets = PRESET_CHARACTERS.filter((preset) => this.presetIds.has(preset.id)).slice(
+      0,
+      room,
+    );
+    const residents = presets.map((preset) => ({
+      schemaVersion: 1 as const,
+      residentId: `preset-${preset.id}`,
+      eventId: snapshot.eventId,
+      nickname: `見本・${preset.name}`,
+      avatarVersion: preset.avatarVersion,
+      publicConsent: true as const,
+      consentVersion: 1,
+      personalityLabel: preset.personality,
+      interests: [preset.interest],
+      publicState: "VISIBLE" as const,
+    }));
+    const avatars = [...snapshot.avatars];
+    for (const preset of presets) {
+      const avatar = developmentAvatars.find(
+        (item) => item.manifest.avatarVersion === preset.avatarVersion,
+      );
+      if (avatar && !avatars.some((item) => item.manifest.avatarVersion === preset.avatarVersion))
+        avatars.push(avatar);
+    }
+    return CitySnapshotSchema.parse({
+      ...snapshot,
+      streamId: stream.streamId,
+      eventSeq: stream.seq,
+      residents: [...snapshot.residents, ...residents],
+      avatars,
+    });
+  }
+  setPreset(token: string | undefined, raw: z.infer<typeof DevicePresetUpdateSchema>) {
+    this.require(token, "ADMIN");
+    const input = DevicePresetUpdateSchema.parse(raw);
+    if (input.expectedRevision !== this.control.revision)
+      throw new DeviceLinkError("REVISION_CONFLICT", 409);
+    const changed = input.enabled
+      ? !this.presetIds.has(input.presetId)
+      : this.presetIds.has(input.presetId);
+    if (changed) {
+      if (input.enabled) this.presetIds.add(input.presetId);
+      else this.presetIds.delete(input.presetId);
+      this.presetVersion++;
+      this.control = {
+        ...this.control,
+        revision: this.control.revision + 1,
+        updatedAt: new Date(this.now()).toISOString(),
+      };
+    }
+    return this.adminState(token);
   }
   update(token: string | undefined, raw: DeviceUpdate) {
     this.require(token, "ADMIN");

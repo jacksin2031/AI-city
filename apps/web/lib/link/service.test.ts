@@ -90,3 +90,46 @@ describe("device pairing and control", () => {
     expect(() => service.pair(code)).toThrow();
   });
 });
+
+it("lets only an admin add and remove fictional presets from the display", () => {
+  const { service } = setup();
+  const admin = service.login(key);
+  const display = service.pair(service.createPairing(admin).code);
+  service.update(admin, { expectedRevision: 0, displayMode: "LIVE" });
+  const before = service.display(display).snapshot;
+  expect(before?.residents).toHaveLength(0);
+  expect(() =>
+    service.setPreset(display, { expectedRevision: 1, presetId: "aoi", enabled: true }),
+  ).toThrow();
+  const result = service.setPreset(admin, { expectedRevision: 1, presetId: "aoi", enabled: true });
+  expect(result.presetIds).toEqual(["aoi"]);
+  expect(result.snapshot.residents).toHaveLength(0);
+  const added = service.display(display).snapshot;
+  expect(added?.residents.map((resident) => resident.residentId)).toEqual(["preset-aoi"]);
+  expect(added?.residents[0]?.nickname).toContain("見本");
+  expect(added?.eventSeq).toBeGreaterThan(before?.eventSeq ?? -1);
+  expect(added?.streamId).toBe(before?.streamId);
+  const repeated = service.setPreset(admin, {
+    expectedRevision: 2,
+    presetId: "aoi",
+    enabled: true,
+  });
+  expect(repeated.control.revision).toBe(2);
+  expect(service.display(display).snapshot?.residents).toHaveLength(1);
+  expect(() =>
+    service.setPreset(admin, { expectedRevision: 1, presetId: "aoi", enabled: false }),
+  ).toThrow();
+  service.setPreset(admin, { expectedRevision: 2, presetId: "aoi", enabled: false });
+  expect(service.display(display).snapshot?.residents).toHaveLength(0);
+});
+
+it("does not resurrect removed residents when display snapshots arrive out of order", async () => {
+  const { developmentCitySnapshot } = await import("@ai-city/contracts/development");
+  const { service } = setup();
+  const old = { ...developmentCitySnapshot, eventSeq: 1 };
+  const removed = { ...old, eventSeq: 2, residents: [], avatars: [] };
+  service.withPresets(old, "LIVE");
+  const newest = service.withPresets(removed, "LIVE");
+  expect(() => service.withPresets(old, "LIVE")).toThrow();
+  expect(service.withPresets(removed, "LIVE").eventSeq).toBe(newest.eventSeq);
+});

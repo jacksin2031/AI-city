@@ -68,6 +68,7 @@ export function createDevelopmentClient(
       return initializing;
     },
     closeSession: () => read("logout", empty, {}),
+    focus: () => read("focus", empty, {}),
     createJob: (input: CreateJobRequest) =>
       read("jobs", ParticipationViewSchema, CreateJobRequestSchema.parse(input)),
     current: () => read("jobs/current", ParticipationViewSchema.nullable()),

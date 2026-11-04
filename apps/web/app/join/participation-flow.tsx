@@ -39,6 +39,7 @@ export function ParticipationFlow({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [focusStatus, setFocusStatus] = useState("");
   const [view, setView] = useState<ParticipationView | null>(null);
   const [nickname, setNickname] = useState("そら");
   const [sampleId, setSampleId] = useState<CreateJobRequest["sampleId"]>("sora");
@@ -408,11 +409,34 @@ export function ParticipationFlow({
           )}
           {published ? (
             <div className="flow-actions">
-              <span>
-                {persistent
-                  ? "管理者が「参加者の街」に切り替えると、展示タブレットで確認できます。"
-                  : "展示タブレットの街で確認できます。"}
-              </span>
+              {persistent ? (
+                <>
+                  <span>管理者が「参加者の街」に切り替えると、展示タブレットで確認できます。</span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      setFocusStatus("");
+                      try {
+                        await client.focus();
+                        setFocusStatus(
+                          "リクエストを送りました。平板が参加者の街に接続中か確認してください。",
+                        );
+                      } catch (failure) {
+                        setFocusStatus(message(failure));
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    平板で自分のキャラクターに注目
+                  </button>
+                  {focusStatus && <p role="status">{focusStatus}</p>}
+                </>
+              ) : (
+                <span>展示タブレットの街で確認できます。</span>
+              )}
               <button
                 type="button"
                 className="secondary"

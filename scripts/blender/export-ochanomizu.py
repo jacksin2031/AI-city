@@ -110,6 +110,9 @@ for material in bpy.data.materials:
     if not described:
         continue
     materials[material.name] = described
+    # Signs use an image for both base colour and emission; retain both texture links.
+    if material.name.startswith("SIGN_"):
+        continue
     bsdf = next(n for n in material.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
     for name in ("Base Color", "Roughness", "Normal"):
         for link in list(bsdf.inputs[name].links):

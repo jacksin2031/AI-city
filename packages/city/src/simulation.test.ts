@@ -110,3 +110,41 @@ describe("placeholder character behaviour", () => {
     expect(illustration).not.toContain("foreignObject");
   });
 });
+
+it("waits at a pedestrian signal on red or flashing green and resumes on steady green", () => {
+  const world = testWorld();
+  const actor = {
+    ...createActor(world, 0),
+    x: 4,
+    y: 2.5,
+    action: "walk" as const,
+    path: [{ x: 9, y: 2.5 }],
+  };
+  const signals = [{ x: 6, y: 2.5, height: 0, dx: 1, dy: 0, group: "A" as const }];
+  const red = stepActor(world, actor, 3, true, { signals, time: 5 });
+  expect(red.x).toBeCloseTo(5);
+  expect(red.waitingForSignal).toBe(true);
+  expect(stepActor(world, red, 1, true, { signals, time: 32 }).x).toBeCloseTo(5);
+  const green = stepActor(world, red, 1, true, { signals, time: 22 });
+  expect(green.x).toBeGreaterThan(5);
+  expect(green.waitingForSignal).toBe(false);
+  // Once the person has entered the crossing, a red light must not trap them in the road.
+  const inCrossing = { ...green, x: 6.5 };
+  expect(stepActor(world, inCrossing, 1, true, { signals, time: 5 }).x).toBeGreaterThan(6.5);
+});
+
+it("does not stop for an unrelated direction or signal on another level", () => {
+  const world = testWorld();
+  const actor = {
+    ...createActor(world, 0),
+    x: 4,
+    y: 2.5,
+    action: "walk" as const,
+    path: [{ x: 9, y: 2.5 }],
+  };
+  const signal = { x: 6, y: 2.5, height: 0, dx: -1, dy: 0, group: "A" as const };
+  expect(stepActor(world, actor, 2, true, { signals: [signal], time: 5 }).x).toBeGreaterThan(6);
+  expect(
+    stepActor(world, actor, 2, true, { signals: [{ ...signal, dx: 1, height: 10 }], time: 5 }).x,
+  ).toBeGreaterThan(6);
+});

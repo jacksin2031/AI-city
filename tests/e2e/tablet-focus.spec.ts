@@ -61,7 +61,8 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     expect(speech && speech.width * speech.height).toBeLessThan(box.width * box.height * 0.18);
     await page.screenshot({ path: "output/playwright/tablet-profile.png", fullPage: true });
     // The map is interactive: tapping its exposed background closes camera focus.
-    await page.touchscreen.tap(box.x + box.width * 0.92, box.y + box.height * 0.9);
+    // The 3D canvas can extend beyond the clipped viewport; tap its visible background.
+    await page.touchscreen.tap(100, 650);
     await expect(profile).toHaveCount(0);
     await expect(page.locator(".tablet-scene-canvas")).toHaveAttribute("data-camera-zoom", "1");
     await page.touchscreen.tap(box.x + (412 / 960) * box.width, box.y + (232 / 600) * box.height);
@@ -277,9 +278,7 @@ test("new residents wave at their city position, profiles have priority and remo
       (response) => response.headers()["x-ai-city-test-case"] === "late-public-snapshot",
     );
     await expect(
-      page.getByText(`${initial.snapshot.residents.length + 1}人 · 仮のイラストと用意された会話`, {
-        exact: true,
-      }),
+      page.getByRole("button", { name: `${prefix}いのプロフィール`, exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: `${prefix}あのプロフィール`, exact: true }),
@@ -291,9 +290,7 @@ test("new residents wave at their city position, profiles have priority and remo
     await expect(page.locator(".tablet-resident-speech")).toBeVisible();
     await publish("う");
     await expect(
-      page.getByText(`${initial.snapshot.residents.length + 2}人 · 仮のイラストと用意された会話`, {
-        exact: true,
-      }),
+      page.getByRole("button", { name: `${prefix}うのプロフィール`, exact: true }),
     ).toBeVisible();
     const beforePause = await (await manager.request.get("/api/link/admin")).json();
     await manager.request.post("/api/link/control", {

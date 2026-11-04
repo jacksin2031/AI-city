@@ -5,6 +5,7 @@ import type { DeviceAdmin } from "@ai-city/contracts/device-link";
 import { type FormEvent, useEffect, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 import { removeResidents } from "./actions";
+import PresetResidents from "./presets";
 import ManagedResidents from "./residents";
 
 const modes = { DEMO: "イラストの見本", LIVE: "参加者の街", MAINTENANCE: "展示を休止" } as const;
@@ -303,6 +304,28 @@ export default function Admin({
               {state.control.motionEnabled ? "動きを止める" : "動きを再開"}
             </button>
           </section>
+          <PresetResidents
+            selected={state.presetIds}
+            availableSlots={
+              20 -
+              (state.control.displayMode === "DEMO" ? 2 : state.snapshot.residents.length) -
+              state.presetIds.length
+            }
+            busy={busy}
+            toggle={(presetId, enabled) =>
+              void run(async (api) => {
+                const next = await api.preset({
+                  expectedRevision: state.control.revision,
+                  presetId,
+                  enabled,
+                });
+                setNotice(
+                  enabled ? "見本の住民を追加しました。" : "見本の住民を街から外しました。",
+                );
+                return next;
+              })
+            }
+          />
           <ManagedResidents residents={state.snapshot.residents} busy={busy} remove={withdraw} />
           <details className="flow-panel">
             <summary>接続を終了する</summary>

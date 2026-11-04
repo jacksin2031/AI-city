@@ -9,6 +9,7 @@ import {
   DeviceOkSchema,
   DevicePairingSchema,
   DevicePairSchema,
+  DevicePresetUpdateSchema,
   DeviceRemoveSchema,
   type DeviceUpdate,
   DeviceUpdateSchema,
@@ -44,6 +45,8 @@ export function createDeviceClient(options: { signal?: AbortSignal; fetch?: type
     visitorInvitation: () => read("visitor-invitation", VisitorInvitationSchema, {}),
     update: (input: DeviceUpdate) =>
       read("control", DeviceAdminSchema, DeviceUpdateSchema.parse(input)),
+    preset: (input: z.infer<typeof DevicePresetUpdateSchema>) =>
+      read("preset", DeviceAdminSchema, DevicePresetUpdateSchema.parse(input)),
     remove: (residentId: string) =>
       read("remove", DeviceAdminSchema, DeviceRemoveSchema.parse({ residentId })),
     revoke: () => read("revoke", DeviceAdminSchema, {}),

@@ -109,3 +109,61 @@ describe("device HTTP boundary", () => {
     ).toBe(400);
   });
 });
+
+it("rejects preset writes from display sessions or with extra fields", async () => {
+  const service = new DeviceLinkService(new LocalParticipationService(), key);
+  const admin = service.login(key);
+  const display = service.pair(service.createPairing(admin).code);
+  expect(
+    (
+      await handleLinkRequest(
+        request(
+          "preset",
+          { expectedRevision: 0, presetId: "aoi", enabled: true },
+          `ai-city-link=${display}`,
+        ),
+        service,
+        true,
+      )
+    ).status,
+  ).toBe(403);
+  expect(
+    (
+      await handleLinkRequest(
+        request(
+          "preset",
+          { expectedRevision: 0, presetId: "aoi", enabled: true, photo: "private" },
+          `ai-city-link=${admin}`,
+        ),
+        service,
+        true,
+      )
+    ).status,
+  ).toBe(400);
+  expect(
+    (
+      await handleLinkRequest(
+        request(
+          "preset",
+          { expectedRevision: 0, presetId: "unknown", enabled: true },
+          `ai-city-link=${admin}`,
+        ),
+        service,
+        true,
+      )
+    ).status,
+  ).toBe(400);
+  expect(
+    (
+      await handleLinkRequest(
+        request(
+          "preset",
+          { expectedRevision: 0, presetId: "aoi", enabled: true },
+          `ai-city-link=${admin}`,
+        ),
+        service,
+        true,
+      )
+    ).status,
+  ).toBe(200);
+});

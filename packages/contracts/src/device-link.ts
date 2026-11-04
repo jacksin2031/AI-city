@@ -2,6 +2,59 @@ import { z } from "zod";
 import { CitySnapshotSchema } from "./development";
 import { CityModeEventSchema } from "./index";
 
+/** Fictional display-only presets; these are not AI-generated participants. */
+export const PRESET_CHARACTERS = [
+  {
+    id: "aoi",
+    name: "あおい",
+    avatarVersion: "fixture-sora-v1",
+    personality: "散歩が好き",
+    interest: "音楽",
+  },
+  {
+    id: "kaede",
+    name: "かえで",
+    avatarVersion: "fixture-haru-v1",
+    personality: "好奇心いっぱい",
+    interest: "本",
+  },
+  {
+    id: "minato",
+    name: "みなと",
+    avatarVersion: "fixture-sora-v1",
+    personality: "のんびり屋",
+    interest: "カフェ",
+  },
+  {
+    id: "hinata",
+    name: "ひなた",
+    avatarVersion: "fixture-haru-v1",
+    personality: "街を探検中",
+    interest: "散歩",
+  },
+  {
+    id: "yui",
+    name: "ゆい",
+    avatarVersion: "fixture-sora-v1",
+    personality: "音楽好き",
+    interest: "楽器",
+  },
+  {
+    id: "ren",
+    name: "れん",
+    avatarVersion: "fixture-haru-v1",
+    personality: "おだやか",
+    interest: "ゲーム",
+  },
+] as const;
+export const DevicePresetIdSchema = z.enum(["aoi", "kaede", "minato", "hinata", "yui", "ren"]);
+export const DevicePresetUpdateSchema = z.strictObject({
+  expectedRevision: z.number().int().nonnegative(),
+  presetId: DevicePresetIdSchema,
+  enabled: z.boolean(),
+});
+export type DevicePresetId = z.infer<typeof DevicePresetIdSchema>;
+
 export const DeviceControlSchema = z.strictObject({
   schemaVersion: z.literal(1),
   mode: z.literal("MOCK"),
@@ -30,6 +83,11 @@ export const DeviceRemoveSchema = z.strictObject({
 export const DeviceAdminSchema = z.strictObject({
   control: DeviceControlSchema,
   snapshot: CitySnapshotSchema,
+  presetIds: z
+    .array(DevicePresetIdSchema)
+    .max(6)
+    .refine((ids) => new Set(ids).size === ids.length)
+    .default([]),
   pairedDisplays: z.number().int().nonnegative(),
   connectedDisplays: z.number().int().nonnegative(),
 });

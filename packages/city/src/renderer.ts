@@ -1,6 +1,7 @@
 import type { PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { autumnLighting } from "./autumn";
 import {
   clampCamera,
   DEFAULT_ZOOM,
@@ -16,7 +17,7 @@ import {
   VIEW,
 } from "./focus";
 import { characterDataUrl, illustrationPalette } from "./illustrations";
-import { type MaterialSpecs, mergeCity } from "./materials";
+import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
 import {
   type Actor,
   type CityAction,
@@ -26,6 +27,8 @@ import {
   describeActivity,
   stepActor,
 } from "./simulation";
+import { createTraffic, type TrafficData } from "./traffic-scene";
+import { cityViewport } from "./viewport";
 import { type CityPlaces, createWorld, heightAt, parseGrid, tour, type World } from "./world";
 
 export type IllustratedCity = {
@@ -44,7 +47,6 @@ type Entry = {
   sprite: THREE.Sprite;
   ghost: THREE.Sprite;
   ring: THREE.Mesh;
-  label: Label;
   bubble: Label;
   pulse: THREE.Mesh;
   /** Scene time when the arrival / departure animation began; 0 when none is running. */
@@ -52,9 +54,7 @@ type Entry = {
   leaveAt: number;
   welcomeUntil: number;
   hopUntil: number;
-  nickname: string;
   facing: Direction;
-  shown: string;
 };
 
 const directions: Direction[] = ["front", "left", "back", "right"];
@@ -64,8 +64,6 @@ const preset = "こんにちは。広場でひと休みしよう！";
 const font = '"Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif';
 /** Character textures are rasterised at twice their 96×128 artwork size. */
 const CHARACTER_PIXELS = 2;
-/** Residents never shrink below this many screen units, so they stay findable zoomed out. */
-const MIN_RESIDENT_SCREEN = 20;
 const FRAME_SECONDS = 1 / 30;
 
 const ARRIVE_SECONDS = 1.1;
@@ -167,6 +165,8 @@ export async function createDevelopmentCity(
   options: {
     residents?: PublicResident[];
     motionEnabled?: boolean;
+    /** Fill the viewport while keeping the scene aspect ratio. */
+    fillViewport?: boolean;
     signal?: AbortSignal;
     /** Where the exported 3D city is served from (same origin). */
     assetBase?: string;
@@ -208,8 +208,18 @@ export async function createDevelopmentCity(
       canvas.remove();
       throw error;
     });
-  const { cityModel, vehicleModel, characters, world, specs } = await loaded;
-  return startCity(parent, options, renderer, cityModel, vehicleModel, characters, world, specs);
+  const { cityModel, vehicleModel, characters, world, specs, trafficData } = await loaded;
+  return startCity(
+    parent,
+    options,
+    renderer,
+    cityModel,
+    vehicleModel,
+    characters,
+    world,
+    specs,
+    trafficData,
+  );
 }
 
 /** Fetch and parse everything the city needs; nothing here touches the page. */
@@ -217,7 +227,7 @@ async function loadScene(base: string, signal?: AbortSignal) {
   const aborted = () => {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
   };
-  const [cityBuffer, vehicleBuffer, gridBuffer, places, specs] = await Promise.all([
+  const [cityBuffer, vehicleBuffer, gridBuffer, places, specs, trafficData] = await Promise.all([
     fetchBuffer(`${base}city.glb`, signal),
     fetchBuffer(`${base}vehicles.glb`, signal),
     fetchBuffer(`${base}nav.bin`, signal),
@@ -226,6 +236,9 @@ async function loadScene(base: string, signal?: AbortSignal) {
     ),
     fetchBuffer(`${base}materials.json`, signal).then(
       (buffer) => JSON.parse(new TextDecoder().decode(buffer)) as MaterialSpecs,
+    ),
+    fetchBuffer(`${base}traffic.json`, signal).then(
+      (buffer) => JSON.parse(new TextDecoder().decode(buffer)) as TrafficData,
     ),
   ]);
   aborted();
@@ -260,7 +273,7 @@ async function loadScene(base: string, signal?: AbortSignal) {
   );
   aborted();
   const world: World = createWorld(parseGrid(places.grid, gridBuffer), places.shops);
-  return { cityModel, vehicleModel, characters, world, specs };
+  return { cityModel, vehicleModel, characters, world, specs, trafficData };
 }
 
 type CityOptions = Parameters<typeof createDevelopmentCity>[1] & {};
@@ -274,22 +287,27 @@ function startCity(
   characters: Map<string, THREE.Texture>,
   world: World,
   specs: MaterialSpecs,
+  trafficData: TrafficData,
 ): IllustratedCity {
   const canvas = renderer.domElement;
   // —— Scene and light ——
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color().setRGB(0.66, 0.63, 0.585);
-  // Blender's world colour lights the scene from every side; the sun is low in the south-west.
-  scene.add(new THREE.HemisphereLight(0xfff3e0, 0x8a7d6a, 2.1));
-  const sun = new THREE.DirectionalLight(new THREE.Color().setRGB(1, 0.86, 0.68), 4.6);
-  const sunDirection = new THREE.Vector3(-0.47, 0.574, 0.671).normalize();
+  scene.background = new THREE.Color();
+  const ambient = new THREE.HemisphereLight();
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight();
+  const sunDirection = new THREE.Vector3();
   sun.castShadow = true;
   sun.shadow.mapSize.set(4096, 4096);
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.6;
   scene.add(sun, sun.target);
 
-  const city = mergeCity(cityModel.scene, specs);
+  // Read this before mergeCity bakes the source mesh transforms into the combined geometry.
+  const metroRailHeightOffset =
+    cityModel.scene.getObjectByName("Rail_Metro_Marunouchi")?.position.y ?? 0;
+  const buildingFade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const city = mergeCity(cityModel.scene, specs, buildingFade);
   scene.add(city);
   const vehicles = vehicleModel.scene;
   vehicles.traverse((object) => {
@@ -297,8 +315,7 @@ function startCity(
     if (mesh.isMesh) mesh.castShadow = true;
   });
   scene.add(vehicles);
-  const mixer = new THREE.AnimationMixer(vehicles);
-  for (const clip of vehicleModel.animations) mixer.clipAction(clip).play();
+  const traffic = createTraffic(trafficData, vehicles, city, metroRailHeightOffset);
 
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 4000);
   const residentLayer = new THREE.Group();
@@ -322,7 +339,24 @@ function startCity(
   let destroyed = false;
   let clock = 0;
   let now = 0;
+  let lastLightingMinute = -1;
   const entries = new Map<string, Entry>();
+
+  function updateLighting() {
+    const local = new Date();
+    const minute = local.getHours() * 60 + local.getMinutes();
+    if (minute === lastLightingMinute) return;
+    lastLightingMinute = minute;
+    const light = autumnLighting(local);
+    ambient.color.copy(light.sky);
+    ambient.groundColor.copy(light.ground);
+    ambient.intensity = light.hemisphereIntensity;
+    sun.color.copy(light.sun);
+    sun.intensity = light.sunIntensity;
+    sunDirection.copy(light.direction);
+    (scene.background as THREE.Color).copy(light.background);
+    renderer.toneMappingExposure = light.exposure;
+  }
 
   // —— Camera: tour/user view, plus a glide whenever the target changes ——
   const groundAt = (x: number, y: number) => heightAt(world.grid, x, y);
@@ -371,14 +405,12 @@ function startCity(
   function resize() {
     const width = parent.clientWidth || SCREEN.width;
     const height = parent.clientHeight || (width * SCREEN.height) / SCREEN.width;
-    const scale = Math.min(width / SCREEN.width, height / SCREEN.height);
-    const w = Math.max(1, Math.floor(SCREEN.width * scale));
-    const h = Math.max(1, Math.floor(SCREEN.height * scale));
-    renderer.setSize(w, h, false);
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    canvas.style.marginLeft = `${Math.max(0, (width - w) / 2)}px`;
-    canvas.style.marginTop = parent.clientHeight ? `${Math.max(0, (height - h) / 2)}px` : "0";
+    const layout = cityViewport(width, height, options.fillViewport ?? false);
+    renderer.setSize(Math.max(1, layout.width), Math.max(1, layout.height), false);
+    canvas.style.width = `${layout.width}px`;
+    canvas.style.height = `${layout.height}px`;
+    canvas.style.marginLeft = `${layout.left}px`;
+    canvas.style.marginTop = parent.clientHeight ? `${layout.top}px` : "0";
   }
   const resizer = new ResizeObserver(resize);
   resizer.observe(parent);
@@ -397,7 +429,7 @@ function startCity(
   }
 
   function textureFor(entry: Entry, presenting: boolean) {
-    const action = entry.actor.action;
+    const action = entry.actor.waitingForSignal ? "idle" : entry.actor.action;
     const pose = presenting
       ? presentation?.kind === "welcome"
         ? "wave"
@@ -413,7 +445,6 @@ function startCity(
 
   function removeEntry(id: string, entry: Entry) {
     residentLayer.remove(entry.group);
-    entry.label.sprite.material.map?.dispose();
     entry.bubble.sprite.material.map?.dispose();
     entry.sprite.material.dispose();
     entry.ghost.material.dispose();
@@ -435,16 +466,9 @@ function startCity(
       }
     for (const [index, resident] of visible.entries()) {
       const existing = entries.get(resident.residentId);
-      const nickname =
-        [...resident.nickname].slice(0, 12).join("") +
-        ([...resident.nickname].length > 12 ? "…" : "");
       if (existing) {
         existing.resident = resident;
         existing.leaveAt = 0;
-        if (existing.nickname !== nickname) {
-          existing.nickname = nickname;
-          existing.shown = "";
-        }
         continue;
       }
       const actor = createActor(world, focused === resident ? residents.indexOf(resident) : index);
@@ -465,8 +489,6 @@ function startCity(
       ghost.userData.residentId = resident.residentId;
       const ring = new THREE.Mesh(ringGeometry, ringMaterial);
       ring.renderOrder = 5;
-      const label = textLabel({ background: "rgba(255,255,255,0.88)", color: "#243b30", size: 26 });
-      label.sprite.center.set(0.5, 1.15);
       const bubble = textLabel({ background: "#ffffff", color: "#2c3a33", size: 24, wrap: 300 });
       bubble.sprite.center.set(0.5, 0);
       const pulse = new THREE.Mesh(
@@ -481,7 +503,7 @@ function startCity(
       pulse.renderOrder = 5;
       pulse.visible = false;
       const group = new THREE.Group();
-      group.add(ring, pulse, sprite, ghost, label.sprite, bubble.sprite);
+      group.add(ring, pulse, sprite, ghost, bubble.sprite);
       residentLayer.add(group);
       entries.set(resident.residentId, {
         actor,
@@ -491,11 +513,8 @@ function startCity(
         ghost,
         ring,
         pulse,
-        label,
         bubble,
-        nickname,
         facing: "front",
-        shown: "",
         hopUntil: 0,
         enterAt: moving && addedIds.includes(resident.residentId) ? now : 0,
         leaveAt: 0,
@@ -617,9 +636,10 @@ function startCity(
   }
 
   function update(seconds: number) {
+    updateLighting();
     if (moving) {
       clock += seconds;
-      mixer.update(seconds);
+      traffic.update(seconds);
     }
     stepTour(seconds);
     // The camera keeps looking at street level as it pans over the slopes of 駿河台.
@@ -642,6 +662,7 @@ function startCity(
       shown = target;
     }
     placeCamera(shown);
+    updateBuildingFade(buildingFade, shown.centerX, shown.centerY, shown.zoom);
     parent.dataset.cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
     const screenUnit = 1 / shown.zoom;
     let index = 0;
@@ -661,7 +682,10 @@ function startCity(
         ? { ...entry.actor, elapsed: entry.actor.elapsed + (moving ? seconds : 0) }
         : leaving
           ? entry.actor
-          : stepActor(world, entry.actor, seconds, moving);
+          : stepActor(world, entry.actor, seconds, moving, {
+              signals: trafficData.pedestrianSignals,
+              time: clock,
+            });
       if (
         moving &&
         !leaving &&
@@ -672,13 +696,13 @@ function startCity(
       )
         entry.actor = commandActor(world, entry.actor, "walk");
       if (previousAction !== entry.actor.action) options.onAction?.(id, entry.actor.action);
-      entry.facing = facingFor(entry.actor.heading, entry.actor.action === "walk");
+      entry.facing = facingFor(
+        entry.actor.heading,
+        entry.actor.action === "walk" && !entry.actor.waitingForSignal,
+      );
       const ground = groundAt(entry.actor.x, entry.actor.y);
       const inside = entry.actor.action === "visit" && !presenting;
-      // Zoomed far out, residents keep a minimum size on screen so they can still be tapped.
-      const size = presenting
-        ? RESIDENT_HEIGHT
-        : Math.max(RESIDENT_HEIGHT, MIN_RESIDENT_SCREEN * screenUnit);
+      const size = RESIDENT_HEIGHT;
       const hopBase =
         entry.hopUntil > now ? Math.sin(((entry.hopUntil - now) / 0.28) * Math.PI) * 0.45 : 0;
       // Arrival: drops in from above and bounces; departure: floats up, shrinks and fades.
@@ -721,17 +745,6 @@ function startCity(
       entry.ring.visible = (id === selectedId || presenting) && !inside && !leaving;
       entry.ring.scale.setScalar(size / RESIDENT_HEIGHT);
       entry.ring.position.y = 0.06;
-      // Inside a shop the name tag stays at the door so viewers know who went in.
-      const name = inside ? `${entry.nickname}（店内）` : entry.nickname;
-      if (entry.shown !== name) {
-        entry.label.set(name);
-        entry.shown = name;
-      }
-      const labelHeight = 15 * screenUnit;
-      entry.label.sprite.scale.set(labelHeight * entry.label.aspect, labelHeight, 1);
-      entry.label.sprite.position.y = inside ? size * 0.5 : -0.1;
-      entry.label.sprite.visible = !presenting && !leaving;
-      entry.label.sprite.material.opacity = Math.min(1, Math.max(0, (arriveT - 0.4) / 0.4));
       const speech =
         entry.actor.action === "talk" ? preset : now < entry.welcomeUntil ? "ようこそ！" : "";
       if (entry.bubble.sprite.userData.text !== speech) {
@@ -874,7 +887,6 @@ function startCity(
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerUp);
       canvas.removeEventListener("wheel", onWheel);
-      mixer.stopAllAction();
       scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
         if (mesh.isMesh || (object as THREE.Sprite).isSprite) {

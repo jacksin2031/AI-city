@@ -8,6 +8,7 @@ import { DevelopmentServiceError } from "../development/service";
 import { handleLinkRequest } from "../link/http";
 import { DeviceLinkError, type DeviceLinkService } from "../link/service";
 import type { VisitorBoundary } from "./credentials";
+import { focusBroker } from "./focus-runtime";
 import type { VisitorService } from "./service";
 
 /** Keep existing device authentication; replace only authorized public data reads. */
@@ -20,8 +21,34 @@ export async function handlePersistentDeviceRequest(
   localBootstrap = false,
   security?: VisitorBoundary | null,
 ): Promise<Response> {
-  if (!visitor) return handleLinkRequest(request, device, enabled, remoteOrigin, localBootstrap);
   try {
+    if (
+      enabled &&
+      request.method === "GET" &&
+      new URL(request.url).pathname === "/api/link/focus"
+    ) {
+      validateRequestOrigin(request, remoteOrigin);
+      if (new URL(request.url).search) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+      const token = request.headers
+        .get("cookie")
+        ?.split(";")
+        .map((v) => v.trim())
+        .find((v) => v.startsWith("ai-city-link="))
+        ?.slice("ai-city-link=".length);
+      const display = device.display(token);
+      const command = focusBroker.current();
+      const snapshot =
+        display.control.displayMode === "LIVE" && command && visitor
+          ? await visitor.snapshot()
+          : null;
+      const focus = snapshot?.residents.some(
+        (resident) => resident.residentId === command?.residentId,
+      )
+        ? command
+        : null;
+      return Response.json({ mode: "MOCK", focus }, { headers: { "Cache-Control": "no-store" } });
+    }
+    if (!visitor) return handleLinkRequest(request, device, enabled, remoteOrigin, localBootstrap);
     if (
       enabled &&
       request.method === "POST" &&
@@ -68,7 +95,9 @@ export async function handlePersistentDeviceRequest(
       payload.snapshot &&
       ("pairedDisplays" in payload || payload.control?.displayMode === "LIVE")
     ) {
-      payload.snapshot = await visitor.snapshot();
+      const snapshot = await visitor.snapshot();
+      payload.snapshot =
+        "pairedDisplays" in payload ? snapshot : device.withPresets(snapshot, "LIVE");
       return Response.json(payload, { status: response.status, headers: response.headers });
     }
     return response;
