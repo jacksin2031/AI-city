@@ -8,6 +8,7 @@
       "!**/next-env.d.ts",
       "!pnpm-lock.yaml",
       "!apps/web/public/city3d",
+      "!apps/web/app/city/spine-lab/SpineSkinTool_v1.0",
       "!docs/plans",
       "!.artifacts",
       "!.tools",
