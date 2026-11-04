@@ -40,4 +40,5 @@ export {
 export { createDevelopmentCity, type IllustratedCity } from "./renderer";
 export { type CityRoster, reconcileRoster } from "./roster";
 export type { CityAction, Direction } from "./simulation";
+export { prepareSpineBundle } from "./spine-bundle";
 export { clampSpeechToViewport } from "./viewport";
