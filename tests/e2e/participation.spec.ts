@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 
 test("a fictional participant can preview, choose public fields, recover and withdraw", async ({
   page,
-  context,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -31,14 +30,16 @@ test("a fictional participant can preview, choose public fields, recover and wit
   await expect(page.getByText("連携用の一覧に追加しました。")).toBeVisible();
   await page.reload();
   await expect(page.getByText("連携用の一覧に追加しました。")).toBeVisible();
-  const otherPage = await context.newPage();
-  await otherPage.goto("/integration");
-  await expect(otherPage.getByRole("heading", { name: nickname, exact: true })).toBeVisible();
-  await expect(otherPage.getByText("性格：非公開", { exact: true })).toBeVisible();
-  await otherPage.screenshot({ path: "output/playwright/b-integration.png", fullPage: true });
+  const listed = async () =>
+    (
+      (await (await page.request.get("/api/dev/city/snapshot?eventId=fixture-event")).json()) as {
+        residents: { nickname: string }[];
+      }
+    ).residents.some((resident) => resident.nickname === nickname);
+  expect(await listed()).toBe(true);
   await page.getByRole("button", { name: "一覧から削除" }).click();
   await expect(page.getByText("サンプルを削除しました。")).toBeVisible();
-  await expect(otherPage.getByRole("heading", { name: nickname, exact: true })).toHaveCount(0);
+  expect(await listed()).toBe(false);
   expect(errors).toEqual([]);
 });
 

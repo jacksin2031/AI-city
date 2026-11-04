@@ -6,7 +6,6 @@ import {
   createDevelopmentClient,
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
-import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 const questions = [
@@ -409,11 +408,11 @@ export function ParticipationFlow({
           )}
           {published ? (
             <div className="flow-actions">
-              {persistent ? (
-                <span>管理者が「参加者の街」に切り替えると、展示タブレットで確認できます。</span>
-              ) : (
-                <Link href="/city?mode=participants">街で確認</Link>
-              )}
+              <span>
+                {persistent
+                  ? "管理者が「参加者の街」に切り替えると、展示タブレットで確認できます。"
+                  : "展示タブレットの街で確認できます。"}
+              </span>
               <button
                 type="button"
                 className="secondary"
