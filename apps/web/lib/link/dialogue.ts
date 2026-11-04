@@ -15,6 +15,35 @@ const fictionalIds = new Set([
   ...developmentCitySnapshot.residents.map((resident) => resident.residentId),
   ...PRESET_CHARACTERS.map((preset) => `preset-${preset.id}`),
 ]);
+const fictionalContext = new Map<
+  string,
+  { id: string; name: string; personality: string; interests: readonly string[] }
+>([
+  ...developmentCitySnapshot.residents.map(
+    (resident) =>
+      [
+        resident.residentId,
+        {
+          id: resident.residentId,
+          name: resident.nickname,
+          personality: resident.personalityLabel,
+          interests: resident.interests,
+        },
+      ] as const,
+  ),
+  ...PRESET_CHARACTERS.map(
+    (preset) =>
+      [
+        `preset-${preset.id}`,
+        {
+          id: `preset-${preset.id}`,
+          name: `見本・${preset.name}`,
+          personality: preset.personality,
+          interests: [preset.interest],
+        },
+      ] as const,
+  ),
+]);
 const placeLabels: Record<DialoguePlace, string> = {
   station: "御茶ノ水の駅の近く",
   bridge: "橋の近く",
@@ -52,7 +81,7 @@ export class DialogueService {
       /^[a-zA-Z0-9._-]{1,80}$/.test(this.config.model ?? "") &&
       Number.isInteger(this.config.maxCalls) &&
       this.config.maxCalls >= 1 &&
-      this.config.maxCalls <= 200 &&
+      this.config.maxCalls <= 5 &&
       this.calls < this.config.maxCalls
     );
   }
@@ -71,12 +100,7 @@ export class DialogueService {
     this.lastCall = this.now();
     this.calls++;
     try {
-      const context = pair.map((resident) => ({
-        id: resident?.residentId,
-        name: resident?.nickname,
-        personality: resident?.personalityLabel,
-        interests: resident?.interests,
-      }));
+      const context = input.residentIds.map((id) => fictionalContext.get(id));
       const token = await this.accessToken();
       if (!token) throw new DeviceLinkError("DIALOGUE_PROVIDER_FAILED", 502);
       const response = await this.providerFetch(
@@ -106,7 +130,15 @@ export class DialogueService {
                       residents: context,
                       place: placeLabels[input.place ?? "street"],
                       maxLines: input.maxLines,
-                      format: { lines: [{ residentId: "指定されたID", text: "発言" }] },
+                      actionRules:
+                        "会話後の二人の行動を各1つ選び、wave（手を振る）、walk（歩く）、idle（休む）のいずれかを使う。",
+                      format: {
+                        lines: [{ residentId: "指定されたID", text: "発言" }],
+                        actions: [
+                          { residentId: input.residentIds[0], action: "wave" },
+                          { residentId: input.residentIds[1], action: "walk" },
+                        ],
+                      },
                     }),
                   },
                 ],
@@ -147,14 +179,19 @@ export class DialogueService {
       if (text.length > 4096) throw new DeviceLinkError("DIALOGUE_PROVIDER_FAILED", 502);
       const generated: unknown = JSON.parse(text);
       const lines = (generated as { lines?: unknown })?.lines;
+      const actions = (generated as { actions?: unknown })?.actions;
       const result = DialogueResultSchema.parse({
         schemaVersion: 1,
         requestId: input.requestId,
         source: "LIVE",
         safety: "PASSED",
         lines,
+        actions,
       });
       if (
+        !result.actions ||
+        new Set(result.actions.map((item) => item.residentId)).size !== 2 ||
+        result.actions.some((item) => !input.residentIds.includes(item.residentId)) ||
         result.lines.length < 2 ||
         result.lines.length > input.maxLines ||
         result.lines.some(

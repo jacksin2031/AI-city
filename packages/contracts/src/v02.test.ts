@@ -260,6 +260,17 @@ describe("dialogue contracts", () => {
     expect(
       DialogueResultSchema.safeParse({
         ...result,
+        safety: "BLOCKED",
+        lines: [],
+        actions: [
+          { residentId: "fixture-sora", action: "wave" },
+          { residentId: "fixture-haru", action: "idle" },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      DialogueResultSchema.safeParse({
+        ...result,
         lines: [{ residentId: "fixture-sora", text: "あ".repeat(81) }],
       }).success,
     ).toBe(false);

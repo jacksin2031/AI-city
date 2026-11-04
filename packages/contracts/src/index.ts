@@ -173,10 +173,28 @@ export const DialogueResultSchema = z
     lines: z
       .array(z.strictObject({ residentId: Id, text: z.string().trim().min(1).max(80) }))
       .max(6),
+    actions: z
+      .tuple([
+        z.strictObject({ residentId: Id, action: z.enum(["wave", "walk", "idle"]) }),
+        z.strictObject({ residentId: Id, action: z.enum(["wave", "walk", "idle"]) }),
+      ])
+      .optional(),
   })
   .superRefine((result, context) => {
     if (result.safety === "BLOCKED" && result.lines.length > 0)
       context.addIssue({ code: "custom", path: ["lines"], message: "Blocked output has no lines" });
+    if (result.safety === "BLOCKED" && result.actions)
+      context.addIssue({
+        code: "custom",
+        path: ["actions"],
+        message: "Blocked output has no actions",
+      });
+    if (result.actions && result.actions[0].residentId === result.actions[1].residentId)
+      context.addIssue({
+        code: "custom",
+        path: ["actions"],
+        message: "Actions require two different residents",
+      });
     if (result.safety === "PASSED" && result.lines.length === 0)
       context.addIssue({ code: "custom", path: ["lines"], message: "Passed output needs lines" });
   });

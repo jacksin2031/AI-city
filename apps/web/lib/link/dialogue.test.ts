@@ -15,11 +15,17 @@ const input = {
 };
 const response = (lines: unknown, finishReason = "STOP") =>
   Response.json({
-    candidates: [{ finishReason, content: { parts: [{ text: JSON.stringify({ lines }) }] } }],
+    candidates: [
+      { finishReason, content: { parts: [{ text: JSON.stringify({ lines, actions }) }] } },
+    ],
   });
 const lines = [
   { residentId: "fixture-sora", text: "こんにちは。" },
   { residentId: "fixture-haru", text: "こんにちは！" },
+];
+const actions = [
+  { residentId: "fixture-sora", action: "wave" },
+  { residentId: "fixture-haru", action: "walk" },
 ];
 const config = {
   enabled: true,
@@ -40,6 +46,65 @@ const request = (body?: unknown, token?: string) =>
   });
 
 describe("fictional dialogue boundary", () => {
+  it("refuses a configuration above the five-call per-process test limit", () => {
+    expect(new DialogueService({ ...config, maxCalls: 6 }).available()).toBe(false);
+  });
+  it("never sends altered roster attributes to the model", async () => {
+    const provider = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      expect(String(init?.body)).not.toContain("private-roster-text");
+      return response(lines);
+    });
+    const dialogue = new DialogueService(config, provider, Date.now, async () => "test");
+    const altered = developmentCitySnapshot.residents.map((resident) => ({
+      ...resident,
+      nickname: "private-roster-text",
+      personalityLabel: "private-roster-text",
+      interests: ["private-roster-text"],
+    }));
+    await dialogue.generate(input, altered);
+  });
+  it("accepts only one safe AI-selected action for each fictional participant", async () => {
+    const provider = vi.fn(async () =>
+      Response.json({
+        candidates: [
+          {
+            finishReason: "STOP",
+            content: { parts: [{ text: JSON.stringify({ lines, actions }) }] },
+          },
+        ],
+      }),
+    );
+    const dialogue = new DialogueService(config, provider, Date.now, async () => "test");
+    const result = await dialogue.generate(input, developmentCitySnapshot.residents);
+    expect(result.actions).toEqual(actions);
+    const bad = new DialogueService(
+      config,
+      vi.fn(async () =>
+        Response.json({
+          candidates: [
+            {
+              finishReason: "STOP",
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      lines,
+                      actions: [{ residentId: "fixture-sora", action: "delete" }, actions[1]],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ),
+      Date.now,
+      async () => "test",
+    );
+    await expect(bad.generate(input, developmentCitySnapshot.residents)).rejects.toMatchObject({
+      code: "DIALOGUE_PROVIDER_FAILED",
+    });
+  });
   it("requires an enabled configuration and a paired display without calling the provider", async () => {
     const provider = vi.fn();
     const dialogue = new DialogueService({ ...config, enabled: false }, provider);

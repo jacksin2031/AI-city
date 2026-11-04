@@ -2,7 +2,7 @@ import type { DialoguePlace, DialogueResult, PublicResident } from "@ai-city/con
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { autumnLighting } from "./autumn";
-import { encounterPlace, findEncounter } from "./encounter";
+import { encounterPlace, findEncounter, postDialogueAction } from "./encounter";
 import {
   clampCamera,
   DEFAULT_ZOOM,
@@ -324,6 +324,7 @@ function startCity(
   let exchange: {
     ids: [string, string];
     lines: DialogueResult["lines"];
+    actions: DialogueResult["actions"];
     startedAt: number;
   } | null = null;
   let dialoguePending = false;
@@ -643,7 +644,15 @@ function startCity(
     ) {
       for (const id of exchange.ids) {
         const entry = entries.get(id);
-        if (entry?.actor.action === "talk") entry.actor = commandActor(world, entry.actor, "idle");
+        if (entry?.actor.action === "talk") {
+          const choice = postDialogueAction(
+            id,
+            exchange.actions,
+            lineIndex >= exchange.lines.length && moving,
+            presentation?.id ?? null,
+          );
+          entry.actor = commandActor(world, entry.actor, choice);
+        }
       }
       exchange = null;
     }
@@ -801,7 +810,7 @@ function startCity(
               ids.every((id) => entries.has(id)) &&
               result.lines.every((line) => ids.includes(line.residentId))
             )
-              exchange = { ids, lines: result.lines, startedAt: now };
+              exchange = { ids, lines: result.lines, actions: result.actions, startedAt: now };
           })
           .catch(() => {})
           .finally(() => {

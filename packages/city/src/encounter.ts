@@ -1,8 +1,18 @@
-import type { DialoguePlace } from "@ai-city/contracts";
+import type { DialoguePlace, DialogueResult } from "@ai-city/contracts";
 import type { Actor } from "./simulation";
 import type { Poi } from "./world";
 
 const fictional = /^(fixture-sora|fixture-haru|preset-(aoi|kaede|minato|hinata|yui|ren))$/;
+export function postDialogueAction(
+  id: string,
+  actions: Readonly<NonNullable<DialogueResult["actions"]>> | undefined,
+  completed: boolean,
+  focused: string | null,
+): "wave" | "walk" | "idle" {
+  return completed && id !== focused
+    ? (actions?.find((item) => item.residentId === id)?.action ?? "idle")
+    : "idle";
+}
 const cooldowns: Record<string, number> = {
   好奇心いっぱい: 60,
   街を探検中: 75,
