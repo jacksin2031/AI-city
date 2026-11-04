@@ -7,7 +7,7 @@ import { isKnownCiDriverWarning } from "../helpers/browser-console";
 
 const codeFree = process.env.AI_CITY_TEST_CODE_FREE === "1";
 
-async function prepareNewParticipant(page: Page, name: string) {
+async function prepareNewParticipant(page: Page, name: string, answer = false) {
   await page.getByLabel("ニックネーム", { exact: true }).fill(name);
   await page.getByRole("button", { name: "次へ", exact: true }).click();
   await page.getByRole("button", { name: "写真を使わずにカスタマイズ" }).click();
@@ -16,7 +16,14 @@ async function prepareNewParticipant(page: Page, name: string) {
   await page.getByRole("radio", { name: "はる" }).check();
   await page.getByRole("button", { name: "このキャラクターで進む" }).click();
   await expect(page.getByRole("radio")).toHaveCount(3);
-  await page.getByRole("button", { name: "質問をスキップ" }).click();
+  if (answer) {
+    for (let i = 0; i < 6; i++) {
+      await page.getByRole("radio").first().check();
+      await page
+        .getByRole("button", { name: i === 5 ? "プレビューへ" : "次へ", exact: true })
+        .click();
+    }
+  } else await page.getByRole("button", { name: "質問をスキップ" }).click();
   await expect(page.getByRole("heading", { name: "公開する内容を確認" })).toBeVisible({
     timeout: 15000,
   });
@@ -88,7 +95,7 @@ test("code-free manager batch withdrawal persists for both owners", async ({
   }
 });
 
-test("AI questionnaire offers three choices and produces a private entertainment style", async ({
+test("AI questionnaire offers three choices and sends only the entertainment result", async ({
   page,
 }) => {
   test.skip(!codeFree, "New participant flow uses code-free admission");
@@ -98,6 +105,9 @@ test("AI questionnaire offers three choices and produces a private entertainment
   await page.getByRole("button", { name: "写真を使わずにカスタマイズ" }).click();
   await page.getByRole("button", { name: "このキャラクターで進む" }).click();
   let submittedAt = 0;
+  const submitted = page.waitForRequest(
+    (req) => req.url().endsWith("/api/visitor/jobs") && req.method() === "POST",
+  );
   for (let i = 1; i <= 6; i++) {
     await expect(page.getByText(`質問 ${i} / 6`)).toBeVisible();
     await expect(page.getByRole("radio")).toHaveCount(3);
@@ -111,6 +121,12 @@ test("AI questionnaire offers three choices and produces a private entertainment
   await expect(page.getByText("スマホのAIスタイル：ひらめき探検家（娯楽用）")).toBeVisible({
     timeout: 15000,
   });
+  expect((await submitted).postDataJSON()).toMatchObject({
+    aiStyle: "INSPIRED_EXPLORER",
+    answers: null,
+  });
+  await page.reload();
+  await expect(page.getByText("スマホのAIスタイル：ひらめき探検家（娯楽用）")).toBeVisible();
   expect(Date.now() - submittedAt).toBeGreaterThanOrEqual(3400);
   await page.getByRole("button", { name: "参加を中止して情報を削除" }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -244,7 +260,7 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
       await visitor.getByLabel("参加用コード", { exact: true }).fill(invitation);
       await visitor.getByRole("button", { name: "参加を始める", exact: true }).click();
     }
-    if (codeFree) await prepareNewParticipant(visitor, "永続テスト・架空");
+    if (codeFree) await prepareNewParticipant(visitor, "永続テスト・架空", true);
     else {
       await visitor.getByLabel("架空のニックネーム", { exact: true }).fill("永続テスト・架空");
       await visitor.getByRole("button", { name: "サンプルを準備", exact: true }).click();
@@ -285,6 +301,8 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
       .toBe(0);
     await visitor.getByLabel("アバターをこの展示サイトに公開する", { exact: true }).check();
     await visitor.getByLabel("ニックネームを表示する", { exact: true }).check();
+    if (codeFree)
+      await visitor.getByLabel("AIスタイル（遊びの性格）を表示する", { exact: true }).check();
     await visitor
       .getByRole("button", { name: "確認した項目を公開して街に参加", exact: true })
       .click();
@@ -305,7 +323,9 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await expect(welcome).toBeVisible();
     await welcome.getByRole("button", { name: "プロフィールを見る", exact: true }).click();
     const profile = tablet.getByRole("region", { name: "永続テスト・架空", exact: true });
-    await expect(profile.getByText("非公開", { exact: true })).toBeVisible();
+    await expect(
+      profile.getByText(codeFree ? "ひらめき探検家" : "非公開", { exact: true }),
+    ).toBeVisible();
     await expect(profile.getByText("非公開・指定なし", { exact: true })).toBeVisible();
     await profile.getByRole("button", { name: "拡大を閉じる" }).click();
     await expect(profile).toHaveCount(0);
@@ -314,7 +334,7 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     expect(Number(await profile.getAttribute("data-camera-zoom"))).toBeGreaterThan(1);
     const publicSnapshot = await (await tabletContext.request.get("/api/link/display")).json();
     expect(publicSnapshot.snapshot.residents[0]).toMatchObject({
-      personalityLabel: "非公開",
+      personalityLabel: codeFree ? "ひらめき探検家" : "非公開",
       interests: [],
     });
     expect(JSON.stringify(publicSnapshot)).not.toMatch(/ownerDigest|answers|recordedAt/);

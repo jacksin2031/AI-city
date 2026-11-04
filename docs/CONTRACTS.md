@@ -1,6 +1,6 @@
 # 共享 Contracts
 
-当前为 `packages/contracts` v0.6.0（含设备联动、持久访客传输及虚构预设住民控制），Zod schema 为字段来源，变更记录见 `packages/contracts/CHANGELOG.md`。全部 fixture 都是虚构信息。它不是完整生产协议或后端授权实现。原 v0.2 导出保持兼容；`development` 子路径提供本地接入专用严格 DTO，要求有效 READY 结果及时间字段。
+当前为 `packages/contracts` v0.7.0（含设备联动、持久访客传输、娱乐性 AI 风格及虚构预设住民控制），Zod schema 为字段来源，变更记录见 `packages/contracts/CHANGELOG.md`。全部 fixture 都是虚构信息。它不是完整生产协议或后端授权实现。原 v0.2 导出保持兼容；`development` 子路径提供本地接入专用严格 DTO，要求有效 READY 结果及时间字段。
 
 本地接入入口：`@ai-city/contracts/development`（schema、类型、fixtures）和 `@ai-city/contracts/development-client`（型别化 HTTP client）。权威名单为 `CitySnapshot`，变化为连续序号的 `CityEventPage`；重启由 `streamId` 变化识别。素材为 `REFERENCE_ONLY`，不是已存在的图片。完整接入及限制见 [A/B 本地接入基础](A_B_LOCAL_INTEGRATION.md)。
 
@@ -12,6 +12,8 @@
 - `DialogueRequest` / `DialogueResult`：请求只带两个不同居民 ID，公开上下文由服务端查找，不传私人答案；结果必须标明 LIVE 或 PRESET 来源及安全结果，BLOCKED 不带台词。
 
 设备管理 `presetIds` 是固定虚构目录的选择，不进入参与者名册；平板公开快照按展示流版本合并。管理端和服务端需一起更新，重新启动会丢失选择。
+
+参与者界面在本地计算娱乐用 `aiStyle` 枚举，提交结果但不提交原始答案；该结果作为角色性格预览保存在参与会话中。只有明确同意公开性格时，公开快照及平板才显示结果，否则显示「非公開」。跳过问卷为「未回答」。该标签不是科学人格诊断，也不改变角色插画。旧请求无需该字段，新界面需要同步更新服务端。
 
 Fixtures（`@ai-city/contracts/fixtures`）提供居民、素材清单、五种任务状态、居民与模式事件和预设对话，供 A/B 并行开发；素材路径只是引用，尚无实际图片。
 

@@ -8,6 +8,23 @@ import {
 } from "./development";
 
 describe("local integration boundaries", () => {
+  it("accepts only fixed entertainment styles and preserves legacy job inputs", () => {
+    const input = {
+      eventId: "fixture-event",
+      requestId: "fixture",
+      nickname: "架空",
+      sampleId: "sora",
+      answers: null,
+      scenario: "SUCCESS",
+    };
+    expect(CreateJobRequestSchema.safeParse(input).success).toBe(true);
+    expect(
+      CreateJobRequestSchema.safeParse({ ...input, aiStyle: "INSPIRED_EXPLORER" }).success,
+    ).toBe(true);
+    expect(
+      CreateJobRequestSchema.safeParse({ ...input, aiStyle: "private arbitrary text" }).success,
+    ).toBe(false);
+  });
   it("keeps local consent v1 and requires hosted scope for v2", () => {
     const fields = { nickname: true, personality: false, interests: false };
     expect(

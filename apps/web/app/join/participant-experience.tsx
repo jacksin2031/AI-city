@@ -1,7 +1,11 @@
 "use client";
 
 import { characterDataUrl } from "@ai-city/city/illustrations";
-import type { ParticipationView } from "@ai-city/contracts/development";
+import {
+  type AiStyle,
+  aiStyleLabels,
+  type ParticipationView,
+} from "@ai-city/contracts/development";
 import {
   createDevelopmentClient,
   DevelopmentApiError,
@@ -68,7 +72,6 @@ export function ParticipantExperience() {
   const [hasDecoration, setHasDecoration] = useState(false);
   const [answers, setAnswers] = useState<(number | null)[]>(Array(6).fill(null));
   const [question, setQuestion] = useState(0);
-  const [style, setStyle] = useState<string | null>(null);
   const [view, setView] = useState<ParticipationView | null>(null);
   const [avatarConsent, setAvatarConsent] = useState(false);
   const [fields, setFields] = useState({ nickname: false, personality: false, interests: false });
@@ -123,23 +126,23 @@ export function ParticipantExperience() {
     };
   }, [stage, view, client]);
 
-  function computeStyle(values: (number | null)[]) {
+  function computeStyle(values: (number | null)[]): AiStyle {
     const score = (indices: number[]) =>
       indices.reduce((sum, i) => sum + (values[i] === 0 ? 1 : values[i] === 1 ? -1 : 0), 0);
     const a = score([0, 2, 4]),
       c = score([1, 3, 5]);
     return !a || !c
-      ? "バランス型"
+      ? "BALANCED"
       : a > 0
         ? c > 0
-          ? "ひらめき探検家"
-          : "実践チャレンジャー"
+          ? "INSPIRED_EXPLORER"
+          : "PRACTICAL_CHALLENGER"
         : c > 0
-          ? "じっくりアイデア家"
-          : "しっかりサポーター";
+          ? "THOUGHTFUL_CREATOR"
+          : "STEADY_SUPPORTER";
   }
   async function prepare(skipped: boolean) {
-    setStyle(skipped ? "未回答" : computeStyle(answers));
+    const aiStyle = skipped ? "UNANSWERED" : computeStyle(answers);
     setError("");
     setBusy(true);
     setStage("waiting");
@@ -152,6 +155,7 @@ export function ParticipantExperience() {
         requestId: requestId.current,
         nickname: nickname.trim(),
         sampleId: sample,
+        aiStyle,
         scenario: "SUCCESS",
         answers: null,
       });
@@ -416,7 +420,7 @@ export function ParticipantExperience() {
                   </button>
                 </div>
                 <p className="pf-fine">
-                  AIスタイルは娯楽用で、この画面にのみ表示され、ページを更新すると消えます。
+                  AIスタイルは娯楽用です。回答は送信せず、計算した結果のみ参加情報として保存します。
                 </p>
               </>
             )}
@@ -449,13 +453,18 @@ export function ParticipantExperience() {
                   />
                   <strong>{view.preview.nickname}</strong>
                   <p>仮のイラスト・写真からの生成ではありません</p>
-                  {style && <p>スマホのAIスタイル：{style}（娯楽用）</p>}
+                  <p>
+                    {Object.values(aiStyleLabels).includes(view.preview.personalityLabel)
+                      ? "スマホのAIスタイル"
+                      : "見本の性格"}
+                    ：{view.preview.personalityLabel}（娯楽用）
+                  </p>
                 </div>
                 <p>
                   街では選択した項目だけを表示します。情報はこのブラウザーの参加情報として24時間保存されます。
                 </p>
                 <p className="pf-fine">
-                  AIスタイルは街に公開されません。街の性格は用意された見本です。
+                  性格の表示に同意した場合、AIスタイルを街と平板に表示します。質問への回答は送信しません。
                 </p>
                 <label className="pf-check">
                   <input
@@ -468,7 +477,7 @@ export function ParticipantExperience() {
                 {(
                   [
                     ["nickname", "ニックネームを表示する"],
-                    ["personality", "遊びの性格を表示する"],
+                    ["personality", "AIスタイル（遊びの性格）を表示する"],
                     ["interests", "興味を表示する"],
                   ] as const
                 ).map(([key, label]) => (
@@ -523,7 +532,12 @@ export function ParticipantExperience() {
                       </span>
                     </p>
                   )}
-                  {style && <p>スマホのAIスタイル：{style}（娯楽用）</p>}
+                  <p>
+                    {Object.values(aiStyleLabels).includes(view.preview.personalityLabel)
+                      ? "スマホのAIスタイル"
+                      : "見本の性格"}
+                    ：{view.preview.personalityLabel}（娯楽用）
+                  </p>
                   <p className="pf-fine">スマホの色・マークは街には表示されません。</p>
                 </section>
                 <section className="pf-controls" aria-label="平板の操作">
