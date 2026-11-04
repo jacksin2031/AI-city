@@ -1,6 +1,7 @@
 import type { PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { type AnimatedCharacter, animationFor } from "./animated-character";
 import { autumnLighting } from "./autumn";
 import {
   clampCamera,
@@ -55,6 +56,7 @@ type Entry = {
   welcomeUntil: number;
   hopUntil: number;
   facing: Direction;
+  animated?: { source: AnimatedCharacter; texture: THREE.CanvasTexture; version: string };
 };
 
 const directions: Direction[] = ["front", "left", "back", "right"];
@@ -175,6 +177,8 @@ export async function createDevelopmentCity(
     onReady?: () => void;
     onPresentationFrame?: (frame: ScenePresentationFrame | null) => void;
     onClearSelection?: () => void;
+    /** Optional locally supplied animation source; authorization remains with its caller. */
+    createAnimatedCharacter?: (resident: PublicResident) => AnimatedCharacter | null;
   } = {},
 ): Promise<IllustratedCity> {
   const signal = options.signal;
@@ -444,12 +448,22 @@ function startCity(
   }
 
   function removeEntry(id: string, entry: Entry) {
+    entry.animated?.source.dispose();
+    entry.animated?.texture.dispose();
     residentLayer.remove(entry.group);
     entry.bubble.sprite.material.map?.dispose();
     entry.sprite.material.dispose();
     entry.ghost.material.dispose();
     (entry.pulse.material as THREE.Material).dispose();
     entries.delete(id);
+  }
+
+  function animatedFor(resident: PublicResident): Entry["animated"] {
+    const source = options.createAnimatedCharacter?.(resident);
+    if (!source) return undefined;
+    const texture = new THREE.CanvasTexture(source.canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return { source, texture, version: resident.avatarVersion };
   }
 
   function sync(addedIds: string[] = []) {
@@ -467,6 +481,11 @@ function startCity(
     for (const [index, resident] of visible.entries()) {
       const existing = entries.get(resident.residentId);
       if (existing) {
+        if (existing.resident.avatarVersion !== resident.avatarVersion) {
+          existing.animated?.source.dispose();
+          existing.animated?.texture.dispose();
+          existing.animated = animatedFor(resident);
+        }
         existing.resident = resident;
         existing.leaveAt = 0;
         continue;
@@ -515,6 +534,7 @@ function startCity(
         pulse,
         bubble,
         facing: "front",
+        animated: animatedFor(resident),
         hopUntil: 0,
         enterAt: moving && addedIds.includes(resident.residentId) ? now : 0,
         leaveAt: 0,
@@ -714,7 +734,16 @@ function startCity(
       // Nudged towards the camera along its own axis: the same spot on screen, but the
       // upright drawing no longer cuts into the wall the resident stands beside.
       entry.group.position.copy(toThree(entry.actor.x, entry.actor.y, ground)).add(nearer);
-      const texture = characters.get(textureFor(entry, presenting));
+      if (entry.animated) {
+        const direction = presenting ? "front" : entry.facing;
+        entry.animated.source.advance(
+          animationFor(entry.actor.action, direction, presenting),
+          direction,
+          moving ? seconds : 0,
+        );
+        entry.animated.texture.needsUpdate = true;
+      }
+      const texture = entry.animated?.texture ?? characters.get(textureFor(entry, presenting));
       for (const sprite of [entry.sprite, entry.ghost]) {
         if (texture && sprite.material.map !== texture) {
           sprite.material.map = texture;
@@ -896,6 +925,10 @@ function startCity(
         }
       });
       for (const texture of characters.values()) texture.dispose();
+      for (const entry of entries.values()) {
+        entry.animated?.source.dispose();
+        entry.animated?.texture.dispose();
+      }
       renderer.dispose();
       renderer.forceContextLoss();
       canvas.remove();

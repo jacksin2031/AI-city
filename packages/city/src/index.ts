@@ -29,6 +29,7 @@ export function getDevelopmentResidents(): PublicResident[] {
   );
 }
 
+export type { AnimatedCharacter } from "./animated-character";
 export { type ScenePresentationFrame, speechBounds } from "./focus";
 export {
   closePresentation,

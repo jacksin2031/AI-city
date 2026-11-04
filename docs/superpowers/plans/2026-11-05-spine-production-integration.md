@@ -53,6 +53,8 @@
 
 - [ ] 加载完整性校验后的 Spine 资源，映射方向和动作并应用方向守卫；失败显示明确占位。
 - [ ] 使用合成数据验证从授权提交到自动发布及撤回的浏览器流程；运行 `pnpm check`、`pnpm test:rules` 和 `pnpm test:e2e` 并报告限制。
+- [x] 城市 renderer 接受每位居民独立的动画画布；`/animation-test` 用明确标示的合成图形验证 three.js 城市场景、方向映射及纹理刷新，不包含 Spine Runtime，也不是生成角色。
+- [ ] 确认 Spine Runtime 使用与再分发许可后，接入实际 Spine 播放器、方向守卫与经过授权的运行包；不得将合成画布的验证标为 Spine 端到端通过。
 
 ### Task 5: 真实环境验收
 
