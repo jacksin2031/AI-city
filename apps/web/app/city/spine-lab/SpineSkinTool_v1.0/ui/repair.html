@@ -1,0 +1,11 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>返修・復旧</title>
+<style>body{font:15px system-ui;background:#18232d;color:#eef;margin:24px}a{color:#9de}input,select,button{padding:8px;margin:7px}pre{white-space:pre-wrap;overflow-wrap:anywhere}iframe{width:590px;height:1000px;border:1px solid #789;max-width:95%}.previews{display:flex;gap:16px;flex-wrap:wrap}li{margin:10px 0}</style>
+<h1>有限返修と作業復旧</h1><p>既存の制作仕様を守り、確定した構造エラーを再構築します。内容の再生成は元写真・元参考だけを使います。モデルの補助判定だけでは美術合格になりません。</p>
+<p><a href="/reviews">レビューへ</a> ／ <a href="/calibration">仕様の対照テストへ</a></p>
+<label>現在の政策による元レビュー<select id="source"></select></label><br>
+<label>最大サイクル<input id="cycles" type="number" min="1" max="3" value="3"></label><label>画像呼出し総上限<input id="images" type="number" min="1" max="18" value="6"></label><label>部位ごとの上限<input id="perpart" type="number" min="1" max="3" value="3"></label><label>補助レビュー上限<input id="visions" type="number" min="1" max="3" value="3"></label><br>
+<label><input id="live-image" type="checkbox">購読枠で対象部位を再生成</label><label><input id="live-vision" type="checkbox">購読枠で候補の補助レビュー</label><br>
+<label>対象部位（空欄は全体）<input id="parts" placeholder="BODY_FRONT, HAIR_FRONT" style="width:350px"></label><button id="create">返修計画を保存（送信なし）</button><button id="new">新しい計画を作る</button><p>保存した設定は固定です。変更する場合は新しい計画を作成してください。</p>
+<p><select id="tasks"></select><button id="load">保存作業を表示</button><button id="advance" disabled>1サイクル進める・復旧</button><button id="cancel" disabled>後続処理を停止</button></p>
+<p>初期状態では外部呼出しは無効です。実行には生成・レビュー側の設定と残り試験上限も必要です。中断した不明な外部要求を自動再送しません。停止は送信済みの遠隔処理を撤回せず、その後の処理を止めます。</p>
+<pre id="status" role="status">読み込み中…</pre><h2>原因と処理計画</h2><ul id="plan"></ul><h2>候補の比較</h2><div class="previews" id="previews"></div><details><summary>保存状態と実行記録</summary><pre id="report"></pre></details><script src="/repair.js"></script></html>

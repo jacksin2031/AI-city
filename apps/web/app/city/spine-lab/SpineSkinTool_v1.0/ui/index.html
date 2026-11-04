@@ -1,0 +1,14 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>Spine キャラクタープレビュー</title>
+<style>body{font:16px system-ui;background:#18232d;color:#eef;margin:24px}canvas{background:#33434f;border:1px solid #789;max-width:100%;height:auto;box-sizing:border-box}select,button{padding:8px;margin:8px;max-width:100%}pre{white-space:pre-wrap}</style>
+<style>body.comparison{margin:10px}body.comparison h1{font-size:16px}body.comparison>p,body.comparison>label,body.comparison>button,body.comparison>br{display:none}body.comparison canvas{width:100%;max-width:512px}body.comparison pre{font-size:12px}</style>
+<style>body.embedded{margin:0;background:#33434f}body.embedded h1,body.embedded pre{display:none}body.embedded canvas{display:block;border:0}</style>
+<h1>Spine キャラクタープレビュー</h1><p>生成素材・参照素材のローカル再生用です。再生成功は美術品質の合格を示すものではありません。</p>
+<p><a href="/characters">写真からキャラクターを制作・保存作業を表示</a></p>
+<label>動作<select id="animation"></select></label><label>外観<select id="skin"></select></label><button id="pause">一時停止</button><br>
+<canvas id="canvas" width="512" height="512"></canvas><pre id="status">読み込み中…</pre>
+<section id="workbench" hidden><p>指定した部品フォルダーのPNGを変更してから再構築してください。以前の構築結果は保存されます。</p><button id="rebuild">部品を再読込して構築</button></section>
+<a id="download" href="/download" hidden>検証用ランタイム一式をダウンロード</a>
+<p>正規化された最終製品ではありません。表情の重ね合わせには同梱の朝向ルールが必要です。</p>
+<label>表情の重ね合わせ<select id="emote"><option value="">なし</option></select></label>
+<p><a id="trials" href="/trials" hidden>素材仕様の試験（アンカー・マスク・解像度）</a></p>
+<script src="/runtime.js"></script><script src="/orientation.js"></script><script src="/viewer.js"></script></html>

@@ -1,0 +1,16 @@
+schema_version: "1.0.0"
+template_id: "chibi-4.3-beta"
+profile: "reference_hair_8part_v2"
+status: "OBSERVED_REFERENCE_ONLY_NOT_A_PRODUCTION_CONTRACT"
+default_size_trial: "runtime/config/size-trials.toml"
+# 以下宽高保存历史观测；新试验在 size-trials.toml 中调整，不修改历史。
+parts:
+  HAIR_FRONT: {source: "ai-city-template-hair-front.png", width: 289, height: 240}
+  HAIR_BACK: {source: "ai-city-template-hair-back.png", width: 315, height: 282}
+  BODY_FRONT: {source: "ai-city-template-body.png", width: 140, height: 195}
+  BODY_BACK: {source: "ai-city-template-body-back.png", width: 140, height: 195}
+  ARM_FRONT: {source: "ai-city-template-arm.png", width: 55, height: 179}
+  ARM_BACK: {source: "ai-city-template-arm-back.png", width: 55, height: 179}
+  LEG_FRONT: {source: "ai-city-template-leg.png", width: 57, height: 201}
+  LEG_BACK: {source: "ai-city-template-leg-back.png", width: 57, height: 201}
+  BLANK: {source: "ai-city-template-blank.png", width: 4, height: 4, generated_by: "program"}

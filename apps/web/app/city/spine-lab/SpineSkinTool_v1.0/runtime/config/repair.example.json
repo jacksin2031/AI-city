@@ -1,0 +1,8 @@
+{
+  "max_cycles": 3,
+  "max_image_calls": 6,
+  "max_calls_per_part": 3,
+  "max_visual_calls": 3,
+  "live_generation": false,
+  "live_review": false
+}

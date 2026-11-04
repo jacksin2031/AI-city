@@ -1,0 +1,36 @@
+# All mutable runtime state and installed environments
+/runtime/python/.venv/
+/runtime/js/node_modules/
+/runtime/js/runtime/
+/runtime/cache/
+/runtime/tmp/
+/runtime/work/
+/runtime/data/
+/runtime/logs/
+/runtime/output/
+/runtime/secrets/
+/runtime/bin/
+/runtime/vendor-untracked/
+/runtime/config/local.toml
+
+# Never commit private model inputs, environment or keys
+.env
+.env.*
+!.env.example
+*.secret
+*.key
+*.pem
+.codex/
+auth.json
+credentials.json
+/runtime/config/providers.json
+/runtime/config/design.json
+/runtime/config/review.json
+
+# Source tool caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store

@@ -1,0 +1,25 @@
+[server]
+host = "127.0.0.1"
+port = 8765
+
+[execution]
+mode = "mock"
+max_active_jobs = 1
+max_model_calls_per_part = 3
+max_total_model_calls = 18
+max_repair_cycles = 3
+paid_api_enabled = false
+
+[paths]
+# 相对于工具根目录；可写目录必须互不重叠，并位于 runtime 内。
+work = "runtime/work"
+data = "runtime/data"
+output = "runtime/output"
+cache = "runtime/cache"
+logs = "runtime/logs"
+
+[template]
+size_trial = "runtime/config/size-trials.toml"
+
+[spine]
+editor_executable = ""

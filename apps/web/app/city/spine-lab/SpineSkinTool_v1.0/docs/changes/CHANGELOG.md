@@ -1,0 +1,1818 @@
+# 公开源码初始导入记录
+
+本机私人开发历史不随本次公开源码交付；以下只记录经白名单核验的文件及真实验证范围。
+
+### 2026-11-04T21:58:48.328289+09:00 | TASK-M08-RELEASE-IMPORT | 20261104T125848Z-TASK-M08-RELEASE-IMPORT | COMPLETE
+- UTC: 2026-11-04T12:58:48.328289+00:00
+- Goal: 白名单干净源码初始交付；软件/文档/打包已验，远端分支状态另以Git提交核对。
+- Files and corresponding code/sections:
+  - ADD `.gitattributes`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `da1dd3f46fa7cad0c3076ccc3dcc2febef5c1cf2978600aa855dcdbd1c122d15`
+  - ADD `.gitignore`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0e633f2500aad525b6a0bea8039549432be6291c27a152f051b780a854be78b6`
+  - ADD `AGENTS.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `1221c205d3f166b7519ef198318f23a8486008ca30521b76eebcdf06d03b9c1b`
+  - ADD `DISTRIBUTION.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ccbdde3ef9aa871fe93855e549f01a7464c463e12c5b7da0384a8b1633da6cf9`
+    ```text
+{
+  "schema_version": "1.0.0",
+  "release_id": "spine-skin-tool-0.1.0-20261104",
+  "source_directories": ["src", "ui", "scripts", "tests", "templates", "schemas", "prompts", "fixtures"],
+  "source_top": ["AGENTS.md", "README.md", "使用说明.md", "文件分类与发布说明.md", "DISTRIBUTION.json", ".gitignore", ".gitattributes"],
+  "public_docs": ["QUALITY.md", "TEXTURE_CONSTRUCTION_BASELINE.md", "REFERENCE_PIXEL_MEASUREMENTS.md", "CHARACTER_PIPELINE.md", "SHARED_CHARACTER_FLOW.md", "GENERATORS.md", "REVIEW_PIPELINE.md", "REPAIR_PIPELINE.md", "REVIEW_CALIBRATION.md", "CHAT_VALIDATED_FLOW.md", "TEXTURE_ONLY_EDIT_POLICY.md", "TEXTURE_COMPARISON.md", "OPS.md", "CODEX_IMPLEMENTATION_SPEC.md", "DECISIONS.md", "CHANGES_GUIDE.md", "RELEASE_STATUS.md"],
+    ```
+  - ADD `README.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2a22b83044a1710c817d0604771648aa5a0a7695f2bbb556e0d90b6355978083`
+  - ADD `docs/CHANGES_GUIDE.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `1a7b28c56ee76d0aa244e158ee86deff1743e7f5332a222a49f8d5966f314f5c`
+  - ADD `docs/CHARACTER_PIPELINE.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `538e9f10f213faa5cb5f7cc21767afddc0f5ce01476f654bafaec84e9d3ec42e`
+  - ADD `docs/CHAT_VALIDATED_FLOW.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ae3d3c1d1b75661d0e9871b1af8a2295c25f12fbc8326eecaf8de8ddc364cf4f`
+  - ADD `docs/CODEX_IMPLEMENTATION_SPEC.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fe590689a2df7fc6d4f142c1f5306a488db30d512496fb842ccc4c096dae8bd4`
+  - ADD `docs/DECISIONS.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `b1599dbb269198f45f99d7098e7ed859ffff6bffdafe51667586a2a78d4e9a4c`
+  - ADD `docs/GENERATORS.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2166b98f98d43fe0c404648aa1dadf2a28dd8e1746297905b7345ce7b594e4e5`
+  - ADD `docs/OPS.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `a09127c6881ee69cfc83e63e043ca662145f947f78ebaf7dc8781edb89a3d494`
+  - ADD `docs/QUALITY.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `cb4a18cb9ca8badd5c6a8da9056c216c288496a52f80ad2d58edbff9b2376b68`
+  - ADD `docs/REFERENCE_PIXEL_MEASUREMENTS.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0ef257f2dc60d1126a2166c4c9ab6a2bff55d91a545a9402fc7acb6bb6f6e3ee`
+  - ADD `docs/RELEASE_STATUS.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fc69d8e4d3b69a34a5626caf1dcc775734640d9cd0e8d8f4b81318b9bf35679b`
+  - ADD `docs/REPAIR_PIPELINE.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `8267651f52891b2706dacedefa460188b4d0db2b33599e1f70779a70edcfe99c`
+  - ADD `docs/REVIEW_CALIBRATION.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `c71bbeb4ecab0c2d19d78e2b1d015bbdc45eab0c259bbcd569bdb9c109bbd5df`
+  - ADD `docs/REVIEW_PIPELINE.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `155a61fa1090bebe640f147745a90e7fbe7c5e4e335ec9aced754a1d48439ae9`
+  - ADD `docs/SHARED_CHARACTER_FLOW.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d4dd93878bfedba4e912304d4d691b242efbeeb2bd8a20f0e11a40b0d7201962`
+  - ADD `docs/TEXTURE_COMPARISON.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `131a8337d0f383956f57a5faeb89e5b4c2091799c17565f0bb4d29bed3d3e02c`
+  - ADD `docs/TEXTURE_CONSTRUCTION_BASELINE.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `38151c3a8c4af0696bd756394fbe7f897eac98cab0a370bc5a71147f92f0d7fa`
+  - ADD `docs/TEXTURE_ONLY_EDIT_POLICY.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2ebb3dc8bb0d966f82b0cc1ddcd32bf0baa6c8be84029aef99e9da43dcddc40c`
+  - ADD `fixtures/synthetic/shared-design/README.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2f2861c95cda4dae57724b00e68b363cc57c570b4f6c498586fa58c2a3cf5473`
+  - ADD `fixtures/synthetic/shared-design/character-reference.png`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `07eb2275e52cd6d97e2b93101c2d330465d40a57f25959fbfc1574dbc46a772b`
+  - ADD `fixtures/synthetic/shared-design/design.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `a0983194e7b6b8e43a1755d9bb100950abcc71980b1491277d305237c0e352a7`
+    ```text
+{
+  "schema_version": "1.0.0",
+  "character_id": "synthetic-fixture",
+  "photo": {
+    "file": "character-reference.png",
+    "sha256": "07eb2275e52cd6d97e2b93101c2d330465d40a57f25959fbfc1574dbc46a772b"
+    ```
+  - ADD `runtime/README.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2c48f41258deab3f3f90c9b9390014e885fba48e42a823fb531ba37e4cb868d5`
+  - ADD `runtime/config/calibration.example.json`; location `initial clean source import`; lines `1-1`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `63ddf5b2f378dc8973178c4d52e55aeca51f1c17722cacf93a4fb694118e7f3c`
+    ```text
+{"live_enabled":false,"max_live_calls":6,"timeout_seconds":600}
+    ```
+  - ADD `runtime/config/defaults.toml`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d1064a094b11648a5f2ed63e262cdcbff3884123ad77140b5dc441f52db54e7c`
+    ```text
+[server]
+host = "127.0.0.1"
+port = 8765
+
+[execution]
+mode = "mock"
+    ```
+  - ADD `runtime/config/design.example.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `75455ddcedf89803970aaf464c30c421d833945b9cdd70bf47966d94bfcb33bb`
+    ```text
+{
+  "live_enabled": false,
+  "upload_consent": false,
+  "max_live_calls": 1,
+  "timeout_seconds": 600
+}
+    ```
+  - ADD `runtime/config/local.example.toml`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `6a293f927bd034007226599d0013f5c4e0cfc1c3780d5d70c38bdf0f15066a33`
+    ```text
+# Copy to local.toml for local machine only; never commit local.toml.
+[execution]
+mode = "mock"
+paid_api_enabled = false
+
+[spine]
+    ```
+  - ADD `runtime/config/providers.example.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `4804df3d76835bdc017e200b13b2405e75ea648ef8032994c7e10b6fba1b3121`
+    ```text
+{
+  "schema_version": "2.0.0",
+  "live_enabled": false,
+  "upload_consent": false,
+  "billing_source": "UNVERIFIED",
+  "max_live_calls": 1,
+    ```
+  - ADD `runtime/config/quality-policy.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d02cac204723c5f901c80112924fd4fbb9e2fdc4267f1e7032e9012813cd4171`
+    ```text
+{
+  "revision": "quality-mvp-004",
+  "status": "EXPERIMENTAL_CONTROLLED_CALIBRATION_ADVISORY_ONLY",
+  "automatic_visual_pass_enabled": false,
+  "review_schema": "1.0.0",
+  "alpha_threshold": 32,
+    ```
+  - ADD `runtime/config/repair.example.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0740de403089debf1b407e1c14632f9a42ddc36faa15584b9334489d574494b8`
+    ```text
+{
+  "max_cycles": 3,
+  "max_image_calls": 6,
+  "max_calls_per_part": 3,
+  "max_visual_calls": 3,
+  "live_generation": false,
+    ```
+  - ADD `runtime/config/review-criteria.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `5777e94dc0d1d5f97a81b949906b99657a90c6d91501a2b37dca7485e72248f1`
+    ```text
+{
+  "revision": "review-criteria-006",
+  "authority": "EXISTING_USER_TEXTURE_SPEC",
+  "documents": [
+    "docs/QUALITY.md",
+    "docs/TEXTURE_CONSTRUCTION_BASELINE.md"
+    ```
+  - ADD `runtime/config/review.example.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `75455ddcedf89803970aaf464c30c421d833945b9cdd70bf47966d94bfcb33bb`
+    ```text
+{
+  "live_enabled": false,
+  "upload_consent": false,
+  "max_live_calls": 1,
+  "timeout_seconds": 600
+}
+    ```
+  - ADD `runtime/config/size-trials.toml`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ea6f6f6d1797d30cfc93a90250fafb9d1acbabc338c6f4189ebbf3aa616fba06`
+    ```text
+# 原始 PNG/附件观测值仅用于当前实验起点。修改后应升级 revision 并重新装配/验收。
+# width/height 仅代表拟导出贴图画布，不代表生成器原图或 Spine 世界坐标。
+schema_version = "1.0.0"
+
+[trial]
+id = "reference-hair-size-trial"
+    ```
+  - ADD `runtime/js/.npmrc`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `63e6e5f9b329638d5634340d150b2be58e540cc8dfc53fd54fbcfb57714334b6`
+  - ADD `runtime/js/package.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2af1c74063652877fb99c58b61afa3cecf3b1099deb66205df2e52dc857135bf`
+    ```text
+{
+  "name": "spine-skin-tool-render-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pinned independent Spine Canvas preview and browser verification",
+  "packageManager": "pnpm@11.9.0",
+    ```
+  - ADD `runtime/js/pnpm-lock.yaml`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `e1855a1828bae596d38bd67c33c323b972e97714c713bdfc572fd717a055c668`
+    ```text
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+    ```
+  - ADD `runtime/license-manifest.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fae1a81cea22b06000cf06f51c7ec8c458e0810febf3be5e6814e999e757c62b`
+    ```text
+{
+  "schema_version": "1.0.0",
+  "assets": [],
+  "note": "原始角色及参考图未复制进工具，公开再分发许可未验证；Spine Editor 未安装。",
+  "components": [
+    {
+    ```
+  - ADD `runtime/python/pyproject.toml`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3747d937da334396eda14bf0b9ca3b12370ceb51aafd7c7533d37df21182060f`
+    ```text
+[project]
+name = "spine-skin-tool-runtime"
+version = "0.1.0"
+requires-python = "==3.12.10"
+dependencies = [
+    "pillow==12.0.0",
+    ```
+  - ADD `runtime/python/uv.lock`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `73b80130fe89ec8fa15ef01841ae8a65cdaaf7484a7d32246c2227c2a71ab0ce`
+  - ADD `runtime/versions.toml`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `498b9e4b43bca3fba336fe44b69ba7be1ed3a8e27562efb0420e672abe84b80b`
+    ```text
+[product]
+version = "0.1.0"
+api_schema = "1.0.0"
+job_schema = "1.0.0"
+asset_schema = "1.0.0"
+design_schema = "1.0.0"
+    ```
+  - ADD `scripts/assemble.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3fdc20245847da391602f4ca5ed1f1b134093c7b5b0bdcfff8a172d03b958468`
+    ```text
+"""固定 profile CLI；所有新产物限定在本工具 runtime/work 或 output 内。"""
+import argparse
+import json
+from pathlib import Path
+import sys
+
+    ```
+  - ADD `scripts/assemble_chat_character.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `bb44fb1940fbd65b75ec7bda6fdef68fa37c686d044319c93e83c8f1c0e42dc5`
+    ```text
+"""Legacy command compatibility; geometry/raster logic lives only in the shared core.
+For frozen-design exports use scripts/character.py assemble.
+"""
+from pathlib import Path
+import sys,json,argparse
+ROOT=Path(__file__).resolve().parents[1]
+    ```
+  - ADD `scripts/bootstrap.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `38e00aad5b8a59b217ad646332c835ae364a7c6bff1cf24e2e9ca54d6bd1c216`
+    ```text
+#!/usr/bin/env python3
+"""从现有的已锁定工具重建本地环境；本阶段全程离线且不安装全局软件。"""
+from __future__ import annotations
+
+import argparse
+import os
+    ```
+  - ADD `scripts/calibrate_review.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0a64a37bb06ad6291c1ed5180f66e03e3ecf78eec29fde4d732320089a92c602`
+    ```text
+"""Prepare/freeze/score/run normative review calibration. Real runs must be explicit."""
+from pathlib import Path
+import argparse,json,sys
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.review_benchmark import prepare,score,run,request,folder,save
+
+    ```
+  - ADD `scripts/capture_calibration.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3009fe0b521bf258b22190f5ba5a4e198ba03f4bbd55dafe204dffd8d70eac39`
+    ```text
+/* Controlled private defect fixtures rendered by the actual Runtime; no cloud calls. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),{start}=require('./capture_review.cjs');
+const {chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const config=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));assert(path.resolve(config.output).startsWith(path.join(root,'runtime/work/M05/')));
+    ```
+  - ADD `scripts/capture_review.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d4f3a2d3df308881a4fadf38c4e64663ce4eddd47b5aa6dfd05896c579be8292`
+    ```text
+/* Actual Spine evidence renderer. Private config only; no model or external requests. */
+const fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+function work(p){const absolute=path.resolve(p),relative=path.relative(path.join(root,'runtime/work'),absolute);assert(!relative.startsWith('..')&&!path.isAbsolute(relative),'PRIVATE_WORK_REQUIRED');return absolute;}
+function start(python,bundle){return new Promise((resolve,reject)=>{
+ const child=spawn(python,['-B',path.join(root,'scripts/preview.py'),'--source',path.join(bundle,'skeleton.json'),'--atlas',path.join(bundle,'skeleton.atlas'),'--port','0'],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
+    ```
+  - ADD `scripts/character.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2e6e4f6f0294ea5b39edc5acfbae1b403b422009e17bb2719a88563d6490756e`
+    ```text
+"""Thin CLI for the same experimental design/assembly service used by the UI."""
+from pathlib import Path
+import argparse,json,sys
+ROOT=Path(__file__).resolve().parents[1]
+sys.dont_write_bytecode=True
+sys.path.insert(0,str(ROOT/'src'))
+    ```
+  - ADD `scripts/check_acceptance.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `c4969b55536be76ba664a73634992a1be98c75dd6449401187e5f20f6f3dcefd`
+    ```text
+/* Read-only actual browser. No model, backup, install or restore actions. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+function ledger(){return ['M04/generation/jobs','M05/reviews','M07/design-calls'].map(n=>{const base=path.join(root,'runtime/work',n),files=fs.readdirSync(base,{recursive:true}).filter(f=>/^(codex|review|design)-call-.*\.reserved$/.test(path.basename(f))).sort();return crypto.createHash('sha256').update(JSON.stringify(files.map(f=>[f,fs.readFileSync(path.join(base,f),'utf8')]))).digest('hex');});}
+async function main(){const base=process.argv[2];assert.equal(new URL(base).hostname,'127.0.0.1');const before=ledger(),b=await chromium.launch({channel:'msedge',headless:true}),errors=[],writes=[];
+ try{const p=await b.newPage({viewport:{width:1250,height:1050}});p.on('pageerror',e=>errors.push(String(e)));p.on('console',m=>{if(m.type()==='error'&&!m.text().includes('409 (Conflict)'))errors.push(m.text());});p.on('request',r=>{if(r.method()!=='GET')writes.push(r.method());});await p.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
+    ```
+  - ADD `scripts/check_assembly.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0f13c5e12cd9c8782d7acc3a0070392acebb44462c03626d6983cdce8ced6835`
+    ```text
+// M03: real runtime verification and immutable-bundle reload.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const {createRequire}=require('node:module');
+const root=path.resolve(__dirname,'..');
+const {chromium}=createRequire(path.join(root,'runtime/js/package.json'))('playwright');
+const sha=buffer=>crypto.createHash('sha256').update(buffer).digest('hex');
+    ```
+  - ADD `scripts/check_calibration.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `71b302d7dc7fd2ad70328f5ecb51db1eef609cb8f5df8280c19343814d295917`
+    ```text
+/* Read-only calibration UI/API regression, never sends a model request. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const origin=process.argv[2]||'http://127.0.0.1:8783',id=process.argv[3];assert.equal(new URL(origin).hostname,'127.0.0.1');assert(/^bench-[a-f0-9]{32}$/.test(id));
+ const base=path.join(root,'runtime/work/M05/benchmarks'),reservations=()=>fs.readdirSync(base).filter(n=>n.endsWith('.reserved')).sort();const before=reservations(),browser=await chromium.launch({channel:'msedge',headless:true});
+    ```
+  - ADD `scripts/check_coarse_style.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `193d602986d14d2352dc76fd647159b63fffc4c7de1d42ce2524db4f31479d5f`
+    ```text
+/* Read-only real browser: scoped user opinions, named trials, deterministic pose. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const origin=process.argv[2],ids=process.argv.slice(3);assert.equal(new URL(origin).hostname,'127.0.0.1');assert.equal(ids.length,3);
+ const folder=path.join(root,'runtime/logs/M07-RETEST011/coarse-regression');fs.mkdirSync(folder,{recursive:true});const browser=await chromium.launch({channel:'msedge',headless:true}),result={errors:[],requests:[],cases:[],model_calls:0};
+    ```
+  - ADD `scripts/check_direction_rules.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7ee44f86ad74470214875c6bdca69fdfd9f1abece114c3ed45f12b3f02016911`
+    ```text
+/* Regression for animation-hidden ears, skin outlines and direction occlusion.
+ * No generation or outbound model calls. Uses actual Runtime when URLs are given.
+ */
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'..');
+require(path.join(root,'ui/orientation.js'));
+    ```
+  - ADD `scripts/check_generation.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ba24c9f8ae08c0c2108d126f3d15e53326661b95ec8c015381b708af367db367`
+    ```text
+/* Browser preflight/gating checks only. Never enables live execution. */
+const {chromium}=require('../runtime/js/node_modules/playwright');
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const root=path.resolve(__dirname,'..'),url=process.argv[2]||'http://127.0.0.1:8780';
+const output=path.join(root,'runtime/logs/M04-API/browser');fs.mkdirSync(output,{recursive:true});
+(async()=>{
+    ```
+  - ADD `scripts/check_hair_trials.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3d38f69b1f992573c13239325c6d56e577509ca3d074aca786156459d592dee4`
+    ```text
+/* Actual local Runtime and attempt UI; never sends a model request. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const origin=process.argv[2],ids=process.argv.slice(3);assert.equal(new URL(origin).hostname,'127.0.0.1');assert(ids.length);ids.forEach(id=>assert.match(id,/^flow-[a-f0-9]{32}$/));
+ const output=path.join(root,'runtime/logs/M07-RETEST011/hair-regression');fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({channel:'msedge',headless:true}),evidence={model_calls:0,errors:[],cases:[]};
+    ```
+  - ADD `scripts/check_pipeline.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9db62d7f404d5c8dfc2c26ac1b759ab817da7d798494a889b2c2484934f260c1`
+    ```text
+/* Genuine UI requests and Spine runtime, local replay only, NEVER enables models. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const origin='http://127.0.0.1:8783',source=process.argv[2]||'runtime/work/M05/corrected/c02',out=path.join(root,'runtime/logs/M07/browser');assert(source.startsWith('runtime/work/')&&!source.includes('..'));fs.mkdirSync(out,{recursive:true});
+ const browser=await chromium.launch({channel:'msedge',headless:true});
+    ```
+  - ADD `scripts/check_pipeline_restore.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `94d32bcbf69e369a463e78546f273615c4157f534456aa3b5996c03fec40f46c`
+    ```text
+/* Read-only persisted task/ZIP/runtime check. Run after restarting the workbench. */
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const input=JSON.parse(fs.readFileSync(path.resolve(root,process.argv[2]||'runtime/logs/M07/preview-cases.json'),'utf8')),origin='http://127.0.0.1:8783',browser=await chromium.launch({channel:'msedge',headless:true});
+ try{
+    ```
+  - ADD `scripts/check_preview.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `37d14dcfdb8988e22aa9365b88066c23fd442d5fd89b1af83ad9c3e84e36eb23`
+    ```text
+// Real installed Edge in a temporary Playwright profile; no cloud calls.
+const {createRequire}=require('node:module');
+const path=require('node:path'), fs=require('node:fs'), crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..');
+const {chromium}=createRequire(path.join(root,'runtime/js/package.json'))('playwright');
+(async()=>{
+    ```
+  - ADD `scripts/check_rebuild_flow.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `50092e0ea78eec8dfce4a5bb6d9a1055f2b7a08138f98d2c2221f00082daa76b`
+    ```text
+"""显式的本机工作台集成验收；只临时修改 M03 私有测试部件并最终恢复。"""
+import hashlib
+import io
+import json
+from pathlib import Path
+import sys
+    ```
+  - ADD `scripts/check_repair.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `09c1d12f57a5567c0ca5059465476dbe81a4ffb09060b6b02d47d4c6da788f2d`
+    ```text
+/* Real M06 UI/local repair checks; NEVER enables or invokes a model. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const origin=process.argv[2]||'http://127.0.0.1:8783';assert.equal(new URL(origin).hostname,'127.0.0.1');const ids=JSON.parse(fs.readFileSync(path.join(root,'runtime/logs/M06/tasks.json'),'utf8'));
+ const browser=await chromium.launch({channel:'msedge',headless:true});
+    ```
+  - ADD `scripts/check_repair_restore.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `cd2103240a4c82de611e7219a9ec0dce8fec7bae5ccad6acce77c6242b057b95`
+    ```text
+/* Read-only restart/UI persistence check. Never creates or advances a task. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const origin='http://127.0.0.1:8783',id='repair-096dce88300849ba86c84acdacba2e5e',browser=await chromium.launch({channel:'msedge',headless:true});
+ try{
+    ```
+  - ADD `scripts/check_review.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `8103d8c4fc4f1361f2aa2838a0f0a36cebe5e82b15eb9d4d4072541e213d1b1f`
+    ```text
+/* Actual review workbench regression. Local rendering only; NEVER invokes vision. */
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const {chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const origin=process.argv[2]||'http://127.0.0.1:8783';assert.equal(new URL(origin).hostname,'127.0.0.1');
+    ```
+  - ADD `scripts/check_shared_flow.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ef729b3397431b5dcd07a8f1e0174c499e229b60e6ec335f9990959d20c70e31`
+    ```text
+/* Actual UI/CLI replay equivalence, no live generation or outbound service calls. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+const url=process.argv[2]||'http://127.0.0.1:8783',casesPath=process.argv[3];
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+async function main(){
+    ```
+  - ADD `scripts/check_texture_compare.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `8d6cad5240e5248df776665e1621d3177b392f3e4a876c1baf7673fdf827dd6c`
+    ```text
+/* Real local browser, read-only rejected-asset comparison; no model calls. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+async function main(){
+ const origin=process.argv[2],session=process.argv[3];assert.equal(new URL(origin).hostname,'127.0.0.1');assert.match(session,/^texture-[a-f0-9]{32}$/);
+ const out=path.join(root,'runtime/logs/M07-TEXTURE-COMPARE');fs.mkdirSync(out,{recursive:true});
+    ```
+  - ADD `scripts/check_trial_display.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `48ba00aa19a5b8d428b81988899f3fb0aa836a7c3ea2c6a81410d99deac76b92`
+    ```text
+/* Actual loopback browser; reads saved results only, never requests generation. */
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
+const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
+function reservations(){return ['runtime/work/M04/generation/jobs','runtime/work/M05/reviews'].map(base=>{const files=fs.readdirSync(path.join(root,base),{recursive:true}).filter(f=>/^(codex|review)-call-.*\.reserved$/.test(path.basename(f))).sort();return {count:files.length,sha256:sha(JSON.stringify(files.map(f=>[f,sha(fs.readFileSync(path.join(root,base,f)))])))};});}
+async function main(){
+    ```
+  - ADD `scripts/check_trials.cjs`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9dfea2fc315181e9d0f8e32e004b1044b74f6a376630efd76190a56c7ac143e1`
+    ```text
+/* Real browser checks for local specification experiments; no image model calls. */
+const {chromium}=require('../runtime/js/node_modules/playwright');
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{spawnSync}=require('child_process');
+const root=path.resolve(__dirname,'..'),url=process.argv[2]||'http://127.0.0.1:8774';
+const output=path.join(root,'runtime/logs/M04/browser');fs.mkdirSync(output,{recursive:true});
+(async()=>{
+    ```
+  - ADD `scripts/configure_subscription.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `f526f01a343e21c5b76eb63ba13c7d48a14308af54df7af24b9116b3f97b8173`
+    ```text
+"""Local config only. Never reads, copies, logs or embeds authentication tokens."""
+import argparse,json,sys
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.codex_subscription import login_status
+
+    ```
+  - ADD `scripts/doctor.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `316a01f03e2e79ff18df107aee281c7864d3f4d9dfcc0af561b9477d88cbccea`
+    ```text
+#!/usr/bin/env python3
+"""只读基础环境检查；--production 不表示生产功能已经实现。"""
+from pathlib import Path
+import sys
+
+sys.dont_write_bytecode = True
+    ```
+  - ADD `scripts/maintenance.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `cc185960888fb6df5293e9387ab71dbb5f31f1e826a4dfff2c0c97d3fed3c577`
+    ```text
+"""M08 local-only CLI. Model calls exist ONLY in explicit blind-run via pipeline."""
+import argparse,json,sys,time,unittest,uuid,zipfile
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.maintenance import create_archive,verify_archive,restore_archive,fingerprint,inventory
+from spine_skin_tool.acceptance import seal,report,artifact,attest
+    ```
+  - ADD `scripts/package_release.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ac1d86c8bcc7608191d447d30c684739c1c15bd954391a2800fb31ef67453f5a`
+    ```text
+"""Audit/build the public source allowlist; never packages private runtime state."""
+import argparse,json,sys
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.distribution import audit,build
+
+    ```
+  - ADD `scripts/pipeline.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `b48e1f0ec444de629bf2e560bf6bdc5691047a5b961841e7f6dea7d8cb2b1d03`
+    ```text
+"""CLI to the same whole-character service as /characters. Private input/output only."""
+from pathlib import Path
+import argparse,json,sys
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.design import private_path
+from spine_skin_tool.pipeline_service import dispatch
+    ```
+  - ADD `scripts/prepare_hair_template.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `1e024cf595527df1d8685a3ee292bea2757a75a44df3220eab0ec152c996f8aa`
+    ```text
+"""Compatibility entry: shared original-head/ear template preparation."""
+from pathlib import Path
+import sys,json
+ROOT=Path(__file__).resolve().parents[1]
+sys.dont_write_bytecode=True
+sys.path.insert(0,str(ROOT/'src'))
+    ```
+  - ADD `scripts/prepare_repair_validation.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7456dcd058256647e342efeee5efcdc243cac15255b68a08501337c351e6f9ff`
+    ```text
+"""Private M06 validation fixtures; never modifies original characters or calls a model."""
+from pathlib import Path
+import argparse,json,random,shutil,sys,uuid
+from PIL import Image
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.design import private_path,digest
+    ```
+  - ADD `scripts/preview.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9fa2a2d2e3a833f62b871800269c8556e41bde9d817ab2ae63c127053386ec7b`
+    ```text
+"""仅 loopback、仅显式资源白名单的原始母版预览服务。"""
+import argparse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import json
+from pathlib import Path
+import sys
+    ```
+  - ADD `scripts/record_change.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `1cd4cc69730e8d27dbe6764860736da9174f5ccc3bd7d63abfcee6204be166e1`
+    ```text
+#!/usr/bin/env python3
+"""Create a timestamped *draft* change record from real uncommitted Git paths.
+
+A draft has NOT_RUN tests and a PARTIAL state. Codex MUST fill and verify it.
+"""
+from __future__ import annotations
+    ```
+  - ADD `scripts/reference_assets.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `c807ac4aaeb73ca9ce8614ddc2a7711f3d345158df6cb24f4c4daba53cbbc8f8`
+    ```text
+"""Import only the required licensed reference files into ignored local storage."""
+import argparse,json,sys
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.reference_assets import import_library,inspect
+
+    ```
+  - ADD `scripts/repair.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fb9c2ace456d6c071256195fdd7d2c7450d162b50a880b3d775faed4ae3811b0`
+    ```text
+"""CLI for the shared durable M06 repair core."""
+from pathlib import Path
+import argparse,json,sys
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.repair_service import dispatch
+from spine_skin_tool.design import private_path
+    ```
+  - ADD `scripts/review.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `97fed40bab2a8358da53ffa7b46b72820ad5cb1608ced3e3b169730cd5aab1a3`
+    ```text
+"""Quality review CLI; same operations as the loopback workbench."""
+from pathlib import Path
+import sys,argparse,json
+ROOT=Path(__file__).resolve().parents[1]
+sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.review_service import dispatch
+    ```
+  - ADD `scripts/start_trials.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d593e8fc26ca9359068596a3679643d7a9ada580854ddab86772fd3c22bad5a0`
+    ```text
+"""启动保留原头模/耳朵/表情的发型与服装规格试验。"""
+from pathlib import Path
+import argparse
+import subprocess
+import sys
+ROOT=Path(__file__).resolve().parents[1]
+    ```
+  - ADD `scripts/sync_changelog.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `323421458861a3af4066ca6d67bf4f17ef46fa968bdfb86b08b951862e355dd2`
+    ```text
+#!/usr/bin/env python3
+"""Sync one CURRENT JSON entry to the human-readable CHANGELOG batch section.
+
+Only changes its own batch; historical entries are not silently rewritten.
+Use after Codex has populated a truthful JSON entry and before verify_changes.py.
+"""
+    ```
+  - ADD `scripts/tool.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `a426402a51dd5816909512f3ec03342d20105380269193a158172c23c145de9b`
+    ```text
+#!/usr/bin/env python3
+"""基础配置 CLI；路径不依赖调用者当前工作目录。"""
+from pathlib import Path
+import sys
+
+sys.dont_write_bytecode = True
+    ```
+  - ADD `scripts/validate_pipeline.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `f24095206ca6d3eae96843a6b9c10eb2664cb053aaba3244d6b858346fd01a06`
+    ```text
+"""Real local fixed-input equivalence/capture via the public pipeline service. No models."""
+import argparse,json,sys,uuid
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+from spine_skin_tool.pipeline_service import dispatch
+from spine_skin_tool.pipeline import DEFAULTS
+    ```
+  - ADD `scripts/verify_changes.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `8bdd64f8a1bddf37518bd6513ce9865b8345fd238f3d54c3f3a392b2cbf04a31`
+    ```text
+#!/usr/bin/env python3
+"""Verify that every non-metadata Git change is mapped to a fresh timestamped log entry.
+
+Stdlib only. Intentionally NOT a replacement for tests or code review.
+Initial import requires a log covering the newly added repository files.
+"""
+    ```
+  - ADD `src/spine_skin_tool/__init__.py`; location `initial clean source import`; lines `1-1`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `00da01694982a13a2be54892ac934202808b53f884c50595131c1fc15e7a96b9`
+    ```text
+"""Spine Skin Tool 基础配置；生成和渲染在后续里程碑实现。"""
+    ```
+  - ADD `src/spine_skin_tool/acceptance.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9c40346ee4560b7d86a7aeb3f3613d2c89c305588f2194d1a42b81aa73355e69`
+    ```text
+"""Evidence-bound M08 status, never a production or visual approval mechanism."""
+import json,hashlib
+from pathlib import Path
+from .assembly import canonical
+from .design import private_path,require,digest
+from .pipeline_store import atomic
+    ```
+  - ADD `src/spine_skin_tool/appearance_opinions.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9160827a787855003f6f707b42b8c1e1e96cafddcb439e6444c07d2d88b1b4be`
+    ```text
+"""Local user appearance opinions, bound to an exact candidate, not release QA."""
+import json,re
+from .design import private_path,require
+
+
+def lookup(root,task,manifest):
+    ```
+  - ADD `src/spine_skin_tool/assembly.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `aed7a724cbd2499f7b58473a84d974acca906e21594b3594e2895f344bd6669e`
+    ```text
+"""实验 profile 的确定性装配；不适配未知几何、不改源文件。"""
+import copy
+import hashlib
+import io
+import json
+import os
+    ```
+  - ADD `src/spine_skin_tool/blind_display.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `c57590962738fbe4d07108e6699259c6aef3cfdcb8d2acba624bba11408dff83`
+    ```text
+"""Read-only, batch-bound original-photo comparison. No generation or approval."""
+import json,re,time
+from .blind_trials import load,folder,metrics
+from .design import photo_path,private_path,require,digest
+from .pipeline_service import report,preview
+from .review import read_review,review_dir
+    ```
+  - ADD `src/spine_skin_tool/blind_trials.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `61f5b550cdd343be9870b3d436768a74194c0841f97d11e67798b4c9432d528e`
+    ```text
+"""Register genuinely new local photos, then use the EXISTING full pipeline."""
+import hashlib,json,re,time,uuid
+from pathlib import Path
+from .assembly import canonical,VERSIONS
+from .design import private_path,photo_path,require,digest
+from .photo_import import normalized
+    ```
+  - ADD `src/spine_skin_tool/character.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2ec9e1ae2fc75edc2db7e7026d624ccad9818d2a23831cb3c57387b837a82866`
+    ```text
+"""Shared deterministic full-character assembly. Never invokes an image model."""
+from pathlib import Path
+import copy,json,shutil,hashlib,os,uuid
+from PIL import Image
+from .assembly import make_profile,build,verify_bundle,bundle_zip,canonical,VERSIONS
+from .template import inspect_template
+    ```
+  - ADD `src/spine_skin_tool/character_flow.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `97ff6f3cdb5ad9a682ccec3664fc76b7554422a5a78b241b1ec8a892157513f9`
+    ```text
+"""Frozen requests, verified bindings and atomic full-character exports."""
+import copy
+import hashlib
+import json
+import os
+from pathlib import Path
+    ```
+  - ADD `src/spine_skin_tool/character_service.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ccc029f592b329fe35c51ca1a4ecf30b748a65ecd1ea03d3efe8bea5e41653c0`
+    ```text
+"""Transport-neutral service; CLI and loopback HTTP call the same operations."""
+import json
+from pathlib import Path
+from .design import (ROOT,freeze_design,load_design,draft_design,keys,require,private_path,VERSIONS)
+from .character_flow import prepare_requests,bindings_from_directory,assemble_character
+
+    ```
+  - ADD `src/spine_skin_tool/character_session.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `1bea0db00fc766b20791b5a57f9c05b624753af8b2cb08c4cc3414ddf492a0c0`
+    ```text
+"""Per-character CLI conversation ownership and durable send intents, no transport."""
+import contextlib,json,re,time,uuid
+from pathlib import Path
+from .design import private_path,photo_path,digest,require,VERSIONS
+from .assembly import canonical
+from .pipeline_store import atomic,read
+    ```
+  - ADD `src/spine_skin_tool/cli.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `c38fa6ad46dcf52775a1ec22c4868232ae586b39561fbf0ff4178100f91972fd`
+    ```text
+"""里程碑 1 仅提供 config / doctor，尚无生成或装配命令。"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+    ```
+  - ADD `src/spine_skin_tool/codex_subscription.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `68e3467fc0f92a103ca3aef84762af48c5f55bc3aab9f5bc0a95fbee7c3915c1`
+    ```text
+"""Official Codex CLI built-in ImageGen with ChatGPT sign-in; never an API fallback."""
+import json,contextlib
+import os
+from pathlib import Path
+import shutil
+import subprocess
+    ```
+  - ADD `src/spine_skin_tool/component_prompts.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `f0206be33800eddf9110d3ec7d0758d9a3b5a11151cd4b2b6e49c53d6583c3ef`
+    ```text
+"""Current per-part briefs. No unrelated anatomy/ear/face instructions in clothes."""
+def brief(part,description,attempt=0):
+ view='REAR' if part.endswith('BACK') else 'FRONT'
+ common=f'Create ONE isolated transparent RGBA PNG game component {part}, strict orthographic {view}. Match the broad illustrated 2D chibi style of the original references, with simple material-relative colored outlines. Use the original photo as design reference; unseen clothing is an authorised coherent design choice. Output the named component only, fully inside the image. '
+ if part.startswith('LEG'):
+  body='ONE TROUSER LEG WITH A COMPACT SHOE, a clothing component for a paper-doll game rig. A short broad fabric tube, rounded at its upper end, with a simple rounded shoe attached at the bottom. The whole tube is trouser fabric in the chosen trouser color; match the approximate outfit palette. Sparse fold marks, clear colored contour, simplified Harri proportions. Image1 supplies outfit cues, Image2 original Harri leg supplies construction only, Image3 original component art supplies broad drawing style. '
+    ```
+  - ADD `src/spine_skin_tool/config.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `a360493f618a7a215021b2d53dae4756529b972ddc8cd44f3c013317dbb43a8c`
+    ```text
+"""严格的本地配置入口；读配置不会创建目录或启动外部服务。"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+import hashlib
+from pathlib import Path, PurePosixPath, PureWindowsPath
+    ```
+  - ADD `src/spine_skin_tool/design.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `a65b1d2403564eedfe4221606447c1ee9a0e5d358383e25ec7a41985609e04fd`
+    ```text
+"""Strict experimental design contract shared by the UI, CLI and part generation."""
+import copy
+import hashlib
+import json
+import math
+from pathlib import Path
+    ```
+  - ADD `src/spine_skin_tool/distribution.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `f8440d1c31ded507f23de614fcf68f9b7e6422d2b4fc957bead175f3987219ef`
+    ```text
+"""Allowlisted source distribution, with no traversal through private runtime data."""
+import hashlib,json,re,zipfile
+from pathlib import Path
+from .design import require
+
+EXTENSIONS={'.py','.js','.cjs','.html','.css','.json','.toml','.yaml','.yml','.md','.txt','.sql'}
+    ```
+  - ADD `src/spine_skin_tool/ear_geometry.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `da75b5cfac5140951e0272b8ac5eb9dd37a6c6fe06c5b0d6198b360206baf09f`
+    ```text
+"""Measured fixed-head ear roots and deterministic painted-ear observations.
+
+Only geometry/measurement: never paints, stretches or masks delivered PNGs.
+"""
+import math,statistics,json
+from collections import Counter
+    ```
+  - ADD `src/spine_skin_tool/ear_pass.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `cf8db4c4c0e8f9a6a727e8511df7edd01079ef196d75547614267918dace1904`
+    ```text
+"""Fixed-base ear-only pass. No hair repaint, old-ear pixels, masks or new rig slots."""
+import copy,hashlib,json,re
+from pathlib import Path
+from PIL import Image,ImageDraw
+from .assembly import canonical,verify_bundle
+from .design import private_path,require,digest,load_design,photo_path
+    ```
+  - ADD `src/spine_skin_tool/ear_policy.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `de50626dddde062bdbe7f0fbc1ae0c36be851594d37e200d8809afa86a647df8`
+    ```text
+"""Evidence-bound ear visibility, independent of the model's proposed ear_mode."""
+import hashlib,json
+from .design import require,keys,photo_path,digest,private_path
+from .assembly import canonical
+
+REVISION='ear-visibility-002'
+    ```
+  - ADD `src/spine_skin_tool/ear_service.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3045f388a298928db134fc187a4151dd45d654d8268bfb6c7540aea1185a6f7c`
+    ```text
+"""Explicit local photo-ear review and standard-ear augmentation of saved candidates."""
+import json,time,uuid
+from .design import private_path,require,digest,load_design,photo_path
+from .assembly import verify_bundle
+from .pipeline_store import read,commit,lease,directory
+from . import ear_policy,standard_ears
+    ```
+  - ADD `src/spine_skin_tool/environment.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `26b9ff6480b41ba0c6ac746e5c00737f6352702964b213135771a9d5d6e58a33`
+    ```text
+"""版本清单、受控子进程环境和基础开发环境自检。"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+    ```
+  - ADD `src/spine_skin_tool/generation.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0d54ecbfaaa57010336719fdd6e036b1b6afaf78bef32666623e8b9be44eb922`
+    ```text
+"""单部位生成适配；默认仅预检，云调用无自动重试，输出保留原稿。"""
+import base64
+import copy
+import hashlib
+import io
+import ipaddress
+    ```
+  - ADD `src/spine_skin_tool/hair_fit.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7ae236639705732329adb30cde6a5cc43c539e27544ccc6e9a8283b06b8636f8`
+    ```text
+"""Experimental alpha-only geometry fitting; never edits/cuts a source silhouette."""
+import copy,hashlib,io,json
+from PIL import Image,ImageChops,ImageDraw
+from .design import ROOT,VERSIONS,require,digest
+from .assembly import canonical
+from .texture import prepare_texture
+    ```
+  - ADD `src/spine_skin_tool/hair_stages.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0945d04f9c67edbe5b6d3df6b71986f17fed98ad7c4802691c24017b6e253b73`
+    ```text
+"""Head-first hair measurements. All coordinates are head-local Spine units."""
+import math
+from PIL import Image
+from .design import require
+
+
+    ```
+  - ADD `src/spine_skin_tool/hair_tip.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `b898c82f59cf6779b08124e8d9c18ea9bcd3d90cd76d1d5a9b78c2657bdd2ecf`
+    ```text
+"""Immutable tip-only edit references and uniform canvas registration."""
+import copy,hashlib,json,re,io
+from PIL import Image
+from .design import require,private_path,digest
+from .assembly import canonical,verify_bundle
+from .texture import prepare_texture
+    ```
+  - ADD `src/spine_skin_tool/head_diagnostic.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fa13001d1ca31a21c2836b5017b0d52811ce6ceb4a1366d2122e99b46a75453e`
+    ```text
+"""Derived head-only inspection for incomplete characters. Never model or approval."""
+import json,hashlib
+from PIL import Image,ImageDraw
+from .design import require,private_path,load_design,digest
+from .pipeline_store import read
+from .character_flow import source_profile,resolve_bindings
+    ```
+  - ADD `src/spine_skin_tool/maintenance.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `52197a86b7feaf3d2a2392fc375af57e83d5b28f2722c5b6518ec99f27437550`
+    ```text
+"""Local source packages and PRIVATE snapshots. Never upload, merge or delete data."""
+import contextlib,hashlib,json,os,re,shutil,stat,uuid,zipfile
+from pathlib import Path,PurePosixPath
+from .assembly import canonical,VERSIONS
+from .design import require
+
+    ```
+  - ADD `src/spine_skin_tool/mother.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0013df8836e9b58bdc7f8b36582dbeadd1138d3162a1837f4b98577fd0d0e2d1`
+    ```text
+"""Create a non-destructive runtime copy with source head, ears and expression assets."""
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+    ```
+  - ADD `src/spine_skin_tool/photo_design.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `e0f96cecb58251de153194cc54e824d17c4f6ebb1154760dbd1855c777cc68c4`
+    ```text
+"""Photo-to-design contract using the existing read-only subscription vision transport."""
+import copy,json,hashlib
+from pathlib import Path
+from .design import ROOT,VERSIONS,FEATURES,photo_path,digest,keys,require,validate_design
+from .assembly import canonical
+from .repair_store import atomic
+    ```
+  - ADD `src/spine_skin_tool/photo_import.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `e95843cec71d1cc0352f61ff14ec804da241e9b7e5e55b13121bcf2cff4da842`
+    ```text
+"""Explicit local photo import; bounded decode, orientation, no source overwrite/upload."""
+import hashlib,io,os,uuid
+from PIL import Image,ImageOps
+from .design import private_path,require,digest
+from .pipeline_store import atomic
+from .generation import image_bytes,character_references
+    ```
+  - ADD `src/spine_skin_tool/pipeline.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d7e54070e51a3c791b184102bdd646ce799a27da6f7e368d834eeb0920925cb8`
+    ```text
+"""One durable photo→design→parts→assembly→review→bounded repair orchestrator."""
+import copy,json,re,uuid,subprocess
+from pathlib import Path
+from .design import ROOT,VERSIONS,require,keys,private_path,photo_path,digest,load_design,freeze_design,required_parts,validate_design
+from .assembly import canonical,verify_bundle
+from .pipeline_store import directory,read,commit,lease,atomic
+    ```
+  - ADD `src/spine_skin_tool/pipeline_service.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2413b3ca9011cb94affe5a9a818c399bae4a0c933c739b4232d440aebe7a6456`
+    ```text
+"""Single UI/CLI pipeline entry, persisted previews, no implicit external calls."""
+import json,threading
+from pathlib import Path
+from .design import ROOT,require,keys,private_path,digest
+from .pipeline_store import read,directory,lease,cancel as cancel_flow
+from .pipeline import create,advance,edit_design,totals,context,DEFAULTS,retry_unavailable,retry_evidence
+    ```
+  - ADD `src/spine_skin_tool/pipeline_store.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `38bf2f274d168b084c9aca9c17222382194396634befbb3fd5c473c31c617b63`
+    ```text
+"""M07 namespace of the existing event/lease store; never a second persistence layer."""
+from functools import partial
+from . import repair_store
+directory=partial(repair_store.directory,kind='flow')
+read=partial(repair_store.read,kind='flow')
+commit=partial(repair_store.commit,kind='flow')
+    ```
+  - ADD `src/spine_skin_tool/production_timing.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9d0e45ee3a797a1d7df5c954d0eb50d8067d062dc4f5b16114051c1ef0f3cbb4`
+    ```text
+"""Actual persisted job/event clocks. Missing historical times remain unknown.
+
+Adoption means incorporated into the selected assembly, NOT visual approval.
+"""
+import json,math,re
+from pathlib import Path
+    ```
+  - ADD `src/spine_skin_tool/reference_assets.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ae370d0c5b032c021cef58e4485ed0830e30ebdca3da7f68a5bc4e0ca47ec709`
+    ```text
+"""Private, relocatable licensed reference library; never include it in releases."""
+import json, shutil, uuid
+from pathlib import Path
+from .design import require, digest
+
+EXPORT='ai-city-spineboy-skin-v13/spine-export'
+    ```
+  - ADD `src/spine_skin_tool/repair.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fad9a9afc7542874c931f3837cb13e3be973acdc0a19bcb81e92f4e0fb161d71`
+    ```text
+"""Bounded original-photo repair cycles built on shared generation/assembly/review."""
+import copy,hashlib,json,time,uuid
+from pathlib import Path
+from .assembly import canonical,VERSIONS,verify_bundle
+from .design import ROOT,private_path,require,load_design,required_parts,digest,keys
+from .repair_store import directory,read,commit,lease,cancel,atomic
+    ```
+  - ADD `src/spine_skin_tool/repair_requests.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `8399643374566ea7dcf6d3b9eba304e50072b7fcda43aa1bc1784f0b6e4785bb`
+    ```text
+"""Immutable original-photo repair requests derived only from existing normative codes."""
+import hashlib,json
+from pathlib import Path
+from .assembly import canonical,VERSIONS
+from .design import private_path,require,load_design,part_request,digest
+from .review_visual import normative_criteria
+    ```
+  - ADD `src/spine_skin_tool/repair_service.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7d5cf6457f0ec33fe70beba4f760181c6672d5cbe4ce2aedd2ddf01f4d9c77fb`
+    ```text
+"""Shared CLI/HTTP repair operations; all live execution is explicit and bounded."""
+import json,threading
+from pathlib import Path
+from .design import ROOT,keys,require,private_path,digest
+from .repair_store import directory,read,cancel,lease
+from .repair import create,advance,task_report,DEFAULTS
+    ```
+  - ADD `src/spine_skin_tool/repair_store.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `5a56cf1a117238c074808c41667c8df4acae29031429ff6ba918ffb42b6e4c55`
+    ```text
+"""Append-only repair state, atomic projections and cross-process owner leases."""
+import contextlib,json,os,re,uuid,time
+from pathlib import Path
+from .assembly import canonical
+from .design import private_path,require,digest
+
+    ```
+  - ADD `src/spine_skin_tool/review.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `b3f744199d4d5e90a671c0690aad8d235e5ca392ee9c853f79df6d26095477da`
+    ```text
+"""Evidence-bound quality checks. Structural success never implies semantic approval."""
+import copy
+import datetime as dt
+import hashlib
+import json
+from pathlib import Path
+    ```
+  - ADD `src/spine_skin_tool/review_benchmark.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `740d4391486053a7b5d776cf025c7488027431b1f14b30ab6ed6302ebc853e38`
+    ```text
+"""Normative controlled positives/negatives, blinded held-out characters and real vision scoring."""
+import copy,datetime as dt,hashlib,json,math,random,re,shutil,subprocess,uuid
+from pathlib import Path
+from PIL import Image,ImageDraw,ImageOps
+from .assembly import canonical,verify_bundle
+from .design import ROOT,private_path,require,digest,keys
+    ```
+  - ADD `src/spine_skin_tool/review_calibration.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d10511321ec86b93945e0cc75e2964dac8b5b2b32af11047a7196f6ccf93a83d`
+    ```text
+"""Synthetic rule controls and held-out variants, explicitly not semantic goldens."""
+import copy,json,uuid
+from PIL import Image
+from .design import ROOT,private_path
+from .assembly import canonical
+from .texture import standard_arm
+    ```
+  - ADD `src/spine_skin_tool/review_render.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `54974f5fa0902bd64a94e588b459c1cb07f0a68f9fb8605d8dff86be9e7f0ce1`
+    ```text
+"""Read-only variants and genuine Spine browser evidence for a review job."""
+import copy,json,os,subprocess
+from pathlib import Path
+from PIL import Image,ImageChops,ImageDraw,ImageOps,ImageFilter
+from .assembly import canonical,verify_bundle,VERSIONS
+from .design import ROOT,private_path,require,digest,DesignError
+    ```
+  - ADD `src/spine_skin_tool/review_service.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `96cc93714799efcfeaddf83ea25eeab6e5419c1d261bedcadc1248ac00edfa64`
+    ```text
+"""Shared HTTP/CLI quality-review operations. No implicit cloud review."""
+import hashlib,json,threading
+from pathlib import Path
+from .design import ROOT,keys,require,private_path,DesignError
+from .review import create_review,read_review,review_dir,policy
+from .review_render import collect_evidence
+    ```
+  - ADD `src/spine_skin_tool/review_visual.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `11113658ea45922a24d0f169c17f8c8b9aec704780f03905fe5af05e9970301b`
+    ```text
+"""Structured, evidence-bound visual assistance using official ChatGPT-auth Codex CLI."""
+import copy,datetime as dt,hashlib,json,math,os,subprocess,contextlib
+from pathlib import Path
+from .design import ROOT,private_path,require,DesignError,required_parts,photo_path,digest
+from .assembly import canonical,VERSIONS
+from .review import review_dir,read_review,save_report,aggregate,policy,LOCK
+    ```
+  - ADD `src/spine_skin_tool/standard_ears.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7a25501a52dfd6d1f39ba8a723969fac841ded567070e6b91bb54288dc4e3b22`
+    ```text
+"""Small reference ears on a frozen hair/head layout; no model or hair resampling."""
+import copy,hashlib,json,math
+from PIL import Image,ImageChops,ImageDraw,ImageOps
+from .assembly import canonical,verify_bundle
+from .design import ROOT,private_path,require,digest,load_design
+from .hair_fit import target_head
+    ```
+  - ADD `src/spine_skin_tool/template.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3acf3ce3c893ffa2322305a12d1bf8113bae093bbf94e53e72d78a0f0806cecb`
+    ```text
+"""只读解析资源引用；不修改骨架或推测几何校准值。"""
+import hashlib
+import json
+from pathlib import Path, PureWindowsPath
+import struct
+
+    ```
+  - ADD `src/spine_skin_tool/texture.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `c43c0fc4dbf4268544bd2470febcf751bbe4bb9bc2d440eb4f183c27ab47e833`
+    ```text
+"""Chat-validated texture preparation; no source-character silhouette mask."""
+from PIL import Image,ImageOps
+import re,math
+
+def normalize_texture(image,size,threshold=8):
+    image=image.convert('RGBA');original=image.getchannel('A');hist=original.histogram()
+    ```
+  - ADD `src/spine_skin_tool/texture_compare.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `8c81ad3669e78d70600366d8bc2b93a29896e387898cd230be3c4ff9d232b2a0`
+    ```text
+"""Read-only visual comparison of rejected edits; never QA admission or refitting."""
+import copy,json,shutil,hashlib,uuid
+from PIL import Image
+from .design import require,digest,private_path
+from .assembly import canonical,verify_bundle
+from . import texture_edit as edit
+    ```
+  - ADD `src/spine_skin_tool/texture_edit.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `6ae24e04c727a3c70802dc16ffc86a30306721f658681e2f52211ddb0804fbd6`
+    ```text
+"""Bounded fixed-base chat revisions; old-outline metrics are diagnostic, never chained."""
+import json,uuid,hashlib,shutil
+import os
+from pathlib import Path
+from functools import partial
+from PIL import Image,ImageChops
+    ```
+  - ADD `src/spine_skin_tool/trial_display.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7484cce73e4192abb4ceab702a1e9bab65edd3bf4803ba385d963556734a059a`
+    ```text
+"""Read-only, candidate-bound display projections; no model or assembly calls."""
+import json,re,hashlib
+from .design import private_path,require,digest,VERSIONS
+from .assembly import verify_bundle,canonical
+from .pipeline_store import read
+
+    ```
+  - ADD `src/spine_skin_tool/trials.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `cda6671a78f1c00219b25406292c5cc7b17e821453848a852f36bf282bb1248b`
+    ```text
+"""可追溯的本地规格试验；不调用模型，不批准生产规格。"""
+import copy
+import json
+import math
+from pathlib import Path
+import re
+    ```
+  - ADD `templates/chibi-4.3-beta/README.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `13e79f1ba498bdd04bf4eabe66287415a39f4059c0c6b14688dae7b962cbf5f0`
+  - ADD `templates/chibi-4.3-beta/animation-matrix.yaml`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `c81d800fd08f46e05ab5d5369a0497045900ab2257c8e57aae8df86fbb6255c6`
+    ```text
+schema_version: "1.0.0"
+template_id: "chibi-4.3-beta"
+status: "UNVERIFIED_RENDER_MATRIX"
+required_movement:
+  - movement/idle-front
+  - movement/idle-back
+    ```
+  - ADD `templates/chibi-4.3-beta/assets.yaml`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `e67efa9641d36385b0ffdfe02afe99c02ccf4166b8f7803b757ad8072e27b8d4`
+    ```text
+schema_version: "1.0.0"
+template_id: "chibi-4.3-beta"
+profile: "reference_hair_8part_v2"
+status: "OBSERVED_REFERENCE_ONLY_NOT_A_PRODUCTION_CONTRACT"
+default_size_trial: "runtime/config/size-trials.toml"
+# 以下宽高保存历史观测；新试验在 size-trials.toml 中调整，不修改历史。
+    ```
+  - ADD `templates/chibi-4.3-beta/character-layouts.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ef258ff4e704e1c0d4a979ccce70b463587ea4a7dfe6fdf6ec4964faf90c776f`
+    ```text
+{
+  "status": "EXPERIMENTAL_NOT_PRODUCTION_APPROVED",
+  "workflow_revision_source": "runtime/versions.toml [workflow]",
+  "units": "Spine units; calibrated on three chat trials, not centimeters",
+  "layouts": {
+    "short": {
+    ```
+  - ADD `templates/chibi-4.3-beta/observed-baseline.json`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `a93b81a81fa53321ac6f8c455f661f57a05aae499f9d2caa9aac17e5609fe84d`
+    ```text
+{
+  "schema_version": "1.0.0",
+  "status": "OBSERVED_INPUT_FACTS_NOT_CALIBRATED",
+  "source": "Uploaded files; no live Spine Runtime playback tested",
+  "spine_version": "4.3.75-beta",
+  "original": {
+    ```
+  - ADD `tests/integration/check_rebuild.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `da9f3e3f6daf6059404f88fe8d59ec652af407f9798a49f4c3157966b5314e8d`
+    ```text
+"""显式运行的离线重建验收，真实调用 uv/pnpm，不调用模型。"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+    ```
+  - ADD `tests/test_assembly.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `cee80489fcb9025174b7b554cc48080a26d6186bd87f3e6632763980b0d53fb5`
+    ```text
+"""合成素材验证装配的真实失败边界；真实母版另由浏览器验收。"""
+import copy
+import json
+from pathlib import Path
+import sys
+import tempfile
+    ```
+  - ADD `tests/test_blind_display.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9b475c31f1053760121f9384e846561d36d9e14114c3aa09585d9d5ac78e31ff`
+    ```text
+"""Synthetic local comparison boundaries. Never calls a subscription model."""
+import json,unittest
+from unittest.mock import patch
+import test_blind_trials
+from spine_skin_tool.blind_trials import register,folder
+from spine_skin_tool.blind_display import photo,snapshot,returned,part_image
+    ```
+  - ADD `tests/test_blind_trials.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `63624477c5dd3a58a8ea7306017b8961e33ca1a48192783a0dccc065c4891353`
+    ```text
+"""Blind admission and durable scope: synthetic images, no subscription calls."""
+import json,unittest
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image
+import test_pipeline as fixtures
+    ```
+  - ADD `tests/test_changelog_gate.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `145980f6b5f44d2b85186224e3b4962af4afcb85f17ceb7719c1a0406bd59858`
+    ```text
+"""Offline, stdlib-only smoke tests for the Codex changelog gate.
+
+Run: python -m unittest discover -s tests -p 'test_*.py' -v
+"""
+from __future__ import annotations
+
+    ```
+  - ADD `tests/test_character_flow.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `aea1d09271dc57de6abcd1ed9417d65d3e9540427384549bf2ea922458d9d17e`
+    ```text
+"""Shared-flow failure boundaries; no model requests, no private photos in fixtures."""
+import copy,json,unittest
+from unittest.mock import patch
+from PIL import Image
+import test_generation
+from spine_skin_tool.design import (draft_design,freeze_design,load_design,validate_design,
+    ```
+  - ADD `tests/test_character_session.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `4cee1389001a8752c8a896a095ebe6ddcb0833f32f06141e913ee28314cdb6d6`
+    ```text
+"""Character conversation isolation and durable bounded sends; no provider traffic."""
+import json,tempfile,types,unittest,uuid,re
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image
+from spine_skin_tool import character_session as cs
+    ```
+  - ADD `tests/test_coarse_style.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `694da340946dcd0b8cdf88a87cc317f27b7b40f78a2777fc8aff2cc04895eaf8`
+    ```text
+"""Coarse-style boundaries, uniform margin and bound model feedback; no cloud."""
+import json,tempfile,unittest
+from pathlib import Path
+from PIL import Image,ImageDraw
+from spine_skin_tool.generation import build_part_prompt
+from spine_skin_tool.repair import route
+    ```
+  - ADD `tests/test_codex_subscription.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `4038fdc5e53991b6833bb7d900e34edc94933af7423b10fe4481ee38b1b24530`
+    ```text
+"""Subscription adapter boundary tests: fake CLI, no provider traffic."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+    ```
+  - ADD `tests/test_config.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `30c7da801d1e7d3623cb1412673340845eb9fb640ea5986306e6e90ab9b34c0f`
+    ```text
+"""配置边界与尺寸可调整性的离线回归测试。"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import shutil
+    ```
+  - ADD `tests/test_current_pipeline014.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `af3d34dfd51a7b02f5e1d8b8c14b6b8e8665ed46be572bff9d84e833be2eeb09`
+    ```text
+"""Current orchestration with injected providers/decisions, not art approval."""
+import copy,json,unittest
+from unittest.mock import patch
+import test_pipeline as fixtures
+from spine_skin_tool.pipeline import advance
+from spine_skin_tool.codex_subscription import SubscriptionError
+    ```
+  - ADD `tests/test_distribution.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `f686f0659aa79f7a116afe89fb38c5a9e3e2d673086bddb38c777e05dc656093`
+    ```text
+"""Release privacy and portable setup boundaries, no credentials or model calls."""
+import importlib.util,json,tempfile,unittest,zipfile
+from pathlib import Path
+from unittest.mock import patch
+from spine_skin_tool import distribution as d
+from spine_skin_tool.reference_assets import library_root,import_library
+    ```
+  - ADD `tests/test_ear_timing.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `17657101222f67d0ea454da071996e127b6313a74ad2ae5ee10490761a734df5`
+    ```text
+"""Synthetic geometry and actual clock arithmetic; no remote calls."""
+import unittest,tempfile,json
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image,ImageDraw
+from spine_skin_tool.ear_geometry import observe,fit_front,coverage
+    ```
+  - ADD `tests/test_environment.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `5dfb9451244eaa0cf7c021a33e211a836eb3e0c8f97a901f438363c395e6b5df`
+    ```text
+"""运行环境报告、跨 cwd/编码入口和安装失败边界。"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+    ```
+  - ADD `tests/test_generation.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `31970e926c27736347daee4b118f6c500ee2da4da03fbb680d66a589748eb1c1`
+    ```text
+"""Provider protocol tests only; fake transport never reaches a vendor or ComfyUI."""
+import base64
+import copy
+import io
+import json
+import os
+    ```
+  - ADD `tests/test_hair_ears.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `45f3ee078d325ed3b70f313e56110c3e136b05d04bbc217191475944c75f1309`
+    ```text
+"""Historical012 hair/ear scope regression; staged013 is in test_head_first."""
+import copy,json,unittest
+from unittest.mock import patch
+import test_pipeline as fixtures
+from spine_skin_tool.pipeline import create,advance,DEFAULTS
+from spine_skin_tool.pipeline_service import report
+    ```
+  - ADD `tests/test_hair_policy014.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2c194b6014436fcfa0cbcee10e94a2d17b4f8bd7cfda54cd93d4ddde35fca843`
+    ```text
+"""Semantic boundary controls: visible jaw and independent ear visibility."""
+import json,tempfile,unittest
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image,ImageDraw
+from spine_skin_tool.ear_geometry import coverage
+    ```
+  - ADD `tests/test_hair_tip.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3830eabf4b3f365a3de9a3c6f1329d23555b3e6d6f646bf822f17c4ec2650b35`
+    ```text
+"""Fixed-base registration preserves fitted geometry; no real image generation."""
+import hashlib,json,unittest
+from PIL import Image
+import test_head_first as legacy_head
+from spine_skin_tool.assembly import canonical
+from spine_skin_tool.design import digest,DesignError
+    ```
+  - ADD `tests/test_head_first.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `64e87788ed8d7f00764c3fb32ac43a85c1717fe4e2729c8ea46b160cb58b38e2`
+    ```text
+"""Head-first and fixed-base ear composition boundaries; synthetic, no model calls."""
+import copy,json,unittest,io
+from unittest.mock import patch
+from pathlib import Path
+from PIL import Image,ImageDraw
+import test_review_integration
+    ```
+  - ADD `tests/test_live_capacity.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `69852823c4218d45ecf3e35e4b7b759b73e638615d8bc779b51c6e0e2d3b4286`
+    ```text
+"""Authorized lifetime pool growth retains finite per-job and disabled defaults."""
+import json,tempfile,unittest
+from pathlib import Path
+from spine_skin_tool.generation import defaults,validate_settings
+from spine_skin_tool.review_visual import review_settings
+from spine_skin_tool.photo_design import settings as design_settings,DEFAULTS
+    ```
+  - ADD `tests/test_m08_faults.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `a0e22fdf47e01fe9f2405e2aba82c0cac3adfc806e82ae0d837abac7e6e6500e`
+    ```text
+"""Injected ENOSPC/corruption/login/model errors are NOT physical fault evidence."""
+import errno,json,unittest
+from unittest.mock import patch
+import test_pipeline as fixtures
+from spine_skin_tool.pipeline import advance,edit_design
+from spine_skin_tool.pipeline_store import read,directory
+    ```
+  - ADD `tests/test_m08_judgments.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `60c7d03d81560435a16734c0b0d18127535240266dd5c286cb3149322bd32ebc`
+    ```text
+"""Synthetic reference labels/attestations are not real approvals or reliability."""
+import copy,json,unittest
+from pathlib import Path
+from unittest.mock import patch
+import test_blind_trials as fixtures
+from spine_skin_tool.blind_trials import register,adjudicate,metrics
+    ```
+  - ADD `tests/test_maintenance.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fb192ec7194cb2ac6b689e410a07123f83cc7af359a59a5fd247af8dcad33811`
+    ```text
+"""Private synthetic files only; never backup real photos or delete real data."""
+import copy,errno,json,stat,tempfile,unittest,zipfile
+from pathlib import Path
+from unittest.mock import patch
+from spine_skin_tool.maintenance import create_archive,verify_archive,restore_archive,fingerprint
+from spine_skin_tool.assembly import canonical,VERSIONS
+    ```
+  - ADD `tests/test_photo_design.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `0055beff2b879585bd6552eced5a4c2795bcb237c361d8a98c3004603445e36e`
+    ```text
+"""Photo design schema, original-only transport and budget/recovery boundaries."""
+import copy,json,subprocess,tempfile,types,unittest
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image,ImageDraw
+from spine_skin_tool.design import draft_design,DesignError,digest
+    ```
+  - ADD `tests/test_photo_import.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9e61cb054d7094b65f4f3eecbd82716be8ae6505d4e6fceffce7ceb628222c77`
+    ```text
+"""User-selected import guards, deduplication, metadata and concurrent publication."""
+import io,tempfile,unittest
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+from PIL import Image
+from spine_skin_tool.photo_import import import_photo,MAX_BYTES
+    ```
+  - ADD `tests/test_pipeline.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `6de3f5331837fd9d02f0049a7801290fa216adcc019ee3ef9fb3e433129a0bb1`
+    ```text
+"""Durable pipeline boundaries with synthetic photos/fake models, never live calls."""
+import copy,io,json,unittest,os,subprocess,sys
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image
+import test_review_integration
+    ```
+  - ADD `tests/test_repair.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `55b52ca80fb6f0d6952defa7fea15ce5e3dc7433bfdaa36d4a11f4b244421a88`
+    ```text
+"""Durable repair/failure tests. Synthetic input images and fake providers only."""
+import copy,io,json,unittest,os,subprocess,sys
+from unittest.mock import patch
+from pathlib import Path
+from PIL import Image
+import test_review_integration
+    ```
+  - ADD `tests/test_review.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `6db460b8267f2e629f55d4bab67223799472cd4eb95f8bd7e6ba9e48082a92d6`
+    ```text
+"""QA defects and false-approval boundaries. No model/HTTP calls."""
+import copy,hashlib,json,subprocess,tempfile,types,unittest
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image
+from spine_skin_tool.assembly import canonical
+    ```
+  - ADD `tests/test_review_benchmark.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d81d1b960ff166c0665e9e2c250335eb68d8d39f333793d3a1638469e007cac4`
+    ```text
+"""Calibration honesty, isolation and persistent-call failure boundaries; never cloud calls."""
+import copy,hashlib,json,subprocess,tempfile,unittest
+from pathlib import Path
+from unittest.mock import patch
+from spine_skin_tool.assembly import canonical
+from spine_skin_tool.design import DesignError
+    ```
+  - ADD `tests/test_review_integration.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `c8689ffcd80fe9e4f3abcd9c6f9aac3012e6cea193c8a566b28d5f86e862f484`
+    ```text
+"""Real bundle integrity defects on synthetic inputs, never real photos or cloud calls."""
+import json,tempfile,unittest
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image
+from spine_skin_tool.design import ROOT,draft_design,freeze_design,digest,DesignError
+    ```
+  - ADD `tests/test_standard_ears.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fb68511ce0b31bc8c26678fc4071a704349800ad4b7d8e20d8e3ababb74f9471`
+    ```text
+"""Visible-ear policy and zero-model fixed-base augmentation, synthetic photos only."""
+import copy,json,unittest
+from unittest.mock import patch
+from PIL import Image,ImageChops,ImageDraw
+import test_head_first as fixtures
+from spine_skin_tool import ear_policy,standard_ears
+    ```
+  - ADD `tests/test_template.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `a2ab75500f87c76132c7d5f343710c87323cbd50a59373036e155aacb8d0a60f`
+    ```text
+import json
+from pathlib import Path
+import struct
+import sys
+import tempfile
+import unittest
+    ```
+  - ADD `tests/test_texture.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `68cd3c966163a6c84811540c483f054cfbebcbd32730ccb1212850c43b26c2f9`
+    ```text
+import unittest
+from PIL import Image
+from spine_skin_tool.texture import normalize_texture,standard_arm
+
+class TextureTests(unittest.TestCase):
+    def test_nearly_transparent_outlier_does_not_shrink_main_leg(self):
+    ```
+  - ADD `tests/test_texture_compare.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `6a700ddd6798fff6e9b60a5cbcae7fa11129f7b473f0816832fe317cbd27f38c`
+    ```text
+"""Synthetic geometry/state/security boundaries for read-only comparison."""
+import copy,json,unittest
+from unittest.mock import patch
+from PIL import Image
+import test_texture_edit as fixtures
+from spine_skin_tool import texture_compare as compare,texture_edit as edit
+    ```
+  - ADD `tests/test_texture_edit.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `46d8fbfba4b59ac54f01ed1f7d6109102dca569526b31fca686cfd3b0b7d9a36`
+    ```text
+"""Synthetic texture-only boundary tests. No real photos, model or image edits."""
+import json,tempfile,unittest
+from pathlib import Path
+from unittest.mock import patch
+from PIL import Image
+from spine_skin_tool import texture_edit as edit
+    ```
+  - ADD `tests/test_trial_display.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `85a3b866149f8e66c42d7bebd7f2350150ae024db4503f4ab64d7303c33cc60b`
+    ```text
+"""Synthetic persisted flows: display provenance, no live calls or private photos."""
+import json,unittest,copy
+from unittest.mock import patch
+import test_hair_ears as fixtures
+from spine_skin_tool.pipeline import create,advance,DEFAULTS
+from spine_skin_tool.trial_display import snapshot,texture,job_texture,batch
+    ```
+  - ADD `tests/test_trials.py`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `bd7109f23f09cb0df8bd5bf25eb2750b405af2d6d3f14c126da33f6bff54c9ec`
+    ```text
+"""规格试验的真实图像/资源与拒绝边界。"""
+import copy
+import json
+import unittest
+import shutil
+from PIL import Image
+    ```
+  - ADD `ui/acceptance.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `05777f84d52ff5d6ae7201e9a688ebb2f27a290492de30ab68e7556e240dd770`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>検証と配布の門</title>
+<style>body{font:16px/1.7 system-ui;background:#17232e;color:#edf3f6;max-width:1060px;padding:24px;margin:auto}h1{font-size:26px}a{color:#a4d9f7}button{font:inherit;background:#29495b;color:inherit;border:1px solid #7795a8;border-radius:6px;padding:8px 16px}section,.notice{background:#243b49;border:1px solid #587484;border-radius:8px;padding:16px;margin:16px 0}section h2{font-size:18px;margin:0 0 6px}.PASS{border-left:5px solid #9bd5a9}.FAIL{border-left:5px solid #ffaaa0}.STALE,.PARTIAL{border-left:5px solid #f2cd83}.status{font-weight:bold}.small{font-size:13px;color:#c2d1dc;overflow-wrap:anywhere}dl{display:flex;flex-wrap:wrap;gap:8px 22px}dt{color:#bfd0d9}dd{margin:0}#error{color:#ffc0a6}[hidden]{display:none!important}</style>
+<h1>M08：検証と配布の門</h1><p><a href="/hair-trials?batch=retest011">三例の髪の試行</a> ／ <a href="/characters">キャラクター制作</a></p>
+<p class="notice">本番配布：未承認。3枚の調整済み写真、保存素材の再生、コードテストだけでは、未見写真の全身制作を承認しません。サイズ・美術・素材の再配布許諾も別の確認項目です。</p>
+<p>開発用ソースZIPには写真・鍵・生成物・依存物・原参考素材を含めません。私用バックアップは写真と作業記録を含むため共有用ではありません。復元は新規ディレクトリだけに行い、自動生成は再開しません。</p>
+<button id="reload">検証記録を再読込</button><p id="status" role="status">読み込み中…</p><p id="error" role="alert" hidden></p><main id="gates"></main><div id="blind"></div><p class="small" id="pin"></p>
+    ```
+  - ADD `ui/acceptance.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `e44b968d356649433ebc70a4ddd8fbe2990e7904773f4361e176caa85419058d`
+    ```text
+/* Only GET saved, hash-bound acceptance facts. No model/archive/resume actions. */
+(async()=>{
+ const $=id=>document.getElementById(id),states={PASS:'この範囲は検証済み',FAIL:'不合格',PARTIAL:'一部のみ検証',NOT_VALIDATED:'未検証',STALE:'証拠の再確認が必要',USER_ATTESTED:'ユーザーが証拠を申告・機械検証とは区別'};
+ const labels={tests:'テスト数',seconds:'実行秒数',files:'ファイル数',bytes:'バイト数',characters:'キャラクター数',frames_per_character:'各キャラクターのフレーム数',scales:'倍率',new_model_calls:'新規モデル呼出し',verified:'ファイル整合性',credentials_restored:'認証情報の復元',live_resume_allowed:'自動生成の再開',batches:'登録バッチ数',completed_cases:'処理終了ケース数'};
+ function text(tag,value){const e=document.createElement(tag);e.textContent=value;return e;}
+ function blindCard(b){const s=document.createElement('section'),status={PLANNED:'未実行',RUNNING:'実行中',REQUIRES_REVIEW:'確認待ち',STALE:'再検証が必要',WAIT_RESULT:'結果待ち',INTERRUPTED:'中断',OUTPUT_BLOCKED:'サービス停止',CONFIGURATION_BLOCKED:'設定確認待ち',ERROR_OR_RESULT_UNKNOWN:'実行結果未確認',LIMIT_REACHED:'上限到達',CANCELLED:'中止'};s.append(text('h2',b.scope==='EXPLICIT_USER_RETEST_NOT_BLIND'?'既存写真の明示再試行（盲検と区別）':b.status==='STALE'?'未調整写真の記録・再検証待ち':'未調整写真の登録記録'),text('p','処理終了：'+b.completed_cases+'例。誤り率は人の正解ラベル付き補助チェックだけを集計し、本番承認率とは区別します。'));const ul=document.createElement('ul'),rate=v=>typeof v==='number'?(100*v).toFixed(1)+'%':'未計測';for(const c of b.cases||[])ul.append(text('li',`ケース${c.case}：${status[c.status]||'未確認'} ／ 画像要求 ${c.image_requests}・返却PNG ${c.returned_images} ／ 参照ラベル ${c.labeled_checks||0} ／ 補助誤許可率 ${rate(c.false_accept_rate)} ／ 見逃し率 ${rate(c.missed_defect_rate)} ／ 誤棄却率 ${rate(c.false_reject_rate)} ／ 古いラベル ${c.stale_labels||0}`));s.append(ul);return s;}
+    ```
+  - ADD `ui/blind-trials.html`; location `initial clean source import`; lines `1-4`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `063cb828f00e949401653465ee1b4488922e5ac6354c73750da56d0b0daf6234`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>未調整写真・制作比較</title>
+<style>body{font:16px/1.6 system-ui;background:#17242d;color:#e6f1f6;max-width:1500px;margin:24px auto;padding:0 20px}a{color:#a8dcff}section{border:1px solid #527080;border-radius:8px;padding:20px;margin:20px 0}.pair{display:grid;grid-template-columns:minmax(200px,1fr) minmax(350px,2fr);gap:20px}img{width:100%;max-height:560px;object-fit:contain;background:#263b48}iframe{width:100%;height:560px;border:1px solid #527080}.partial-part{display:inline-block;width:42%;vertical-align:top;margin:8px}.partial-part img{height:180px;object-fit:contain}select,button{padding:8px;margin:8px}small{overflow-wrap:anywhere}.error{color:#ffb3ac}li{overflow-wrap:anywhere}@media(max-width:800px){.pair{grid-template-columns:1fr}iframe{height:620px}}</style>
+<style>.pair>div{min-width:0}iframe{box-sizing:border-box}select{max-width:calc(100% - 16px)}@media(max-width:800px){.pair{grid-template-columns:minmax(0,1fr)}}</style>
+<h1>未調整写真と生成キャラクターの比較</h1><p><a href="/acceptance">M08の検証記録</a> ／ <a href="/characters">制作一覧</a></p><p>左：この作業で実際に使用した原写真。右：選択した固定候補。技術的な再生・AIの補助判断は、美術や本番利用の承認とは区別します。写真はローカル比較用です。</p><button id="reload">保存結果を再読込</button><p id="status" role="status"></p><main id="cases"></main><script src="/timing.js"></script><script src="/blind-trials.js"></script></html>
+    ```
+  - ADD `ui/blind-trials.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `9e091a2a19f18a48cee1d893a5849f4e0a0bf21d2d309f08384e5e7a565d640f`
+    ```text
+/* GET only. Original photos are bound to the frozen batch and exact SHA. */
+(async()=>{
+ const $=id=>document.getElementById(id),batch=new URLSearchParams(location.search).get('batch'),selected=new Map(),views=new Map();
+ const text=(tag,value)=>{const e=document.createElement(tag);e.textContent=value;return e;};
+ const states={PLANNED:'未実行',RUNNING:'実行中',INTERRUPTED:'中断',REQUIRES_REVIEW:'確認待ち',FAIL:'不合格',UNKNOWN:'未確認',PASS:'補助判定：適合',NOT_RUN:'未実行',NOT_APPLICABLE:'対象外',ERROR:'取得失敗',STALE:'証拠の再確認が必要',LIMIT_REACHED:'上限到達',WAIT_RESULT:'結果待ち',OUTPUT_BLOCKED:'サービスが出力を停止',CONFIGURATION_BLOCKED:'設定確認待ち',ERROR_OR_RESULT_UNKNOWN:'実行結果未確認'};
+ const names={hair_fit:'頭髪の適合',hair_consistency:'前後の髪の一致',ear_visibility:'小耳',style:'画風の大分類',clothing:'衣服',garment_parts:'衣服の部品構造',material_outlines:'素材別の輪郭線',leg_connections:'脚の接続',arm_style:'腕',leg_style:'脚',layer_order:'重なり順',skirt_occlusion:'裙と脚'};
+    ```
+  - ADD `ui/calibration.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7ca7f6cb9b497247dae2ea04199a8cbd0e90ce81e97db6d01ab0084695379eb4`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>品質レビューの校正</title>
+<style>body{background:#18232d;color:#eef;font:15px system-ui;margin:24px}a{color:#9de}button,select{padding:9px;margin:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}table{border-collapse:collapse}td,th{padding:10px;border:1px solid #627482}article{padding:14px;margin:15px 0;border:1px solid #627482}article img{max-width:100%;width:850px}.bad{color:#ffb9a5}</style>
+<h1>既存仕様によるレビュー校正</h1><p>Harri の部品構造と Davide / Spineboy の描画規則を判定基準にしています。既定の仕様を再承認する必要はありません。</p>
+<p>対照画像は私有のテスト用コピーです。元のキャラクターは変更されません。各「基準内」は指定した一項目だけを指し、全身の品質合格ではありません。自動美術合格は無効です。</p>
+<p><a href="/reviews">レビューへ戻る</a></p><select id="benchmarks"></select><button id="load">保存した結果を表示</button><pre id="status" role="status">読み込み中…</pre>
+<table><thead><tr><th>集合</th><th>検査</th><th>件数</th><th>違反検出</th><th>正常判定</th><th>誤検出</th><th>見逃し</th><th>未確認・低確信</th></tr></thead><tbody id="summary"></tbody></table>
+    ```
+  - ADD `ui/calibration.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `fad6a97e954717842197f583b2dc67b8954441dbeed74930a3c50d718f4d537a`
+    ```text
+(async()=>{
+ const $=id=>document.getElementById(id),label={PASS:'基準内',FAIL:'違反',UNKNOWN:'未確認',COMPLETE:'テスト完了',PARTIAL:'未完了',REQUIRES_REVIEW:'手動確認を維持',LIMITED_CONTROLLED_TEST_PASS_ADVISORY_ONLY:'限定対照テスト内で一致（補助のみ）'};
+ async function show(){
+  const id=$('benchmarks').value;if(!id)return;const response=await fetch('/review/calibration/'+encodeURIComponent(id));if(!response.ok)throw Error('元データ・仕様・証拠の整合性を確認できません。');const r=await response.json();
+  $('status').textContent=`${label[r.status]} ／ ${label[r.model_release_decision]}\n実行予約：${r.calls.length} 回 ／ 自動美術合格：無効\n判定基準：既存の制作仕様。写真の同一性・自然な失敗分布全体は今回の測定対象外です。`;
+  $('report').textContent=JSON.stringify(r,null,2);$('summary').replaceChildren();$('cases').replaceChildren();
+    ```
+  - ADD `ui/character-flow.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `186dcd5683aa7fda104846beca33b25149b25861d875528758bd2d9de719e55d`
+    ```text
+/* Shared experimental design and full-character operations; never auto-generates. */
+(async()=>{
+ const $=id=>document.getElementById(id);let identity=null;
+ const api=async(action,payload)=>{
+  const response=await fetch('/character/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data=await response.json();if(!response.ok)throw Error((data.code||'')+' '+(data.message||'操作に失敗しました。'));return data;
+    ```
+  - ADD `ui/hair-trials.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `f482033f5ed8919a67c69109f6fb461470d1d7a2d8d2447465de7e1e307dd988`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>髪と小耳の試行比較</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{font:15px/1.6 system-ui;background:#17232e;color:#ecf1f5;max-width:1440px;margin:24px auto;padding:0 22px}h1{font-size:25px;margin-bottom:8px}h2{font-size:19px}h3{font-size:16px}a{color:#a8dcff}button,select,input{font:inherit}button,select{padding:7px 12px;background:#253e50;color:inherit;border:1px solid #637f91;border-radius:6px}button:disabled{opacity:.45}button,a{touch-action:manipulation}button{cursor:pointer}nav{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}nav a{padding:9px 16px;background:#253c4e;border:1px solid #4a6578;border-radius:8px;text-decoration:none}nav a[aria-current]{background:#285c71;border-color:#90d3e7}.muted{color:#b5c4cf}.note{padding:12px 16px;background:#233744;border-radius:8px}.layout{display:grid;grid-template-columns:215px minmax(0,1fr);gap:22px;margin-top:20px}#history{display:flex;flex-direction:column;gap:9px;align-self:start}#history button{text-align:left;padding:12px;white-space:pre-line}#history button[aria-current]{border:2px solid #a5e1e8;background:#294e5d}.card{background:#213440;border:1px solid #496575;border-radius:10px;padding:18px;margin-bottom:18px}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.pair>div{min-width:0}.viewport{position:relative;aspect-ratio:1;background:#33434f;border-radius:6px;overflow:hidden}iframe{display:block;width:100%;height:100%;border:0}.veil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#33434f;color:#cbdce7;text-align:center;padding:20px}.viewport.ready .veil{display:none}.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}.controls input{width:190px}figure{margin:0}.raw{background-color:#ccd5dd;background-image:linear-gradient(45deg,#a8b5c0 25%,transparent 25%),linear-gradient(-45deg,#a8b5c0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#a8b5c0 75%),linear-gradient(-45deg,transparent 75%,#a8b5c0 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0;display:block;border-radius:6px}.raw img{width:100%;height:270px;object-fit:contain;display:block}.raw:hover{outline:2px solid #a5e1e8}.PASS{color:#a6e0b8}.FAIL{color:#ffacaa}.UNKNOWN{color:#efd18d}li{margin:8px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}details{margin-top:15px}summary{cursor:pointer}#loading[hidden],#content[hidden],#error[hidden],#empty[hidden]{display:none}#error{color:#ffc1ae}#error:not([hidden]){border:1px solid #b97262;padding:16px}#status{white-space:pre-line}#binding{font-size:13px;overflow-wrap:anywhere}dialog{max-width:95vw;max-height:95vh;background:#233744;color:inherit;border:1px solid #85a8bb;border-radius:10px}dialog img{max-width:85vw;max-height:78vh;object-fit:contain;display:block}dialog::backdrop{background:#000b}.inline{display:flex;justify-content:space-between;align-items:center;gap:12px}#checks{padding-left:22px}@media(max-width:850px){.layout{grid-template-columns:1fr}#history{flex-direction:row;overflow:auto}#history button{min-width:180px}.pair{gap:10px}body{padding:0 12px}.controls input{width:140px}.raw img{height:200px}}
+</style>
+<style>[hidden]{display:none!important}</style>
+<h1 id="title">髪と小耳の試行比較</h1>
+    ```
+  - ADD `ui/hair-trials.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `ccb97ad2d4fd7e9ab0630d002ad13827804c2fbdc2883b0f7e6a3f713dc2d7dd`
+    ```text
+/* Read-only candidate-bound display. Never generate, assemble or approve. */
+(async()=>{
+ const $=id=>document.getElementById(id),q=new URLSearchParams(location.search);
+ const valid=id=>/^flow-[a-f0-9]{32}$/.test(id||''),parts={HAIR_FRONT:'前髪・小耳',HAIR_BACK:'後髪'};
+ const states={RUNNING:'実行中',PLANNED:'準備済み',REQUIRES_REVIEW:'最終確認待ち',STALE:'規約更新前の履歴',ERROR_OR_RESULT_UNKNOWN:'実行エラー・結果未確認',OUTPUT_BLOCKED:'サービスが生成を停止',CONFIGURATION_BLOCKED:'設定の確認待ち',WAIT_RESULT:'送信済みの結果待ち',INTERRUPTED:'中断',CANCELLED:'中止'};
+ const verdicts={FAIL:'補助チェックで不合格',UNKNOWN:'補助チェック未確認',ADVISORY_PASS_NOT_APPROVED:'髪の補助チェック通過・最終承認ではありません'};
+    ```
+  - ADD `ui/index.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `e07b1a530e10ebc6cc042bca632bfae0afcb04a51be1bfe18717141c527a540b`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>Spine キャラクタープレビュー</title>
+<style>body{font:16px system-ui;background:#18232d;color:#eef;margin:24px}canvas{background:#33434f;border:1px solid #789;max-width:100%;height:auto;box-sizing:border-box}select,button{padding:8px;margin:8px;max-width:100%}pre{white-space:pre-wrap}</style>
+<style>body.comparison{margin:10px}body.comparison h1{font-size:16px}body.comparison>p,body.comparison>label,body.comparison>button,body.comparison>br{display:none}body.comparison canvas{width:100%;max-width:512px}body.comparison pre{font-size:12px}</style>
+<style>body.embedded{margin:0;background:#33434f}body.embedded h1,body.embedded pre{display:none}body.embedded canvas{display:block;border:0}</style>
+<h1>Spine キャラクタープレビュー</h1><p>生成素材・参照素材のローカル再生用です。再生成功は美術品質の合格を示すものではありません。</p>
+<p><a href="/characters">写真からキャラクターを制作・保存作業を表示</a></p>
+    ```
+  - ADD `ui/orientation.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3565723247a2be02ca47ee7f9b7321ef0158b6bc85878ed468e9b9c94f7e780b`
+    ```text
+/* Restore fixed ears after animation application; apply direction-specific occlusion. */
+globalThis.applySpineOrientation=function(rig,direction,policy){
+ if(!policy||rig.skin?.name!==policy.skin)return;
+ if(!policy.front_order&&direction!=='back')return;
+ if(direction==='back'){
+  for(const name of [...policy.face_slots,...(policy.back_hide_slots||[])])rig.findSlot(name)?.pose.setAttachment(null);
+    ```
+  - ADD `ui/pipeline.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `1c3d61a17c77c1e17b7203fe6a8c427031b857ce91a997ede020078fe76ba7a1`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>写真からキャラクター制作</title>
+<style>body{font:15px system-ui;background:#18232d;color:#eef;margin:24px}a{color:#9de}input,select,button,textarea{padding:8px;margin:6px}textarea{display:block;width:min(96%,950px);background:#223442;color:#eef}pre{white-space:pre-wrap;overflow-wrap:anywhere}iframe{width:590px;height:1000px;border:1px solid #789;max-width:95%}#previews{display:flex;gap:16px;flex-wrap:wrap}fieldset{margin:15px 0}table{border-collapse:collapse}td,th{padding:8px;border:1px solid #789}</style>
+<h1>写真からキャラクター制作</h1>
+<p>元写真から設計・全部位・全身構築・動作レビュー・有限返修を順番に実行します。頭・表情は原素材、耳は髪と一緒に小さく生成し、原耳は常に非表示です。腕は標準形状の配色です。判断が不確かな候補は「確認待ち」として保存します。</p>
+<p><a href="/reviews">レビュー</a> ／ <a href="/repairs">返修作業</a> ／ <a href="/trials">詳細な素材試験</a></p>
+<fieldset id="settings"><legend>新しい制作</legend>
+    ```
+  - ADD `ui/pipeline.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `130404d955514969e20c2d4ec7b6320a78edbd7cc94b03705cecceedf11a076f`
+    ```text
+(async()=>{
+ const $=id=>document.getElementById(id),names={PLANNED:'計画保存済み',RUNNING:'制作中',INTERRUPTED:'中断・復旧可能（外部要求は再送しません）',DESIGN_READY:'設計の確認が必要です',CONFIGURATION_BLOCKED:'利用設定・残り試験上限を確認してください',WAIT_RESULT:'送信済みの結果を確認中・自動再送なし',ERROR_OR_RESULT_UNKNOWN:'エラー・結果未確認',OUTPUT_BLOCKED:'サービスが処理を拒否しました・自動再試行なし',STALE:'元資料または仕様が変更されました',CANCELLED:'後続処理を停止しました',REQUIRES_REVIEW:'美術・不確かな項目の確認待ち',READY_FOR_REVIEWED_EXPORT:'全項目のレビュー記録がある候補'};let id=null,timer=null,config;
+ async function api(action,data){const r=await fetch('/flow/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}),v=await r.json();if(!r.ok)throw Error(v.code+'：'+v.message);return v;}
+ let epoch=0;
+ async function safe(fn){const revision=epoch;try{await fn();}catch(e){if(revision===epoch){$('status').textContent=e.message;if(!id)$('settings').disabled=false;}}}
+ async function list(revision=epoch){const received=await(await fetch('/flow/config')).json();if(revision!==epoch)return;config=received;$('photo').replaceChildren(...config.photos.map(p=>new Option(p,p)));$('source').replaceChildren(...config.sources.map(s=>new Option(s.character_id+' / '+s.output,s.output)));$('tasks').replaceChildren(...config.tasks.map(t=>new Option((names[t.status]||t.status)+' / '+t.character_id+' / '+t.id,t.id)));if(id)$('tasks').value=id;$('budgets').textContent=Object.entries(config.budgets).map(([k,b])=>({design:'写真設計',image:'画像生成',visual:'補助レビュー'}[k]+`：予約 ${b.reserved}/${b.max_calls}、残り ${b.remaining}、${b.enabled?'設定有効':'設定無効'}`)).join('\n');}
+    ```
+  - ADD `ui/repair.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7b03d9870b4351ec3cda87c934f716749f72f011ef11eea92fc5acbf2534128c`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>返修・復旧</title>
+<style>body{font:15px system-ui;background:#18232d;color:#eef;margin:24px}a{color:#9de}input,select,button{padding:8px;margin:7px}pre{white-space:pre-wrap;overflow-wrap:anywhere}iframe{width:590px;height:1000px;border:1px solid #789;max-width:95%}.previews{display:flex;gap:16px;flex-wrap:wrap}li{margin:10px 0}</style>
+<h1>有限返修と作業復旧</h1><p>既存の制作仕様を守り、確定した構造エラーを再構築します。内容の再生成は元写真・元参考だけを使います。モデルの補助判定だけでは美術合格になりません。</p>
+<p><a href="/reviews">レビューへ</a> ／ <a href="/calibration">仕様の対照テストへ</a></p>
+<label>現在の政策による元レビュー<select id="source"></select></label><br>
+<label>最大サイクル<input id="cycles" type="number" min="1" max="3" value="3"></label><label>画像呼出し総上限<input id="images" type="number" min="1" max="18" value="6"></label><label>部位ごとの上限<input id="perpart" type="number" min="1" max="3" value="3"></label><label>補助レビュー上限<input id="visions" type="number" min="1" max="3" value="3"></label><br>
+    ```
+  - ADD `ui/repair.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `1c6dca2cfe215df47f0ea9a173f78121ea7aedb638da8cdb0deb843282c43e57`
+    ```text
+(async()=>{
+ const $=id=>document.getElementById(id),names={INTERRUPTED:'処理が中断されています（復旧可能・自動再送なし）',CONFIGURATION_BLOCKED:'利用設定・全体予算を確認してください（未送信）',OUTPUT_BLOCKED:'外部処理が拒否しました（自動再試行なし）',PLANNED:'計画保存済み',RUNNING:'処理中',REQUIRES_REVIEW:'手動確認待ち',READY_FOR_REVIEWED_EXPORT:'レビュー済みの候補',ERROR_OR_RESULT_UNKNOWN:'エラー・結果未確認',WAIT_RESULT:'送信済み結果の確認待ち（再送なし）',CANCELLED:'後続処理を停止',STALE:'元資料・政策が変更されました',LIMIT_REACHED:'試験上限に達しました',LIVE_DISABLED:'再生成は無効です',REASSEMBLE:'共通装配で再構築',STANDARD_ARM:'標準腕を再配色（非AI）',REGENERATE:'元写真から新規生成'};let id=null,timer=null,ticks=0;
+ async function api(action,data){const r=await fetch('/repair/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}),v=await r.json();if(!r.ok)throw Error(v.code+'：'+v.message);return v;}
+ async function list(){const r=await fetch('/repair/config');if(!r.ok)throw Error('設定・保存状態を確認してください。');const c=await r.json();$('source').replaceChildren(...c.reviews.map(r=>new Option(r.character_id+' / '+r.review_id,r.review_id)));$('tasks').replaceChildren(...c.tasks.map(t=>new Option((names[t.status]||t.status)+' / '+t.id,t.id)));if(id)$('tasks').value=id;}
+ function show(s){id=s.id;$('tasks').value=id;$('report').textContent=JSON.stringify(s,null,2);$('status').textContent=`${names[s.status]||s.status} ／ 段階：${s.phase}\n画像予約：${s.image_calls_reserved}/${s.limits.max_image_calls}、補助レビュー予約：${s.visual_calls_reserved}/${s.limits.max_visual_calls}\n候補品質：${s.quality_approved?'全項目の確認記録あり':'未承認・実験用'} ／ 生産承認：なし`+(s.error_code?'\n'+s.error_code:'')+(s.cancel_requested?'\n停止要求を保存済みです。':'');
+  for(const [input,key] of [['cycles','max_cycles'],['images','max_image_calls'],['perpart','max_calls_per_part'],['visions','max_visual_calls']]){$(input).value=s.limits[key];$(input).disabled=true;}
+    ```
+  - ADD `ui/review.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `d2eff22cd7f54979c54e0e560f40d6d327abe7cec6e7e1098c4717ef3fa849b3`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>キャラクター品質レビュー</title>
+<style>body{background:#18232d;color:#eef;font:15px system-ui;margin:24px}button,input,select,textarea{padding:8px;margin:6px;max-width:95%}a{color:#9de}pre{white-space:pre-wrap;overflow-wrap:anywhere}textarea{width:min(96%,1050px)}.images{display:flex;gap:16px;flex-wrap:wrap}.images img{width:min(100%,700px);height:auto}.bad{color:#ffb9a5}label{display:inline-block}li{margin:8px 0}</style>
+<h1>キャラクター品質レビュー</h1><p>ファイル・動作ルールと、美術上の確認を分けて記録します。現在の自動視覚判定は未校正です。モデルが問題なしと答えても自動合格にはなりません。</p>
+<p><a href="/trials#character-flow">設計・全身構築へ戻る</a> ／ <a href="/calibration">既存仕様による校正・対照テスト</a> ／ <a href="/repairs">有限返修・復旧</a></p>
+<label>構築済みキャラクター<select id="characters"></select></label><button id="choose">保存先を選択</button><br>
+<label>保存先<input id="output" style="width:650px" placeholder="runtime/work/.../character-output"></label><button id="create">ローカル検査を開始</button>
+    ```
+  - ADD `ui/review.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `f66c5f582c9d4d5cb6d71edf9a1f14f8e5c9fbebcf21cec3329444ed490a53fd`
+    ```text
+(async()=>{
+ const $=id=>document.getElementById(id);let identity=null,timer=null,settings={};
+ const names={PASS:'確認済み',FAIL:'不合格',UNKNOWN:'未確認',REQUIRES_REVIEW:'手動確認待ち',RUNNING:'処理中',NOT_RUN:'未実行',ERROR:'収集エラー',COMPLETED_ADVISORY:'補助結果を受信',ERROR_OR_RESULT_UNKNOWN_NO_RETRY:'結果未確認（自動再試行なし）'};
+ const api=async(action,payload)=>{const r=await fetch('/review/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(!r.ok)throw Error((d.code||'')+' '+(d.message||'確認できませんでした。'));return d;};
+ async function refresh(){const response=await fetch('/review/config'),c=await response.json();if(!response.ok)throw Error(c.message||'レビュー設定を確認してください。');settings=c.visual_settings;$('gate').textContent=!settings.live_enabled||!settings.upload_consent?'補助レビューは無効です。送信せず入力を確認できます。':settings.remaining_calls===0?'設定された試験回数に達しました。自動再試行は行いません。':'購読枠を使用します。残量は確認できません。設定した呼出し上限内でのみ実行します。';$('characters').replaceChildren(...c.characters.map(x=>new Option(x.character_id+' / '+x.output,x.output)));$('reviews').replaceChildren(...c.reviews.map(x=>new Option(x.character_id+' / '+(names[x.status]||x.status)+' / '+x.review_id,x.review_id)));return c;}
+ function show(r){identity=r.review_id;$('reviews').value=identity;$('report').textContent=JSON.stringify(r,null,2);
+    ```
+  - ADD `ui/texture-compare.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `38ddf710af2fc4dd6b19fb1f120cbe0b8d355e3c125b90a84b549340db7dd68d`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>髪素材の変更比較</title>
+<style>
+*{box-sizing:border-box}body{margin:24px auto;padding:0 20px;max-width:1320px;background:#14232c;color:#e5edf1;font:15px system-ui}h1{font-size:26px}h2{font-size:20px}a{color:#8de4df}button,select,input{font:inherit}button,select{padding:8px;background:#304653;color:inherit;border:1px solid #718e9d;border-radius:6px}button{cursor:pointer}label{display:inline-flex;gap:8px;align-items:center;margin:5px 12px 5px 0}.note{border-left:4px solid #e4be70;padding:12px 16px;background:#293a43;line-height:1.7}.controls{padding:12px 0;display:flex;flex-wrap:wrap;gap:6px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{background:#22343f;border:1px solid #4b6573;border-radius:8px;padding:12px;min-width:0}iframe{width:100%;height:610px;border:0;background:#18232d}.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.tile{padding:10px;border:1px solid #617884;border-radius:8px;background:#243845}.tile.selected{border:2px solid #8de4df}.checker{background-color:#74868c;background-image:linear-gradient(45deg,#62757d 25%,transparent 25%),linear-gradient(-45deg,#62757d 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#62757d 75%),linear-gradient(-45deg,transparent 75%,#62757d 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}.tile img{display:block;width:100%;height:235px;object-fit:contain;cursor:pointer}.tile p{font-size:12px;min-height:3em}.compareCanvas{width:100%;height:auto;max-height:560px;object-fit:contain}.caption{color:#bbd0da;font-size:13px}#status{white-space:pre-wrap}section{margin:28px 0}#progress{color:#c1eee3}button:disabled{opacity:.5;cursor:wait}@media(max-width:750px){.pair{grid-template-columns:1fr}.gallery{grid-template-columns:1fr 1fr}.tile img{height:190px}body{padding:0 12px}iframe{height:590px}}
+</style>
+<h1>髪素材の変更比較</h1>
+<p class="note">原素材と前髪・後ろ髪の各3回の編集結果です。<strong>すべて比較専用・未承認</strong>です。過去の実験指標による拒否は変更していません。IoUは編集前後の輪郭一致度で、頭部の覆い方や美術品質の合否ではありません。新しい生成や自動採用は行いません。</p>
+    ```
+  - ADD `ui/texture-compare.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `3390b9db1d094ab367a9a59ff51fa3d3d6f7e415c0046da4d8a12f452df0c9e7`
+    ```text
+/* Read-only comparison. Existing rejected assets never enter the QA pipeline. */
+(async()=>{
+ const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),id=params.get('session');
+ const images={},state={ready:false,playing:false,time:0,camera:null,request:0,frames:null};let config;
+ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+ async function loadFrame(frame,url){const started=Date.now();await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('プレビューの読み込みがタイムアウトしました。')),60000);frame.onload=()=>{clearTimeout(timer);resolve();};frame.src=url;});while(!frame.contentWindow.preview?.ready){if(frame.contentWindow.preview?.error)throw Error(frame.contentWindow.preview.error);if(Date.now()-started>60000)throw Error('プレビューの準備に時間がかかっています。');await sleep(50);}return frame.contentWindow.preview;}
+    ```
+  - ADD `ui/timing.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `1b1afcde2ab368618089ad0c57022f3bad9e614e5bdb3018b728ce27d220c033`
+    ```text
+/* Shared read-only presentation. Physical incorporation is never quality approval. */
+window.renderProductionTiming=(container,value)=>{
+ container.replaceChildren();if(!value){container.textContent='計時記録は未確認です。';return;}
+ const text=(tag,v)=>{const e=document.createElement(tag);e.textContent=v;return e;},seconds=v=>typeof v==='number'&&Number.isFinite(v)?v.toFixed(1)+' 秒':'未計測';
+ container.append(text('h3','実測時間（この候補）'),text('p','写真を今回の制作へ送信 → 初回組立：'+seconds(value.first_assembly_seconds)+' ／ 選択候補の組立：'+seconds(value.selected_assembly_seconds)),text('p','待機・設計・再生成を含みます。部品の採用は、この候補の組立での使用であり、美術承認ではありません。時間不明は0秒にしません。'));
+ if(value.selected_assembly_seconds===null)container.append(text('p','制作記録の経過：'+seconds(value.flow_observed_seconds)+' ／ 未組立のため完成時間は未計測です。'));
+    ```
+  - ADD `ui/trials.html`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `7dc4ba79b65f4fc2873b7262e3e04e27815d962f2b5a7bb0545699f9e866eb78`
+    ```text
+<!doctype html><html lang="ja"><meta charset="utf-8"><title>素材仕様の試験</title><link rel="icon" href="data:,">
+<style>body{font:15px system-ui;background:#18232d;color:#eef;margin:24px}button,input,select,textarea{padding:7px;margin:5px}a{color:#9de}label{display:inline-block}canvas{background:repeating-conic-gradient(#65717a 0% 25%,#45535f 0% 50%) 0/24px 24px;max-width:100%}.grid{display:flex;gap:24px;flex-wrap:wrap}iframe{width:570px;height:1060px;border:1px solid #789}pre{white-space:pre-wrap;max-width:1000px}textarea{width:320px}fieldset{max-width:810px}button:disabled{opacity:.5}</style>
+<h1>素材仕様の試験</h1><p>実験用です。サイズ・アンカー・接合部は未確定です。初期設定では画像生成の実行が無効です。</p>
+<p>胴体の裾には連続した丸い（碗形の）パンツ色パネルを残せます。動くパンツの脚は脚レイヤーに描きます。スカートは独立レイヤーとし、トロット動作で脚との遮蔽を確認します。</p>
+<p>指定された入力フォルダーのPNGを新しい素材に置き換えてから、画像を再読込してください。元画像は候補ごとに保存されます。</p>
+<label>部位<select id="part"></select></label><label>出力解像度<select id="resolution"><option value="1">基準の1倍</option><option value="2">基準の2倍</option><option value="4">基準の4倍</option></select></label><button id="reload">入力画像を再読込</button>
+    ```
+  - ADD `ui/trials.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `aa6908236df4e9b83f85b90ff25d84839e5dfdcae8ff5baeb40297f68520e980`
+    ```text
+/* Local experimental part alignment; authoritative raster transform runs in Python. */
+(async()=>{
+ const $=id=>document.getElementById(id), canvas=$('fit'),ctx=canvas.getContext('2d');
+ let config,profile,initial,reference,input,box,records=[];
+ const names={HAIR_FRONT:'髪・正面',HAIR_BACK:'髪・背面',BODY_FRONT:'胴体・正面',BODY_BACK:'胴体・背面',ARM_FRONT:'腕・正面',ARM_BACK:'腕・背面',LEG_FRONT:'脚・正面',LEG_BACK:'脚・背面',HEAD_FRONT:'頭・正面（旧候補）',HEAD_BACK:'頭・背面（旧候補）'};
+ const result=message=>$('result').textContent=message;
+    ```
+  - ADD `ui/viewer.js`; location `initial clean source import`; lines `1-6`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `f0d80228faa1c1ac618cd7c2431d6f3324afb96d014d8d1dc8d313a77b67745a`
+    ```text
+/* Official Spine Canvas 4.3 Runtime; use triangle rendering for weighted meshes. */
+(async () => {
+ const status=document.querySelector('#status'), canvas=document.querySelector('canvas'), ctx=canvas.getContext('2d');
+ try {
+ const prefix=location.pathname.match(/^\/(?:character-view\/[0-9a-f]{64}|repair-view\/repair-[a-f0-9]{32}\/[0-9a-f]{64}|flow-view\/flow-[a-f0-9]{32}\/[0-9a-f]{64}|texture-view\/texture-[a-f0-9]{32}\/(?:source|v[0-3]-[0-3]))/)?.[0]||(location.pathname.startsWith('/baseline/')?'/baseline':'');
+ const manifest=await (await fetch(prefix+'/manifest.json')).json();
+    ```
+  - ADD `使用说明.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `07526b4f8b2e52c63d6582ce0b6112c2992daaab008a76dfce7b2a77fcf16c17`
+  - ADD `文件分类与发布说明.md`; location `clean initial release / PRODUCT_SOURCE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `b9abc1241810a0f9342c0b1ace2dbcf0417a5ec08aedcd78cceab86050890b20`
+  - ADD `releases/spine-skin-tool-0.1.0-20261104.zip`; location `clean initial release / VERIFIED_SOURCE_ARCHIVE`; lines `n/a`; reason: 干净工具首次导入，仅白名单源码/契约/开发测试或经核验源码ZIP，无个人数据/凭据/参考原画。
+    - SHA256: before `None`; after `2bb3dce1ae4e3e31a9c542991bdc8595cde1581ff58f761ee8593a7dc5a46ab3`
+- Tests (actual outcomes only):
+  - `python -B -m unittest test_distribution test_maintenance test_environment -v` : `PASS` (exit `0`); evidence: 30 tests / 3.116s：私密哨兵排除、凭证样式拒绝、素材导入不覆盖、本地配置不重置。
+  - `python -B runtime/work/M08/release016/parallel_regression.py` : `PASS` (exit `0`); evidence: 339 tests, 280.140s, exact ID coverage/no skips/unchanged source; fingerprint 6aebc160ab078cc6c806f8268613b371b0ef6432677358baa9281d7bb11a9b3b. Final attributes preserve original bytes across Git/ZIP, no newline filters. No model calls.
+  - `python -B scripts/bootstrap.py --install --online (first isolated attempt)` : `FAIL` (exit `1`); evidence: System Node24.12 differed from pinned22.17.1. Correctly refused; no pin relaxed.
+  - `python -B scripts/bootstrap.py --install --online (isolated pinned environment)` : `PASS` (exit `0`); evidence: Source-only ZIP extracted to new directory on same Windows host. Fresh venv/node_modules and lockfiles rebuilt. Official Node22.17.1 ZIP verified against official SHASUMS256.txt. Not clean-new-Windows validation.
+  - `python -B scripts/reference_assets.py --source <licensed-library>` : `PASS` (exit `0`); evidence: 39 required original files imported to ignored private library, no source artwork in Git/archive.
+  - `python -B scripts/configure_subscription.py` : `PASS` (exit `0`); evidence: Existing operator CLI ChatGPT login reused via login status, new configs disabled, 0 model calls, no tokens copied/read/printed.
+  - `node scripts/check_preview.cjs http://127.0.0.1:8784` : `PASS` (exit `0`); evidence: New isolated install actual Runtime:24 samples,11 original skins,0 browser/HTTP errors; not new generated-character quality approval.
+  - `headless Playwright route checks on isolated install` : `PASS` (exit `0`); evidence: /characters,/reviews,/repairs,/trials,/acceptance; Japanese UI;0 errors/HTTP failures/writes; empty tasks/photos/sources/reservations. Private harness not part of source package.
+  - `python -B scripts/package_release.py --output runtime/output/M08/spine-skin-tool-0.1.0-20261104.zip` : `PASS` (exit `0`); evidence: 204 files; per-file SHA and manifest verified, no user data/credentials/reference art. Final ZIP SHA256 2bb3dce1ae4e3e31a9c542991bdc8595cde1581ff58f761ee8593a7dc5a46ab3. Synthetic-marker false positive was fixed in the test, not by weakening scanner.
+- Risks: COMPLETE限本次干净源码交付实现与本地验证，Git远端发布以实际branch/commit为准。; M08整体PARTIAL，生产尺寸、最终美术、全新Windows、完整故障可靠性和原画公开再分发未全部验收。; 无真实照片、生成角色、模型日志、API配置、订阅凭证/会话或原画；需本人准备依赖/授权素材并登录。; 原有本机资料与父项目未提交文件保持不变；不自动合并main。
+- Next task: 操作者按根使用说明准备本人原素材/登录，授权后制作；后续质量验收按既有门禁。
