@@ -15,11 +15,15 @@ export function TabletCity({
   motion,
   sample,
   focus,
+  reliableFocus,
+  onFocusApplied,
 }: {
   snapshot: CitySnapshot;
   motion: boolean;
   sample: boolean;
   focus: { id: string; residentId: string; expiresAt: number } | null;
+  reliableFocus: { requestId: string; residentId: string } | null;
+  onFocusApplied: (requestId: string) => Promise<void>;
 }) {
   const parent = useRef<HTMLDivElement>(null);
   const city = useRef<IllustratedCity | null>(null);
@@ -53,6 +57,13 @@ export function TabletCity({
     lastFocus.current = focus.id;
     select(focus.residentId);
   }, [focus, residents, select]);
+  const lastReliableFocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ready || !reliableFocus || lastReliableFocus.current === reliableFocus.requestId) return;
+    if (!residents.some((resident) => resident.residentId === reliableFocus.residentId)) return;
+    lastReliableFocus.current = reliableFocus.requestId;
+    select(reliableFocus.residentId);
+  }, [ready, reliableFocus, residents, select]);
   useEffect(() => {
     if (!parent.current) return;
     let active = true;
@@ -114,6 +125,34 @@ export function TabletCity({
     city.current?.setMotionEnabled(enabled);
   }, [residents, motion]);
   const active = view.active;
+  const focusRendered = Boolean(
+    ready &&
+      reliableFocus &&
+      active?.kind === "profile" &&
+      active.id === reliableFocus.residentId &&
+      anchor?.kind === "profile" &&
+      anchor.id === reliableFocus.residentId &&
+      anchor.cameraZoom > 1,
+  );
+  const reliableFocusId = reliableFocus?.requestId;
+  useEffect(() => {
+    if (!focusRendered || !reliableFocusId) return;
+    const requestId = reliableFocusId;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    async function acknowledge() {
+      try {
+        await onFocusApplied(requestId);
+      } catch {
+        if (!stopped) timer = setTimeout(acknowledge, 1000);
+      }
+    }
+    void acknowledge();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [focusRendered, reliableFocusId, onFocusApplied]);
   const resident = residents.find((item) => item.residentId === active?.id);
   useEffect(() => {
     if (!ready) return;

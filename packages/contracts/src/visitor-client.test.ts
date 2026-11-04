@@ -2,6 +2,25 @@ import { describe, expect, it } from "vitest";
 import { createDevelopmentClient } from "./development-client";
 
 describe("additive persistent visitor transport", () => {
+  it("sends the same request id and validates focus status responses", async () => {
+    const id = "66666666-6666-4666-8666-666666666666";
+    const calls: string[] = [];
+    const client = createDevelopmentClient({
+      apiPath: "/api/visitor",
+      fetch: async (input, init) => {
+        calls.push(`${String(input)} ${init?.method} ${init?.body ?? ""}`);
+        return Response.json({
+          mode: "MOCK",
+          requestId: id,
+          status: calls.length === 1 ? "PENDING" : "APPLIED",
+        });
+      },
+    });
+    expect((await client.requestFocus(id)).status).toBe("PENDING");
+    expect((await client.focusStatus(id)).status).toBe("APPLIED");
+    expect(calls[0]).toContain(`"requestId":"${id}"`);
+    expect(calls[1]).toContain(`/focus-requests/${id} GET`);
+  });
   it("shares simultaneous session initialization to avoid losing one anonymous identity", async () => {
     let issued = 0;
     const client = createDevelopmentClient({

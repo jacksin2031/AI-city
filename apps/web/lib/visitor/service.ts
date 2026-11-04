@@ -36,6 +36,49 @@ const SafeId = z
   .min(1)
   .max(128)
   .regex(/^[A-Za-z0-9_-]+$/);
+const FocusId = z.uuid();
+const FOCUS_LIFETIME_MS = 60_000;
+const FOCUS_RETENTION_MS = 300_000;
+const MAX_FOCUS_REQUESTS = 128;
+const FocusQueueSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  requests: z
+    .array(
+      z.strictObject({
+        requestId: FocusId,
+        ownerDigest: DIGEST,
+        residentId: SafeId,
+        createdAt: z.number().int().nonnegative(),
+        expiresAt: z.number().int().nonnegative(),
+        appliedAt: z.number().int().nonnegative().nullable(),
+      }),
+    )
+    .max(MAX_FOCUS_REQUESTS),
+});
+type FocusEntry = z.infer<typeof FocusQueueSchema>["requests"][number];
+type FocusStatus = "PENDING" | "APPLIED" | "EXPIRED" | "CANCELLED";
+
+async function readFocusQueue(tx: VisitorTransaction) {
+  const raw = await tx.get("meta/focus-queue");
+  try {
+    return raw ? FocusQueueSchema.parse(raw) : { schemaVersion: 1 as const, requests: [] };
+  } catch {
+    throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+  }
+}
+function focusState(entry: FocusEntry, state: VisitorState, now: number): FocusStatus {
+  if (entry.appliedAt !== null) return "APPLIED";
+  if (
+    !state.residents.some(
+      (r) =>
+        r.ownerDigest === entry.ownerDigest &&
+        r.resident.residentId === entry.residentId &&
+        r.expiresAt > now,
+    )
+  )
+    return "CANCELLED";
+  return entry.expiresAt <= now ? "EXPIRED" : "PENDING";
+}
 
 const RequestTombstoneSchema = z.strictObject({
   requestId: SafeId,
@@ -570,6 +613,106 @@ export class VisitorService {
     });
 
     return unwrap(outcome);
+  }
+
+  async requestFocus(
+    token: string,
+    rawId: string,
+  ): Promise<{ requestId: string; status: FocusStatus }> {
+    const requestId = FocusId.parse(rawId);
+    const digest = digestToken(token);
+    if (!digest) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const now = this.now();
+    const result = await this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${digest}`));
+      const job = parseJob(await tx.get(`jobs/${digest}`));
+      const queue = await readFocusQueue(tx);
+      if (!validSession(session, digest, state, now)) return failure("SESSION_REQUIRED", 401);
+      const existing = queue.requests.find((entry) => entry.requestId === requestId);
+      if (existing) {
+        if (existing.ownerDigest !== digest) return failure("IDEMPOTENCY_CONFLICT");
+        return success({ requestId, status: focusState(existing, state, now) });
+      }
+      const resident = job?.resident;
+      if (
+        !job ||
+        job.ownerDigest !== digest ||
+        job.job.jobId !== session.currentJob ||
+        job.publication !== "PUBLISHED" ||
+        !resident ||
+        !state.residents.some(
+          (r) =>
+            r.ownerDigest === digest &&
+            r.resident.residentId === resident.residentId &&
+            r.expiresAt > now,
+        )
+      )
+        return failure("JOB_NOT_READY");
+      const retained = queue.requests.filter((entry) => entry.createdAt + FOCUS_RETENTION_MS > now);
+      if (retained.length >= MAX_FOCUS_REQUESTS) return failure("FOCUS_QUEUE_FULL", 429);
+      retained.push({
+        requestId,
+        ownerDigest: digest,
+        residentId: resident.residentId,
+        createdAt: now,
+        expiresAt: now + FOCUS_LIFETIME_MS,
+        appliedAt: null,
+      });
+      setDocument(tx, "meta/focus-queue", { schemaVersion: 1, requests: retained });
+      return success({ requestId, status: "PENDING" as const });
+    });
+    return unwrap(result);
+  }
+
+  async focusStatus(
+    token: string,
+    rawId: string,
+  ): Promise<{ requestId: string; status: FocusStatus }> {
+    const requestId = FocusId.parse(rawId);
+    const digest = digestToken(token);
+    if (!digest) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const now = this.now();
+    const result = await this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${digest}`));
+      const queue = await readFocusQueue(tx);
+      if (!validSession(session, digest, state, now)) return failure("SESSION_REQUIRED", 401);
+      const entry = queue.requests.find(
+        (item) => item.requestId === requestId && item.ownerDigest === digest,
+      );
+      if (!entry) return failure("FOCUS_NOT_FOUND", 404);
+      return success({ requestId, status: focusState(entry, state, now) });
+    });
+    return unwrap(result);
+  }
+
+  async nextFocus(): Promise<{ requestId: string; residentId: string } | null> {
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const queue = await readFocusQueue(tx);
+      const entry = queue.requests.find((item) => focusState(item, state, now) === "PENDING");
+      return entry ? { requestId: entry.requestId, residentId: entry.residentId } : null;
+    });
+  }
+
+  async ackFocus(rawId: string): Promise<{ requestId: string; status: "APPLIED" }> {
+    const requestId = FocusId.parse(rawId);
+    const now = this.now();
+    const result = await this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const queue = await readFocusQueue(tx);
+      const entry = queue.requests.find((item) => item.requestId === requestId);
+      if (!entry) return failure("FOCUS_NOT_FOUND", 404);
+      const status = focusState(entry, state, now);
+      if (status === "APPLIED") return success({ requestId, status: "APPLIED" as const });
+      if (status !== "PENDING") return failure("FOCUS_UNAVAILABLE");
+      entry.appliedAt = now;
+      setDocument(tx, "meta/focus-queue", queue);
+      return success({ requestId, status: "APPLIED" as const });
+    });
+    return unwrap(result);
   }
 
   async current(token: string): Promise<ParticipationView | null> {

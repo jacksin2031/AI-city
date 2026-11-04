@@ -26,6 +26,66 @@ const request = (path: string, body?: unknown, cookie?: string) =>
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 describe("persistent visitor HTTP boundary", () => {
+  it("accepts an idempotent focus request only from its owner and exposes its status", async () => {
+    let now = 100000;
+    const service = new VisitorService(new MemoryVisitorStore(), () => now);
+    const person = await service.createSession(undefined, (await service.createInvitation()).code);
+    const other = await service.createSession(undefined, (await service.createInvitation()).code);
+    const job = await service.createJob(person.token, {
+      eventId: "fixture-event",
+      requestId: "focus-job",
+      nickname: "架空",
+      sampleId: "sora",
+      answers: null,
+      scenario: "SUCCESS",
+    });
+    now += 1200;
+    await service.getJob(person.token, job.job.jobId);
+    await service.confirm(person.token, job.job.jobId, {
+      avatarPublicConsent: true,
+      consentVersion: 2,
+      publicationScope: "HOSTED_PREVIEW",
+      fields: { nickname: true, personality: false, interests: false },
+    });
+    const cookie = `ai-city-visitor=${security.signSession(person.token)}`;
+    const otherCookie = `ai-city-visitor=${security.signSession(other.token)}`;
+    const requestId = "44444444-4444-4444-8444-444444444444";
+    expect(
+      (
+        await handleVisitorRequest(
+          request("focus-requests", { requestId, residentId: "other" }, cookie),
+          service,
+          true,
+          origin,
+        )
+      ).status,
+    ).toBe(400);
+    const sent = await handleVisitorRequest(
+      request("focus-requests", { requestId }, cookie),
+      service,
+      true,
+      origin,
+    );
+    expect(await sent.json()).toEqual({ mode: "MOCK", requestId, status: "PENDING" });
+    expect(
+      (
+        await handleVisitorRequest(
+          request(`focus-requests/${requestId}`, undefined, otherCookie),
+          service,
+          true,
+          origin,
+        )
+      ).status,
+    ).toBe(404);
+    await service.ackFocus(requestId);
+    const status = await handleVisitorRequest(
+      request(`focus-requests/${requestId}`, undefined, cookie),
+      service,
+      true,
+      origin,
+    );
+    expect((await status.json()).status).toBe("APPLIED");
+  });
   it("rejects focus requests without a published visitor session", async () => {
     const service = new VisitorService(new MemoryVisitorStore());
     expect((await handleVisitorRequest(request("focus", {}), service, true, origin)).status).toBe(

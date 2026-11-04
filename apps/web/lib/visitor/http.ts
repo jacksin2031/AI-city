@@ -4,6 +4,7 @@ import {
   isDevelopmentValidationError,
   PublishRequestSchema,
 } from "@ai-city/contracts/development";
+import { FocusRequestInputSchema, FocusStatusResponseSchema } from "@ai-city/contracts/focus-link";
 import { VisitorSessionRequestSchema } from "@ai-city/contracts/visitor";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
@@ -81,6 +82,24 @@ export async function handleVisitorRequest(
     if (path.startsWith("city/")) throw new DevelopmentServiceError("NOT_FOUND", 404);
     if (!token) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
     security.allow(`session:${rawCredential}`);
+    if (request.method === "POST" && path === "focus-requests") {
+      const input = FocusRequestInputSchema.parse(await readJsonBody(request));
+      return json(
+        FocusStatusResponseSchema.parse({
+          mode: "MOCK",
+          ...(await service.requestFocus(token, input.requestId)),
+        }),
+      );
+    }
+    const focusMatch = /^focus-requests\/([A-Za-z0-9-]+)$/.exec(path);
+    if (request.method === "GET" && focusMatch?.[1]) {
+      return json(
+        FocusStatusResponseSchema.parse({
+          mode: "MOCK",
+          ...(await service.focusStatus(token, focusMatch[1])),
+        }),
+      );
+    }
     if (request.method === "POST" && path === "focus") {
       EmptyDevelopmentRequestSchema.parse(await readJsonBody(request));
       const view = await service.current(token);

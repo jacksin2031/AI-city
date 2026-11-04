@@ -8,6 +8,7 @@ import {
 } from "@ai-city/contracts/development-client";
 import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useReliableFocus } from "./use-reliable-focus";
 
 const questions = [
   ["初めての人と出会ったら？", ["まず様子を見る", "あいさつする", "自分から話しかける"]],
@@ -38,9 +39,9 @@ export function ParticipationFlow({
     [persistent],
   );
   const [loading, setLoading] = useState(true);
+  const focusRequest = useReliableFocus(client);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [focusStatus, setFocusStatus] = useState("");
   const [view, setView] = useState<ParticipationView | null>(null);
   const [nickname, setNickname] = useState("そら");
   const [sampleId, setSampleId] = useState<CreateJobRequest["sampleId"]>("sora");
@@ -415,25 +416,12 @@ export function ParticipationFlow({
                   <span>管理者が「参加者の街」に切り替えると、展示タブレットで確認できます。</span>
                   <button
                     type="button"
-                    disabled={busy}
-                    onClick={async () => {
-                      setBusy(true);
-                      setFocusStatus("");
-                      try {
-                        await client.focus();
-                        setFocusStatus(
-                          "リクエストを送りました。平板が参加者の街に接続中か確認してください。",
-                        );
-                      } catch (failure) {
-                        setFocusStatus(message(failure));
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
+                    disabled={busy || focusRequest.busy}
+                    onClick={focusRequest.send}
                   >
                     平板で自分のキャラクターに注目
                   </button>
-                  {focusStatus && <p role="status">{focusStatus}</p>}
+                  {focusRequest.message && <p role="status">{focusRequest.message}</p>}
                 </>
               ) : (
                 <Link href="/city?mode=participants">街で確認</Link>

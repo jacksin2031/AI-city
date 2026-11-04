@@ -1,6 +1,6 @@
 # 共享 Contracts
 
-当前为 `packages/contracts` v0.6.0（含设备联动、持久访客传输及虚构预设住民控制），Zod schema 为字段来源，变更记录见 `packages/contracts/CHANGELOG.md`。全部 fixture 都是虚构信息。它不是完整生产协议或后端授权实现。原 v0.2 导出保持兼容；`development` 子路径提供本地接入专用严格 DTO，要求有效 READY 结果及时间字段。
+当前为 `packages/contracts` v0.7.0（含设备联动、持久访客传输、聚焦确认及虚构预设住民控制），Zod schema 为字段来源，变更记录见 `packages/contracts/CHANGELOG.md`。全部 fixture 都是虚构信息。它不是完整生产协议或后端授权实现。原 v0.2 导出保持兼容；`development` 子路径提供本地接入专用严格 DTO，要求有效 READY 结果及时间字段。
 
 本地接入入口：`@ai-city/contracts/development`（schema、类型、fixtures）和 `@ai-city/contracts/development-client`（型别化 HTTP client）。权威名单为 `CitySnapshot`，变化为连续序号的 `CityEventPage`；重启由 `streamId` 变化识别。素材为 `REFERENCE_ONLY`，不是已存在的图片。完整接入及限制见 [A/B 本地接入基础](A_B_LOCAL_INTEGRATION.md)。
 
@@ -12,6 +12,8 @@
 - `DialogueRequest` / `DialogueResult`：请求只带两个不同居民 ID，公开上下文由服务端查找，不传私人答案；结果必须标明 LIVE 或 PRESET 来源及安全结果，BLOCKED 不带台词。
 
 设备管理 `presetIds` 是固定虚构目录的选择，不进入参与者名册；平板公开快照按展示流版本合并。管理端和服务端需一起更新，重新启动会丢失选择。
+
+`focus-link` 使用访客请求 ID 排队，平板在角色画面渲染后确认；服务端验证本人会话及已公开住民，不接受客户端指定住民。请求 60 秒过期，状态记录在 5 分钟后可于后续新请求时清理，队列最多 128 条；满载时拒绝新请求。断线或确认响应丢失时可能重复投递，不能保证恰好显示一次。旧聚焦接口保留以兼容旧客户端；新客户端需新服务端。设备配对仍为进程内状态，进程重启后须重新配对，多实例及真实平板验收尚未完成。
 
 Fixtures（`@ai-city/contracts/fixtures`）提供居民、素材清单、五种任务状态、居民与模式事件和预设对话，供 A/B 并行开发；素材路径只是引用，尚无实际图片。
 

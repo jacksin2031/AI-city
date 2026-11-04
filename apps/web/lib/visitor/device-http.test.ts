@@ -154,6 +154,43 @@ describe("persistent snapshot device authorization", () => {
     const admin = device.login("a".repeat(64));
     const display = device.pair(device.createPairing(admin).code);
     device.update(admin, { expectedRevision: 0, displayMode: "LIVE" });
+    const reliableId = "55555555-5555-4555-8555-555555555555";
+    await visitor.requestFocus(participant.token, reliableId);
+    expect(
+      (await handlePersistentDeviceRequest(request("focus-next"), device, visitor, true, base))
+        .status,
+    ).toBe(401);
+    const nextFocus = await handlePersistentDeviceRequest(
+      request("focus-next", display),
+      device,
+      visitor,
+      true,
+      base,
+    );
+    expect((await nextFocus.json()).focus).toEqual({
+      requestId: reliableId,
+      residentId: view.resident?.residentId,
+    });
+    expect(
+      (
+        await handlePersistentDeviceRequest(
+          request("focus-ack", display, { requestId: reliableId, residentId: "other" }),
+          device,
+          visitor,
+          true,
+          base,
+        )
+      ).status,
+    ).toBe(400);
+    const ack = await handlePersistentDeviceRequest(
+      request("focus-ack", display, { requestId: reliableId }),
+      device,
+      visitor,
+      true,
+      base,
+    );
+    expect((await ack.json()).status).toBe("APPLIED");
+    expect((await visitor.focusStatus(participant.token, reliableId)).status).toBe("APPLIED");
     const security = createVisitorBoundary("fixture-only-stable-key".repeat(3), "focus-test");
     const visitorCookie = security.signSession(participant.token);
     const focusRequest = (body: unknown) =>

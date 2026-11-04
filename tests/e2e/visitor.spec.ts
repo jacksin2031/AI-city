@@ -312,6 +312,9 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     await visitor.getByRole("button", { name: "平板で自分のキャラクターに注目" }).click();
     await expect(profile).toBeVisible();
     expect(Number(await profile.getAttribute("data-camera-zoom"))).toBeGreaterThan(1);
+    await expect(
+      visitor.getByRole("status").filter({ hasText: "平板でキャラクターを表示しました。" }),
+    ).toBeVisible();
     const publicSnapshot = await (await tabletContext.request.get("/api/link/display")).json();
     expect(publicSnapshot.snapshot.residents[0]).toMatchObject({
       personalityLabel: "非公開",

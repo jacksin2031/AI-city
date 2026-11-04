@@ -1,7 +1,7 @@
 {
   "name": "@ai-city/contracts",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -10,6 +10,7 @@
     "./development-client": "./src/development-client.ts",
     "./device-link": "./src/device-link.ts",
     "./device-client": "./src/device-client.ts",
+    "./focus-link": "./src/focus-link.ts",
     "./visitor": "./src/visitor.ts"
   },
   "scripts": {
