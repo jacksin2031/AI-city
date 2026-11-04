@@ -26,6 +26,22 @@ const request = (path: string, body?: unknown, cookie?: string) =>
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 describe("persistent visitor HTTP boundary", () => {
+  it("rejects focus requests without a published visitor session", async () => {
+    const service = new VisitorService(new MemoryVisitorStore());
+    expect((await handleVisitorRequest(request("focus", {}), service, true, origin)).status).toBe(
+      401,
+    );
+    const session = await handleVisitorRequest(
+      request("session", await admission(service)),
+      service,
+      true,
+      origin,
+    );
+    const cookie = session.headers.get("set-cookie")?.split(";")[0];
+    expect(
+      (await handleVisitorRequest(request("focus", {}, cookie), service, true, origin)).status,
+    ).toBe(409);
+  });
   it("is disabled by default and does not mint credentials in JSON", async () => {
     const service = new VisitorService(new MemoryVisitorStore());
     expect(
