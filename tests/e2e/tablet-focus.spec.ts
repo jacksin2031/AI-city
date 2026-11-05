@@ -65,7 +65,7 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     await page.touchscreen.tap(100, 650);
     await expect(profile).toHaveCount(0);
     await expect(page.locator(".tablet-scene-canvas")).toHaveAttribute("data-camera-zoom", "1");
-    await page.touchscreen.tap(box.x + (412 / 960) * box.width, box.y + (232 / 600) * box.height);
+    await page.touchscreen.tap(box.x + (519 / 960) * box.width, box.y + (330 / 600) * box.height);
     const other = page.getByRole("region", { name: "はる", exact: true });
     await expect(other).toBeVisible();
     await expect(other).toHaveAttribute("data-actor-x", "480");

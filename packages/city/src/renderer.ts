@@ -8,6 +8,7 @@ import {
   DEFAULT_ZOOM,
   focusCamera,
   panCamera,
+  project,
   projectResident,
   RESIDENT_HEIGHT,
   RESIDENT_METRES_PER_UNIT,
@@ -29,7 +30,7 @@ import {
   stepActor,
 } from "./simulation";
 import { createTraffic, type TrafficData } from "./traffic-scene";
-import { cityViewport } from "./viewport";
+import { cityViewport, nextVisibleTourIndex, pointInVisibleCity } from "./viewport";
 import { type CityPlaces, createWorld, heightAt, parseGrid, tour, type World } from "./world";
 
 export type IllustratedCity = {
@@ -630,6 +631,16 @@ function startCity(
   canvas.addEventListener("pointercancel", onPointerUp);
   canvas.addEventListener("wheel", onWheel, { passive: false });
 
+  function inView(point: { x: number; y: number }, cameraView: SceneCamera): boolean {
+    const screen = project({ ...point, height: groundAt(point.x, point.y) }, cameraView);
+    return pointInVisibleCity(
+      screen,
+      parent.clientWidth || SCREEN.width,
+      parent.clientHeight || SCREEN.height,
+      options.fillViewport ?? false,
+    );
+  }
+
   function stepTour(seconds: number) {
     if (presentation || selectedId || clock < userHoldUntil || !moving) return;
     if (tourGlide) {
@@ -640,16 +651,29 @@ function startCity(
     }
     tourWait -= seconds;
     if (tourWait > 0) return;
-    tourStep = (tourStep + 1) % tour.length;
-    const next = tour[tourStep] ?? start;
+    const present = [...entries.values()].filter((entry) => !entry.leaveAt);
+    const viewFor = (point: { x: number; y: number }) =>
+      clampCamera({
+        centerX: point.x,
+        centerY: point.y,
+        height: groundAt(point.x, point.y),
+        zoom: DEFAULT_ZOOM,
+      });
+    const nextVisible = present.length
+      ? nextVisibleTourIndex(tourStep, tour.length, (index) => {
+          const point = tour[index];
+          return Boolean(point && present.some((entry) => inView(entry.actor, viewFor(point))));
+        })
+      : null;
+    tourStep = nextVisible ?? (tourStep + 1) % tour.length;
+    // When none of the landmarks can show a resident, centre a resident instead.
+    const next =
+      nextVisible === null && present.length
+        ? (present[tourStep % present.length]?.actor ?? start)
+        : (tour[tourStep] ?? start);
     tourGlide = {
       from: view,
-      to: clampCamera({
-        centerX: next.x,
-        centerY: next.y,
-        height: groundAt(next.x, next.y),
-        zoom: DEFAULT_ZOOM,
-      }),
+      to: viewFor(next),
       t: 0,
     };
     tourWait = 10;
@@ -714,7 +738,7 @@ function startCity(
         entry.actor.action === "idle" &&
         entry.actor.elapsed > 2.6 + index * 0.7
       )
-        entry.actor = commandActor(world, entry.actor, "walk");
+        entry.actor = commandActor(world, entry.actor, "walk", (point) => inView(point, shown));
       if (previousAction !== entry.actor.action) options.onAction?.(id, entry.actor.action);
       entry.facing = facingFor(
         entry.actor.heading,
@@ -907,7 +931,7 @@ function startCity(
             other.actor = commandActor(world, other.actor, "idle");
             options.onAction?.(otherId, "idle");
           }
-      entry.actor = commandActor(world, entry.actor, action);
+      entry.actor = commandActor(world, entry.actor, action, (point) => inView(point, shown));
       options.onAction?.(id, entry.actor.action);
     },
     destroy() {
