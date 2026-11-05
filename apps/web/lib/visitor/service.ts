@@ -15,10 +15,19 @@ import {
   type PublishRequest,
   PublishRequestSchema,
 } from "@ai-city/contracts/development";
-import { SpineTaskStateSchema } from "@ai-city/contracts/spine";
+import {
+  SpinePhotoConsentSchema,
+  SpineTaskIdSchema,
+  SpineTaskStateSchema,
+} from "@ai-city/contracts/spine";
 import { z } from "zod";
 import { DevelopmentServiceError } from "../development/service";
-import { makeSpineJob, publishedSpineRecord, withdrawSpineJobRecord } from "../spine/jobs";
+import {
+  makeCloudSpineJob,
+  makeSpineJob,
+  publishedSpineRecord,
+  withdrawSpineJobRecord,
+} from "../spine/jobs";
 import { removeSpineResident, SpineRosterEntrySchema } from "../spine/roster-index";
 import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
 
@@ -34,6 +43,25 @@ const OpenAdmissionSchema = z.strictObject({
   count: z.number().int().min(1).max(OPEN_ADMISSIONS_PER_MINUTE),
 });
 const DIGEST = z.string().regex(/^[a-f0-9]{64}$/);
+const CloudPhotoReservationsSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  entries: z
+    .record(
+      SpineTaskIdSchema,
+      z
+        .strictObject({
+          owner: DIGEST,
+          photoSha256: DIGEST,
+          consent: SpinePhotoConsentSchema.extend({ recordedAt: z.iso.datetime() }),
+          createdAt: z.number().int().nonnegative(),
+          sessionExpiresAt: z.number().int().nonnegative(),
+          state: z.enum(["RESERVED", "UPLOADING", "CLEANUP_PENDING"]),
+          startedAt: z.number().int().nonnegative().optional(),
+        })
+        .refine((entry) => (entry.state === "RESERVED") === (entry.startedAt === undefined)),
+    )
+    .refine((entries) => Object.keys(entries).length <= MAX_ACTIVE_SESSIONS),
+});
 const INVITATION_DIGEST = z.string().regex(/^[a-f0-9]{64}$/);
 const SafeId = z
   .string()
@@ -501,6 +529,189 @@ export class VisitorService {
     private readonly store: VisitorStore,
     private readonly now: () => number = Date.now,
   ) {}
+
+  /** Internal admission reservation; no photo is uploaded and no generation is started here. */
+  async reserveCloudPhotoUpload(
+    token: string,
+    task: string,
+    photoSha256: string,
+    consent: unknown,
+  ) {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const taskResult = SpineTaskIdSchema.safeParse(task);
+    const digestResult = DIGEST.safeParse(photoSha256);
+    const consentResult = SpinePhotoConsentSchema.safeParse(consent);
+    if (!taskResult.success || !digestResult.success)
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    if (!consentResult.success) throw new DevelopmentServiceError("PHOTO_CONSENT_REQUIRED", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const existing = await tx.get(`requests/spine-owner-${owner}`);
+      const target = await tx.get(`jobs/spine-${task}`);
+      const orphan = await tx.get(`requests/spine-orphan-${task}`);
+      const rawIndex = await tx.get("meta/cloud-photo-uploads");
+      const parsed = CloudPhotoReservationsSchema.safeParse(
+        rawIndex ?? { schemaVersion: 1, entries: {} },
+      );
+      if (!parsed.success) throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      const previousTask = existing?.task;
+      const previous =
+        typeof previousTask === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(previousTask)
+          ? await tx.get(`jobs/spine-${previousTask}`)
+          : null;
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (
+        target ||
+        orphan ||
+        parsed.data.entries[task] ||
+        (existing &&
+          (!previous ||
+            previous.owner !== owner ||
+            previous.state !== "WITHDRAWN" ||
+            previous.cleanupPending !== false))
+      )
+        throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      if (Object.keys(parsed.data.entries).length >= MAX_ACTIVE_SESSIONS)
+        throw new DevelopmentServiceError("LOCAL_CAPACITY", 429);
+      const entry = {
+        owner,
+        photoSha256,
+        consent: { ...consentResult.data, recordedAt: new Date(now).toISOString() },
+        createdAt: now,
+        sessionExpiresAt: session.expiresAt,
+        state: "RESERVED" as const,
+      };
+      const acknowledged = acknowledgeSession(state, owner);
+      if (acknowledged.changed) setDocument(tx, "meta/state", acknowledged.state);
+      tx.set(
+        "meta/cloud-photo-uploads",
+        CloudPhotoReservationsSchema.parse({
+          schemaVersion: 1,
+          entries: { ...parsed.data.entries, [task]: entry },
+        }),
+      );
+      tx.set(`requests/spine-owner-${owner}`, { task });
+      return { task, state: "RESERVED" as const };
+    });
+  }
+
+  /** Record intent before starting I/O; cancellation races through the same transaction. */
+  async beginCloudPhotoUpload(token: string, task: string) {
+    return this.transitionCloudPhotoUpload(token, task, "BEGIN");
+  }
+
+  /** Cancellation after I/O begins must remain pending until the writer and object are reconciled. */
+  async cancelCloudPhotoUpload(token: string, task: string) {
+    return this.transitionCloudPhotoUpload(token, task, "CANCEL");
+  }
+
+  /** Internal only: caller must independently read the exact generation and verify its digest. */
+  async completeCloudPhotoUpload(
+    token: string,
+    task: string,
+    verifiedDigest: string,
+    generation: string,
+  ) {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    if (
+      !SpineTaskIdSchema.safeParse(task).success ||
+      !DIGEST.safeParse(verifiedDigest).success ||
+      !/^[1-9][0-9]{0,19}$/.test(generation)
+    )
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const parsed = CloudPhotoReservationsSchema.safeParse(
+        await tx.get("meta/cloud-photo-uploads"),
+      );
+      const ownerRequest = await tx.get(`requests/spine-owner-${owner}`);
+      const target = await tx.get(`jobs/spine-${task}`);
+      if (!parsed.success) throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const entry = parsed.data.entries[task];
+      if (!entry || entry.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (
+        entry.state !== "UPLOADING" ||
+        entry.photoSha256 !== verifiedDigest ||
+        entry.sessionExpiresAt !== session.expiresAt ||
+        ownerRequest?.task !== task ||
+        target
+      )
+        throw new DevelopmentServiceError("INVALID_REQUEST", 409);
+      const entries = { ...parsed.data.entries };
+      delete entries[task];
+      tx.set(
+        `jobs/spine-${task}`,
+        makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation),
+      );
+      tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
+      return { task, state: "QUEUED" as const };
+    });
+  }
+
+  private async transitionCloudPhotoUpload(
+    token: string,
+    task: string,
+    action: "BEGIN" | "CANCEL",
+  ) {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    if (!SpineTaskIdSchema.safeParse(task).success)
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const rawIndex = await tx.get("meta/cloud-photo-uploads");
+      const ownerRequest = await tx.get(`requests/spine-owner-${owner}`);
+      const parsed = CloudPhotoReservationsSchema.safeParse(rawIndex);
+      if (!parsed.success) throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const entry = parsed.data.entries[task];
+      if (!entry || entry.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (entry.sessionExpiresAt !== session.expiresAt || ownerRequest?.task !== task)
+        throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      if (action === "BEGIN") {
+        if (entry.state !== "RESERVED") throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+        tx.set(
+          "meta/cloud-photo-uploads",
+          CloudPhotoReservationsSchema.parse({
+            ...parsed.data,
+            entries: {
+              ...parsed.data.entries,
+              [task]: { ...entry, state: "UPLOADING", startedAt: now },
+            },
+          }),
+        );
+        return { task, state: "UPLOADING" as const };
+      }
+      if (entry.state === "RESERVED") {
+        const entries = { ...parsed.data.entries };
+        delete entries[task];
+        tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
+        tx.delete(`requests/spine-owner-${owner}`);
+        tx.set(`requests/spine-orphan-${task}`, { cleanup: true });
+        return { task, state: "CANCELLED" as const };
+      }
+      tx.set(
+        "meta/cloud-photo-uploads",
+        CloudPhotoReservationsSchema.parse({
+          ...parsed.data,
+          entries: { ...parsed.data.entries, [task]: { ...entry, state: "CLEANUP_PENDING" } },
+        }),
+      );
+      return { task, state: "CLEANUP_PENDING" as const };
+    });
+  }
 
   /** Atomically bind an already privately stored photo and explicit consent to this live session. */
   async createSpineJob(

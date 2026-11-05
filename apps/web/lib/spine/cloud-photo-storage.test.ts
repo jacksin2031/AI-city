@@ -66,6 +66,12 @@ describe("private cloud photos", () => {
     ).rejects.toThrow();
     expect(big).toHaveBeenCalledTimes(1);
   });
+  it("rejects a different generation from the one returned by upload", async () => {
+    const fetcher = vi.fn().mockResolvedValue(response({ generation: "124", size: "1" }));
+    const storage = new CloudPhotoStorage(bucket, async () => "test-token", fetcher);
+    await expect(storage.read(task, 3, "123")).rejects.toThrow("CLOUD_PHOTO_GENERATION_CHANGED");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it("deletes only the observed generation and checks bucket policy before reporting completion", async () => {
     const fetcher = vi
       .fn()

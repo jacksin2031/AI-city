@@ -75,12 +75,18 @@ export class CloudPhotoStorage {
     return uploaded.parse(await result.json()).generation;
   }
 
-  async read(task: string, maxBytes: number): Promise<Uint8Array | null> {
+  async read(
+    task: string,
+    maxBytes: number,
+    expectedGeneration?: string,
+  ): Promise<Uint8Array | null> {
     const name = this.object(task);
     if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > MAX_PHOTO)
       throw new Error("CLOUD_PHOTO_SIZE");
     const info = await this.objectMetadata(name);
     if (!info) return null;
+    if (expectedGeneration !== undefined && info.generation !== expectedGeneration)
+      throw new Error("CLOUD_PHOTO_GENERATION_CHANGED");
     if (BigInt(info.size) > BigInt(maxBytes) || BigInt(info.size) === 0n)
       throw new Error("CLOUD_PHOTO_SIZE");
     const query = new URLSearchParams({ alt: "media", ifGenerationMatch: info.generation });

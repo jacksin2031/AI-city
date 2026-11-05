@@ -31,6 +31,11 @@ const recordSchema = z
     toolCleanupPending: z.boolean().optional(),
     toolCleanupSafe: z.boolean().optional(),
     publishedPhotoCleanupPending: z.boolean().optional(),
+    photoStorage: z.literal("CLOUD_PRIVATE").optional(),
+    photoGeneration: z
+      .string()
+      .regex(/^[1-9][0-9]{0,19}$/)
+      .optional(),
     toolFlow: z
       .string()
       .regex(/^flow-[a-f0-9]{32}$/)
@@ -39,6 +44,8 @@ const recordSchema = z
     liveIntent: z.boolean().optional(),
   })
   .refine((record) => {
+    if ((record.photoStorage === "CLOUD_PRIVATE") !== (record.photoGeneration !== undefined))
+      return false;
     if (record.state === "WITHDRAWN")
       return (
         !record.processingConsent &&
@@ -87,6 +94,21 @@ export function makeSpineJob(
     toolFlow: null,
     liveIntent: false,
     ...(sessionExpiresAt === undefined ? {} : { sessionExpiresAt }),
+  });
+}
+
+/** Only a server-side verifier may bind an object generation to a queued task. */
+export function makeCloudSpineJob(
+  owner: string,
+  photoSha256: string,
+  consent: SpineConsent,
+  expiresAt: number,
+  generation: string,
+) {
+  return recordSchema.parse({
+    ...makeSpineJob(owner, photoSha256, consent, expiresAt),
+    photoStorage: "CLOUD_PRIVATE",
+    photoGeneration: generation,
   });
 }
 
@@ -190,7 +212,12 @@ export class SpineJobs {
   async queuedForWorker(task: string) {
     return this.store.run(async (tx) => {
       const record = recordSchema.safeParse(await tx.get(this.path(task)));
-      if (!record.success || record.data.state !== "QUEUED") return null;
+      if (
+        !record.success ||
+        record.data.state !== "QUEUED" ||
+        record.data.photoStorage === "CLOUD_PRIVATE"
+      )
+        return null;
       if (!(await sessionActive(tx, record.data, this.now()))) return null;
       return { owner: record.data.owner, photoSha256: record.data.photoSha256 };
     });
