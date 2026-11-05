@@ -58,6 +58,8 @@ const VisitorStateSchema = z.strictObject({
   schemaVersion: z.literal(1),
   streamId: SafeId,
   eventSeq: z.number().int().nonnegative(),
+  // Anonymous running count of public joins. Older documents predate it.
+  joinedTotal: z.number().int().nonnegative().default(0),
   activeSessions: z
     .record(DIGEST, z.number().int().nonnegative())
     .refine((sessions) => Object.keys(sessions).length <= MAX_ACTIVE_SESSIONS),
@@ -147,6 +149,7 @@ function newState(): VisitorState {
     schemaVersion: 1,
     streamId: randomUUID(),
     eventSeq: 0,
+    joinedTotal: 0,
     activeSessions: {},
     pendingSessions: {},
     invitations: {},
@@ -757,6 +760,9 @@ export class VisitorService {
       state = {
         ...state,
         eventSeq: state.eventSeq + 1,
+        // Re-publishing an already public profile is not a new participant.
+        joinedTotal:
+          state.joinedTotal + (state.residents.some((s) => s.ownerDigest === digest) ? 0 : 1),
         residents: [
           ...state.residents.filter((stored) => stored.ownerDigest !== digest),
           { ownerDigest: digest, jobId: id, expiresAt: session.expiresAt, resident },
@@ -910,6 +916,14 @@ export class VisitorService {
           residents.some((resident) => resident.avatarVersion === avatar.manifest.avatarVersion),
         ),
       });
+    });
+  }
+
+  /** Running total of public joins, including participants who later withdrew. */
+  async joinedTotal(): Promise<number> {
+    return this.store.run(async (tx) => {
+      const raw = await tx.get("meta/state");
+      return raw ? parseState(raw).joinedTotal : 0;
     });
   }
 

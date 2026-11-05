@@ -26,3 +26,9 @@ export function reconcileRoster(previous: CityRoster | null, input: unknown): Ci
     removedIds: [...oldIds].filter((id) => !sameStream || !newIds.has(id)),
   };
 }
+
+/** The scene draws at most this many residents; the rest stay registered but off-screen. */
+export const SCENE_RESIDENT_LIMIT = 20;
+export function sceneResidentCount(participants: number): number {
+  return Math.min(Math.max(0, Math.floor(participants)), SCENE_RESIDENT_LIMIT);
+}
