@@ -30,6 +30,7 @@ export function getDevelopmentResidents(): PublicResident[] {
 }
 
 export { type ScenePresentationFrame, speechBounds } from "./focus";
+export { LANDMARKS, type Landmark } from "./landmarks";
 export {
   closePresentation,
   openProfile,
