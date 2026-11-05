@@ -85,8 +85,8 @@ def main():
             flow = json.loads(live_path.read_text(encoding="utf-8"))["flow"]
         else:
             imported = import_photo(workspace, data)
-            # A small cap keeps one design call, the six part images and a single review, no repairs.
-            small = cap <= 8
+            # A small cap keeps one design call, the part images (with retry slack) and a single review, no repairs.
+            small = cap <= 12
             limits = {"max_image_calls": min(14, cap - 2 if small else cap - 4), "max_visual_calls": 1 if small else 3, "max_repair_cycles": 0 if small else 1, "live_design": True, "live_generation": True, "live_review": True, "pause_design": False}
             flow = create(workspace, {"mode": "GENERATE", "photo": imported["photo"], "character_id": task, "limits": limits})["id"]
             with live_path.open("x", encoding="utf-8") as stream:
