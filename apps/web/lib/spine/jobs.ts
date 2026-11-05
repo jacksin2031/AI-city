@@ -1,5 +1,7 @@
+import { SpineBundleSchema } from "@ai-city/contracts";
 import { z } from "zod";
 import type { VisitorStore } from "../visitor/store";
+import { verifySpineBundle } from "./bundle";
 import { createProductionJob, transitionProductionJob } from "./lifecycle";
 
 const id = z.string().regex(/^[A-Za-z0-9_-]{1,96}$/);
@@ -15,10 +17,19 @@ const recordSchema = z
     owner: digest,
     photoSha256: digest.nullable(),
     consent: consentSchema.nullable(),
-    state: z.enum(["QUEUED", "RUNNING", "UNKNOWN", "PUBLISHED", "WITHDRAWN"]),
+    state: z.enum([
+      "QUEUED",
+      "RUNNING",
+      "UNKNOWN",
+      "REQUIRES_REVIEW",
+      "FAILED",
+      "PUBLISHED",
+      "WITHDRAWN",
+    ]),
     processingConsent: z.boolean(),
     publicationConsent: z.boolean(),
     worker: id.nullable(),
+    bundle: SpineBundleSchema.nullable().optional(),
   })
   .refine((record) => {
     if (record.state === "WITHDRAWN")
@@ -27,7 +38,8 @@ const recordSchema = z
         !record.publicationConsent &&
         record.photoSha256 === null &&
         record.consent === null &&
-        record.worker === null
+        record.worker === null &&
+        (record.bundle === null || record.bundle === undefined)
       );
     if (
       !record.processingConsent ||
@@ -36,6 +48,8 @@ const recordSchema = z
       !record.consent
     )
       return false;
+    if (record.state === "PUBLISHED") return record.worker !== null && record.bundle != null;
+    if (record.bundle != null) return false;
     return record.state === "QUEUED" ? record.worker === null : record.worker !== null;
   }, "Inconsistent job state");
 type Consent = {
@@ -59,6 +73,7 @@ export class SpineJobs {
       consent: consentSchema.parse(consent),
       ...createProductionJob(consent),
       worker: null,
+      bundle: null,
     });
     await this.store.run(async (tx) => {
       if (await tx.get(path)) throw new Error("ALREADY_EXISTS");
@@ -95,6 +110,63 @@ export class SpineJobs {
       return next;
     });
   }
+  async markReview(task: string, worker: string) {
+    return this.finishWithoutPublication(task, worker, "REVIEW");
+  }
+  async markFailed(task: string, worker: string) {
+    return this.finishWithoutPublication(task, worker, "FAIL");
+  }
+  private async finishWithoutPublication(task: string, worker: string, type: "REVIEW" | "FAIL") {
+    const path = this.path(task);
+    id.parse(worker);
+    return this.store.run(async (tx) => {
+      const record = recordSchema.parse(await tx.get(path));
+      if (record.worker !== worker) throw new Error("WORKER_MISMATCH");
+      const next = { ...record, ...transitionProductionJob(record, { type }) };
+      tx.set(path, next);
+      return next;
+    });
+  }
+  /** Internal worker boundary: caller must independently authenticate and verify review evidence. */
+  async publish(
+    task: string,
+    worker: string,
+    candidate: {
+      descriptor: z.infer<typeof SpineBundleSchema>;
+      manifest: Uint8Array;
+      assets: Record<string, Uint8Array | undefined>;
+      reviewApproved: boolean;
+    },
+  ) {
+    const path = this.path(task);
+    id.parse(worker);
+    const descriptor = SpineBundleSchema.parse(candidate.descriptor);
+    if (
+      !candidate.reviewApproved ||
+      !verifySpineBundle(descriptor, candidate.manifest, candidate.assets)
+    )
+      throw new Error("BUNDLE_NOT_APPROVED");
+    return this.store.run(async (tx) => {
+      const record = recordSchema.parse(await tx.get(path));
+      if (record.worker !== worker) throw new Error("WORKER_MISMATCH");
+      const next = {
+        ...record,
+        ...transitionProductionJob(record, { type: "PUBLISH", verified: true, approved: true }),
+        bundle: descriptor,
+      };
+      tx.set(path, next);
+      return next;
+    });
+  }
+  /** The public transport must check this on every request; it is not a storage URL. */
+  async publishedBundle(task: string) {
+    return this.store.run(async (tx) => {
+      const record = recordSchema.safeParse(await tx.get(this.path(task)));
+      return record.success && record.data.state === "PUBLISHED"
+        ? (record.data.bundle ?? null)
+        : null;
+    });
+  }
   async withdraw(task: string, owner: string) {
     const path = this.path(task);
     digest.parse(owner);
@@ -107,6 +179,7 @@ export class SpineJobs {
         photoSha256: null,
         consent: null,
         worker: null,
+        bundle: null,
       };
       tx.set(path, next);
       return next;
