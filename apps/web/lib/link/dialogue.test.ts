@@ -153,3 +153,60 @@ describe("fictional dialogue boundary", () => {
     expect((await pending).status).toBe(401);
   });
 });
+
+describe("worker-written dialogue", () => {
+  const residents = developmentCitySnapshot.residents;
+  const stored = [
+    { residentId: input.residentIds[0] as string, text: "こんにちは" },
+    { residentId: input.residentIds[1] as string, text: "いい天気ですね" },
+  ];
+  it("serves stored worker dialogue without any model call or cooldown", async () => {
+    const provider = vi.fn();
+    const reader = vi.fn(async () => ({ lines: stored, createdAt: 1 }));
+    const dialogue = new DialogueService(
+      { ...config, enabled: false },
+      provider,
+      Date.now,
+      undefined,
+      reader,
+    );
+    expect(dialogue.available()).toBe(true);
+    for (let i = 0; i < 3; i++)
+      expect(await dialogue.generate(input, residents)).toMatchObject({
+        source: "LIVE",
+        safety: "PASSED",
+        lines: stored,
+      });
+    expect(reader).toHaveBeenCalledWith([...input.residentIds].sort().join("__"));
+    expect(provider).not.toHaveBeenCalled();
+  });
+  it("answers 404 (not 503) while the worker has not written the pair, and ignores bad data", async () => {
+    const missing = new DialogueService(
+      { ...config, enabled: false },
+      vi.fn(),
+      Date.now,
+      undefined,
+      async () => null,
+    );
+    await expect(missing.generate(input, residents)).rejects.toMatchObject({
+      code: "DIALOGUE_PENDING",
+      status: 404,
+    });
+    const foreign = new DialogueService(
+      { ...config, enabled: false },
+      vi.fn(),
+      Date.now,
+      undefined,
+      async () => ({
+        lines: [
+          { residentId: "someone-else", text: "x" },
+          { residentId: input.residentIds[0] as string, text: "y" },
+        ],
+        createdAt: 1,
+      }),
+    );
+    await expect(foreign.generate(input, residents)).rejects.toMatchObject({
+      code: "DIALOGUE_PENDING",
+    });
+  });
+});
