@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DeviceDisplaySchema } from "@ai-city/contracts/device-link";
@@ -78,6 +78,101 @@ async function candidate(task: string) {
 }
 
 describe("local task dispatch with isolated synthetic data", () => {
+  it("reclaims an old photo with no job and prevents late job creation", async () => {
+    const f = await fixture();
+    const orphan = `spine-${randomUUID()}`;
+    await f.storage.write(orphan, "photo.png", Buffer.from("synthetic"));
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(join(f.root, orphan, "photo.png"), old, old);
+    await pollLocalSpineTasks(f.jobs, f.storage, async () => ({ status: "FAILED" }), 1);
+    expect(await f.storage.read(orphan, "photo.png", 100)).toBeNull();
+    const other = await f.service.createOpenSession();
+    await expect(
+      f.service.createSpineJob(other.token, orphan, "a".repeat(64), {
+        processing: true,
+        externalModelUpload: true,
+        automaticPublication: true,
+        version: 2,
+      }),
+    ).rejects.toMatchObject({ code: "ACTIVE_JOB_EXISTS" });
+  });
+  it("does not reclaim a fresh photo or an old photo belonging to an existing job", async () => {
+    const f = await fixture();
+    const fresh = `spine-${randomUUID()}`;
+    await f.storage.write(fresh, "photo.png", Buffer.from("synthetic"));
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(join(f.root, f.task, "photo.png"), old, old);
+    await f.jobs.claim(f.task, "worker1");
+    await pollLocalSpineTasks(f.jobs, f.storage, async () => ({ status: "FAILED" }), 1);
+    expect(await f.storage.read(fresh, "photo.png", 100)).not.toBeNull();
+    expect(await f.storage.read(f.task, "photo.png", 1024 * 1024)).not.toBeNull();
+  });
+  it("retries orphan removal after a storage failure without admitting a late job", async () => {
+    const f = await fixture();
+    const orphan = `spine-${randomUUID()}`;
+    await f.storage.write(orphan, "photo.png", Buffer.from("synthetic"));
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(join(f.root, orphan, "photo.png"), old, old);
+    vi.spyOn(f.storage, "remove").mockRejectedValueOnce(new Error("storage failure"));
+    await expect(
+      pollLocalSpineTasks(f.jobs, f.storage, async () => ({ status: "FAILED" }), 1),
+    ).rejects.toThrow("storage failure");
+    const other = await f.service.createOpenSession();
+    await expect(
+      f.service.createSpineJob(other.token, orphan, "a".repeat(64), {
+        processing: true,
+        externalModelUpload: true,
+        automaticPublication: true,
+        version: 2,
+      }),
+    ).rejects.toMatchObject({ code: "ACTIVE_JOB_EXISTS" });
+    await pollLocalSpineTasks(f.jobs, f.storage, async () => ({ status: "FAILED" }), 1);
+    expect(await f.storage.read(orphan, "photo.png", 100)).toBeNull();
+  });
+  it("removes the photo after publication but holds a tool copy until writers are verified stopped", async () => {
+    const f = await fixture();
+    const workspace = join(f.root, f.task, "tool-workspace");
+    await mkdir(workspace);
+    await writeFile(join(workspace, "photo-copy.png"), "synthetic");
+    const output = await candidate(f.task);
+    await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    expect(await f.storage.read(f.task, "photo.png", 10000)).toBeNull();
+    expect(await readFile(join(workspace, "photo-copy.png"), "utf8")).toBe("synthetic");
+    expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("PENDING");
+    expect(await f.jobs.publishedBundle(f.task)).toEqual(output.descriptor);
+    expect(await f.storage.read(f.task, "page.png", 10000)).not.toBeNull();
+  });
+  it("retries post-publication photo cleanup after a storage failure", async () => {
+    const f = await fixture();
+    const output = await candidate(f.task);
+    const remove = vi.spyOn(f.storage, "remove");
+    remove.mockRejectedValueOnce(new Error("temporary"));
+    await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    expect(await f.storage.read(f.task, "photo.png", 10000)).not.toBeNull();
+    expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("COMPLETE");
+    expect(await f.storage.read(f.task, "photo.png", 10000)).toBeNull();
+    expect(await f.jobs.publishedBundle(f.task)).toEqual(output.descriptor);
+  });
+  it("keeps published assets if cleanup cannot read its durable marker", async () => {
+    const f = await fixture();
+    const output = await candidate(f.task);
+    vi.spyOn(f.jobs, "publishedPhotoCleanupPending").mockRejectedValueOnce(
+      new Error("store unavailable"),
+    );
+    const result = await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    expect(result?.state).toBe("PUBLISHED");
+    expect(await f.storage.read(f.task, "page.png", 10000)).not.toBeNull();
+    expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("COMPLETE");
+  });
   it("claims once, stages verified assets, serves them, and withdraws all stored files", async () => {
     const f = await fixture();
     const before = await f.service.snapshot();
@@ -265,6 +360,35 @@ describe("local task dispatch with isolated synthetic data", () => {
     ).toBe(false);
     expect(await cleanupLocalTask(jobs, storage, task)).toBe("PENDING");
     expect(await storage.read(task, "photo.png", 10000)).toBeNull();
+  });
+  it("withdraws an expired resident even while a tool workspace remains pending", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-city-expiry-pending-"));
+    roots.push(root);
+    const storage = await LocalSpineStorage.open(root);
+    const store = new MemoryVisitorStore();
+    let now = Date.parse("2026-11-05T00:00:00Z");
+    const service = new VisitorService(store, () => now);
+    const jobs = new SpineJobs(store, () => now);
+    const { token } = await service.createOpenSession();
+    const photo = await sharp({ create: { width: 4, height: 4, channels: 3, background: "red" } })
+      .png()
+      .toBuffer();
+    const { task } = await submitSpinePhoto(service, storage, token, photo, {
+      processing: true,
+      externalModelUpload: true,
+      automaticPublication: true,
+      version: 2,
+    });
+    await mkdir(join(root, task, "tool-workspace"));
+    const output = await candidate(task);
+    await dispatchLocalTask(jobs, storage, task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    now += 25 * 60 * 60 * 1000;
+    expect(await cleanupLocalTask(jobs, storage, task)).toBe("PENDING");
+    expect(store.dump().get(`jobs/spine-${task}`)?.state).toBe("WITHDRAWN");
+    expect(await storage.read(task, "page.png", 10000)).toBeNull();
   });
   it("allows an administrator to withdraw a Spine resident from the city", async () => {
     const f = await fixture();

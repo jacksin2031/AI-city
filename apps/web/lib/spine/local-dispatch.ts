@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { verifySpineBundle } from "./bundle";
 import type { SpineJobs } from "./jobs";
+import { cleanupLocalTask } from "./local-cleanup";
 import type { LocalSpineStorage } from "./local-storage";
 import { runSpineWorker, type ToolOutcome } from "./worker";
 
@@ -46,7 +47,11 @@ export async function dispatchLocalTask(
       }
       return outcome;
     });
-    if (result.state === "PUBLISHED") return result;
+    if (result.state === "PUBLISHED") {
+      // Publication has committed: a cleanup outage must not remove its staged assets.
+      await cleanupLocalTask(jobs, storage, task).catch(() => "PENDING" as const);
+      return result;
+    }
     for (const name of staged) await storage.remove(task, name);
     return result;
   } catch (error) {

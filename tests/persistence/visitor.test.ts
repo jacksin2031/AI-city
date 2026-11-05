@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { Firestore } from "@google-cloud/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { submitCloudPhoto } from "../../apps/web/lib/spine/cloud-photo-intake";
+import { SpineJobs } from "../../apps/web/lib/spine/jobs";
 import { FirestoreVisitorStore } from "../../apps/web/lib/visitor/firestore";
 import { VisitorService } from "../../apps/web/lib/visitor/service";
 
@@ -38,6 +40,100 @@ const consent = {
 };
 
 describe("real Firestore transaction persistence", () => {
+  it("queues a verified synthetic cloud photo through persistent reservations", async () => {
+    const { namespace, store: repository } = store();
+    const service = new VisitorService(repository);
+    const { token } = await service.createOpenSession();
+    const photo = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAE0lEQVQImWP4z8DwnwGM/zMwAAAf7gP9qS/A4gAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    let saved = new Uint8Array();
+    const storage = {
+      write: async (_task: string, bytes: Uint8Array) => {
+        saved = Uint8Array.from(bytes);
+        return "123";
+      },
+      read: async (_task: string, _max: number, generation?: string) =>
+        generation === "123" ? saved : null,
+    };
+    const result = await submitCloudPhoto(service, storage, token, photo, {
+      processing: true,
+      externalModelUpload: true,
+      automaticPublication: true,
+      version: 2,
+    });
+    const snapshot = await db
+      .doc(`visitorExhibitions/${namespace}/jobs/spine-${result.task}`)
+      .get();
+    expect(snapshot.data()).toMatchObject({
+      state: "QUEUED",
+      photoStorage: "CLOUD_PRIVATE",
+      photoGeneration: "123",
+    });
+  });
+  it("allows only one concurrent cloud photo reservation per visitor", async () => {
+    const { namespace, store: repository } = store();
+    const service = new VisitorService(repository);
+    const second = new VisitorService(new FirestoreVisitorStore(db, namespace));
+    const { token } = await service.createOpenSession();
+    const consent = {
+      processing: true,
+      externalModelUpload: true,
+      automaticPublication: true,
+      version: 2,
+    };
+    const result = await Promise.allSettled([
+      service.reserveCloudPhotoUpload(token, `spine-${randomUUID()}`, "a".repeat(64), consent),
+      second.reserveCloudPhotoUpload(token, `spine-${randomUUID()}`, "b".repeat(64), consent),
+    ]);
+    expect(result.filter((item) => item.status === "fulfilled")).toHaveLength(1);
+    expect(result.filter((item) => item.status === "rejected")).toHaveLength(1);
+    const rejected = result.find((item) => item.status === "rejected");
+    if (rejected?.status !== "rejected") throw new Error("expected rejected admission");
+    expect(rejected.reason.code).toBe("ACTIVE_JOB_EXISTS");
+  });
+  it("serializes cloud completion and cancellation across independent service instances", async () => {
+    const { namespace, store: repository } = store();
+    const first = new VisitorService(repository);
+    const second = new VisitorService(new FirestoreVisitorStore(db, namespace));
+    const { token } = await first.createOpenSession();
+    const task = `spine-${randomUUID()}`;
+    const consent = {
+      processing: true,
+      externalModelUpload: true,
+      automaticPublication: true,
+      version: 2,
+    };
+    await first.reserveCloudPhotoUpload(token, task, "a".repeat(64), consent);
+    await first.beginCloudPhotoUpload(token, task);
+    const [completed, cancelled] = await Promise.allSettled([
+      first.completeCloudPhotoUpload(token, task, "a".repeat(64), "123"),
+      second.cancelCloudPhotoUpload(token, task),
+    ]);
+    expect(completed.status === "fulfilled").not.toBe(cancelled.status === "fulfilled");
+    const snapshot = await db.doc(`visitorExhibitions/${namespace}/jobs/spine-${task}`).get();
+    expect(snapshot.exists).toBe(completed.status === "fulfilled");
+  });
+  it("serializes orphan cleanup against simultaneous admission", async () => {
+    const { namespace, store: repository } = store();
+    const service = new VisitorService(repository);
+    const jobs = new SpineJobs(new FirestoreVisitorStore(db, namespace));
+    const { token } = await service.createOpenSession();
+    const [cleanup, admission] = await Promise.allSettled([
+      jobs.reserveOrphanCleanup("race"),
+      service.createSpineJob(token, "race", "a".repeat(64), {
+        processing: true,
+        externalModelUpload: true,
+        automaticPublication: true,
+        version: 2,
+      }),
+    ]);
+    expect(cleanup.status).toBe("fulfilled");
+    if (cleanup.status !== "fulfilled") throw new Error("reservation failed");
+    expect(cleanup.value).toBe(admission.status === "rejected");
+    if (admission.status === "rejected") expect(admission.reason.code).toBe("ACTIVE_JOB_EXISTS");
+  });
   it("preserves simultaneous focus requests across independent clients and service restart", async () => {
     const { namespace, store: repository } = store();
     let now = Date.now();
