@@ -74,6 +74,26 @@ describe("Spine jobs transaction boundary", () => {
     await expect(jobs.claim("task1", "worker2")).rejects.toThrow();
     expect((await jobs.get("task1", owner)).state).toBe("UNKNOWN");
   });
+  it("binds a tool flow to the claimed task and exact photo without allowing replacement", async () => {
+    const jobs = new SpineJobs(new MemoryVisitorStore());
+    const flow = `flow-${"d".repeat(32)}`;
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    await jobs.claim("task1", "worker1");
+    await expect(jobs.bindToolFlow("task1", "worker1", flow, "e".repeat(64))).rejects.toThrow(
+      "TOOL_FLOW_MISMATCH",
+    );
+    await expect(jobs.bindToolFlow("task1", "worker2", flow, "c".repeat(64))).rejects.toThrow(
+      "WORKER_MISMATCH",
+    );
+    await jobs.bindToolFlow("task1", "worker1", flow, "c".repeat(64));
+    await jobs.bindToolFlow("task1", "worker1", flow, "c".repeat(64));
+    await expect(
+      jobs.bindToolFlow("task1", "worker1", `flow-${"f".repeat(32)}`, "c".repeat(64)),
+    ).rejects.toThrow("TOOL_FLOW_MISMATCH");
+    await jobs.withdraw("task1", owner);
+    await expect(jobs.bindToolFlow("task1", "worker1", flow, "c".repeat(64))).rejects.toThrow();
+    expect((await jobs.get("task1", owner)).toolFlow).toBe(flow);
+  });
   it("rejects missing consent and preserves existing tasks", async () => {
     const jobs = new SpineJobs(new MemoryVisitorStore());
     await expect(

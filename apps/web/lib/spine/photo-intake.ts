@@ -1,14 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
+import { SpinePhotoConsentSchema } from "@ai-city/contracts/spine";
 import sharp from "sharp";
-import { z } from "zod";
 import type { VisitorService } from "../visitor/service";
 import type { LocalSpineStorage } from "./local-storage";
 
-const consentSchema = z.strictObject({
-  processing: z.literal(true),
-  automaticPublication: z.literal(true),
-  version: z.literal(1),
-});
 const MAX_INPUT = 8 * 1024 * 1024;
 const MAX_PIXELS = 16_777_216;
 const MAX_OUTPUT = 24 * 1024 * 1024;
@@ -44,7 +39,7 @@ export async function submitSpinePhoto(
   input: Uint8Array,
   consent: unknown,
 ) {
-  const accepted = consentSchema.parse(consent);
+  const accepted = SpinePhotoConsentSchema.parse(consent);
   await service.current(token); // No data is stored for an invalid or expired session.
   const photo = await normalizeSpinePhoto(input);
   const digest = createHash("sha256").update(photo).digest("hex");

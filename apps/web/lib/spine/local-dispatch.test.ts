@@ -36,8 +36,9 @@ async function fixture() {
     .toBuffer();
   const job = await submitSpinePhoto(service, storage, token, photo, {
     processing: true,
+    externalModelUpload: true,
     automaticPublication: true,
-    version: 1,
+    version: 2,
   });
   return { root, storage, service, jobs, token, task: job.task };
 }
@@ -196,8 +197,9 @@ describe("local task dispatch with isolated synthetic data", () => {
       .toBuffer();
     const { task } = await submitSpinePhoto(service, storage, token, photo, {
       processing: true,
+      externalModelUpload: true,
       automaticPublication: true,
-      version: 1,
+      version: 2,
     });
     const output = await candidate(task);
     await dispatchLocalTask(jobs, storage, task, "worker1", async () => ({
@@ -261,8 +263,9 @@ describe("local task dispatch with isolated synthetic data", () => {
     if (!photo) throw new Error("PHOTO_NOT_SAVED");
     const second = await submitSpinePhoto(f.service, f.storage, next.token, photo, {
       processing: true,
+      externalModelUpload: true,
       automaticPublication: true,
-      version: 1,
+      version: 2,
     });
     const execute = vi.fn(async () => ({ status: "REQUIRES_REVIEW" as const }));
     expect((await pollLocalSpineTasks(f.jobs, f.storage, execute, 1)).claimed).toBe(1);

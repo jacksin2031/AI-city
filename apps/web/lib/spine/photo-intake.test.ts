@@ -24,7 +24,12 @@ async function fixture() {
     .toBuffer();
   return { root, files, service, token, image };
 }
-const consent = { processing: true, automaticPublication: true, version: 1 };
+const consent = {
+  processing: true,
+  externalModelUpload: true,
+  automaticPublication: true,
+  version: 2,
+};
 
 describe("photo admission", () => {
   it("normalizes a valid image, strips metadata, and queues it privately", async () => {
@@ -42,6 +47,12 @@ describe("photo admission", () => {
     const write = vi.spyOn(f.files, "write");
     await expect(
       submitSpinePhoto(f.service, f.files, f.token, f.image, { ...consent, processing: false }),
+    ).rejects.toThrow();
+    await expect(
+      submitSpinePhoto(f.service, f.files, f.token, f.image, {
+        ...consent,
+        externalModelUpload: false,
+      }),
     ).rejects.toThrow();
     await expect(
       submitSpinePhoto(f.service, f.files, "a".repeat(64), f.image, consent),

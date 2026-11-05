@@ -54,7 +54,7 @@ type Stage =
   | "published"
   | "removed";
 
-export function ParticipantExperience() {
+export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boolean }) {
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
   const [stage, setStage] = useState<Stage>("name");
   const [initializing, setInitializing] = useState(true);
@@ -249,6 +249,11 @@ export function ParticipantExperience() {
         </div>
       )}
       <div className="pf-sheet">
+        {spineLocal && (
+          <p>
+            <Link href="/join/spine">写真からキャラクターを作る（本機テスト）</Link>
+          </p>
+        )}
         {error && (
           <div role="alert" className="pf-error">
             {error}

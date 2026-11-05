@@ -3,6 +3,7 @@ export type ProductionJob = {
   state:
     | "QUEUED"
     | "RUNNING"
+    | "PREPARED"
     | "UNKNOWN"
     | "REQUIRES_REVIEW"
     | "FAILED"
@@ -15,6 +16,8 @@ export type ProductionJob = {
 type Event =
   | { type: "START" }
   | { type: "UNKNOWN" }
+  | { type: "PREPARE" }
+  | { type: "RESUME" }
   | { type: "REVIEW" }
   | { type: "FAIL" }
   | { type: "PUBLISH"; verified: boolean; approved: boolean }
@@ -34,6 +37,8 @@ export function transitionProductionJob(job: ProductionJob, event: Event): Produ
   if (!job.processingConsent || !job.publicationConsent) throw new Error("CONSENT_REQUIRED");
   if (event.type === "START" && job.state === "QUEUED") return { ...job, state: "RUNNING" };
   if (event.type === "UNKNOWN" && job.state === "RUNNING") return { ...job, state: "UNKNOWN" };
+  if (event.type === "PREPARE" && job.state === "RUNNING") return { ...job, state: "PREPARED" };
+  if (event.type === "RESUME" && job.state === "PREPARED") return { ...job, state: "RUNNING" };
   if (event.type === "REVIEW" && job.state === "RUNNING")
     return { ...job, state: "REQUIRES_REVIEW" };
   if (event.type === "FAIL" && job.state === "RUNNING") return { ...job, state: "FAILED" };

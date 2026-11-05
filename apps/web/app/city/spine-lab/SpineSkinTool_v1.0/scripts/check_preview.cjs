@@ -5,7 +5,8 @@ const root=path.resolve(__dirname,'..');
 const {chromium}=createRequire(path.join(root,'runtime/js/package.json'))('playwright');
 (async()=>{
  const output=path.join(root,'runtime/logs/M02',`browser-${new URL(process.argv[2]||'http://127.0.0.1:8766').port}`);fs.mkdirSync(output,{recursive:true});
- const browser=await chromium.launch({channel:'msedge',headless:true});
+ const channel=process.env.AI_CITY_SPINE_BROWSER||'msedge';if(!['msedge','chrome'].includes(channel))throw Error('UNSUPPORTED_BROWSER_CHANNEL');
+ const browser=await chromium.launch({channel,headless:true});
  try{
  const page=await browser.newPage({viewport:{width:1000,height:850},deviceScaleFactor:1});
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});

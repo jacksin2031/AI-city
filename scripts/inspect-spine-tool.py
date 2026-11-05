@@ -10,12 +10,13 @@ from pathlib import Path
 
 
 def main():
-    if len(sys.argv) != 3 or not re.fullmatch(r"flow-[a-f0-9]{32}", sys.argv[2]):
+    if len(sys.argv) != 4 or not re.fullmatch(r"flow-[a-f0-9]{32}", sys.argv[3]):
         print(json.dumps({"status": "INVALID"}))
         return 1
-    root = Path(sys.argv[1]).resolve()
-    flow = sys.argv[2]
-    sys.path.insert(0, str(root / "src"))
+    tool = Path(sys.argv[1]).resolve()
+    root = Path(sys.argv[2]).resolve()
+    flow = sys.argv[3]
+    sys.path.insert(0, str(tool / "src"))
     try:
         from spine_skin_tool.assembly import verify_bundle
         from spine_skin_tool.design import digest, private_path

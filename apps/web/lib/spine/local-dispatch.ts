@@ -10,7 +10,7 @@ export async function dispatchLocalTask(
   storage: LocalSpineStorage,
   task: string,
   worker: string,
-  execute: (photo: Uint8Array) => Promise<ToolOutcome>,
+  execute: (photo: Uint8Array, worker: string) => Promise<ToolOutcome>,
 ) {
   const queued = await jobs.queuedForWorker(task);
   if (!queued?.photoSha256) return null;
@@ -20,7 +20,7 @@ export async function dispatchLocalTask(
       const photo = await storage.read(task, "photo.png", 24 * 1024 * 1024);
       if (!photo || createHash("sha256").update(photo).digest("hex") !== queued.photoSha256)
         return { status: "FAILED" };
-      const outcome = await execute(photo);
+      const outcome = await execute(photo, worker);
       if (outcome.status !== "APPROVED") return outcome;
       const { candidate } = outcome;
       const base = `/avatars/${task}/`;

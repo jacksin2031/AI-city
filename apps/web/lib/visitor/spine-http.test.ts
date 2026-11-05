@@ -46,6 +46,7 @@ function photo(image: Uint8Array, cookie: string, headers: Record<string, string
       cookie,
       "content-type": "image/png",
       "x-spine-processing-consent": "1",
+      "x-spine-model-upload-consent": "1",
       "x-spine-publication-consent": "1",
       ...headers,
     },
@@ -72,6 +73,9 @@ describe("local-only photo HTTP admission", () => {
     expect((await f.handle(photo(f.image, ""))).status).toBe(401);
     expect(
       (await f.handle(photo(f.image, f.cookie, { "x-spine-publication-consent": "0" }))).status,
+    ).toBe(400);
+    expect(
+      (await f.handle(photo(f.image, f.cookie, { "x-spine-model-upload-consent": "0" }))).status,
     ).toBe(400);
     expect(
       (await f.handle(photo(f.image, f.cookie, { origin: "http://evil.example" }))).status,

@@ -9,7 +9,7 @@ import type { ToolOutcome } from "./worker";
 export async function pollLocalSpineTasks(
   jobs: SpineJobs,
   storage: LocalSpineStorage,
-  execute: (task: string, photo: Uint8Array) => Promise<ToolOutcome>,
+  execute: (task: string, photo: Uint8Array, worker: string) => Promise<ToolOutcome>,
   maxTasks = 4,
 ) {
   if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || maxTasks > 20)
@@ -28,7 +28,7 @@ export async function pollLocalSpineTasks(
         storage,
         task,
         `worker-${randomUUID()}`,
-        (photo) => execute(task, photo),
+        (photo, worker) => execute(task, photo, worker),
       );
       if (result) claimed += 1;
     } catch (error) {

@@ -10,7 +10,8 @@ function start(python,bundle){return new Promise((resolve,reject)=>{
  });}
 async function main(){
  const config=JSON.parse(fs.readFileSync(work(process.argv[2]),'utf8')),output=work(config.output);
- const browser=await chromium.launch({channel:'msedge',headless:true});const frames=[],errors=[];let active;
+ const channel=process.env.AI_CITY_SPINE_BROWSER||'msedge';assert(['msedge','chrome'].includes(channel),'UNSUPPORTED_BROWSER_CHANNEL');
+ const browser=await chromium.launch({channel,headless:true});const frames=[],errors=[];let active;
  try{
   for(const scale of [1,2,4]){
    const variant=work(config.variants[String(scale)]);active=await start(config.python,variant);

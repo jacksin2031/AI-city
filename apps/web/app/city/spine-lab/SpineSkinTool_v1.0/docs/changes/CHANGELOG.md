@@ -2433,3 +2433,26 @@ class DistributionTests(unittest.TestCase):
   - `parent/model-reservation/user-material boundaries` : `PASS` (exit `0`); evidence: 5 parent files,299 existing reservations,four characters original raw parts/base manifests unchanged.0 new model calls.
 - Risks: M08既有用户验收COMPLETE保持；本次没有新增真实生图或Editor打开测试。; 贴图只按原许可证参考/非商用；不宣称商用许可。; 环境仍需一次准备，必须本人账号具备CLI/ImageGen权限；启动不等于无限订阅或任意照片必成功。; 照片、生成角色、API配置、订阅凭证/会话不提交，旧预算/预留不清零。
 - Next task: 仅提交上述已说明版本；按现有工具制作，后续功能另外沟通。
+
+### 2026-11-05T19:19:12+09:00 | TASK-CHROME-CAPTURE | 20261105T101912Z-TASK-CHROME-CAPTURE | COMPLETE
+- UTC: 2026-11-05T10:19:12+00:00
+- Goal: 支持使用本机 Chrome 执行既有 Spine 动作图证，保留 Edge 默认值并拒绝未知浏览器。
+- Files and corresponding code/sections:
+  - MODIFY `scripts/capture_review.cjs`; location `main`; lines `13-14`; reason: 动作图证允许明确选择 Chrome，同时验证浏览器白名单。
+    - SHA256: before `d4f3a2d3df308881a4fadf38c4e64663ce4eddd47b5aa6dfd05896c579be8292`; after `a2083afb16f9adbf59db80e1de30f332d19dabf61deee040ad31c79b93ab146a`
+    ```text
+ const channel=process.env.AI_CITY_SPINE_BROWSER||'msedge';assert(['msedge','chrome'].includes(channel),'UNSUPPORTED_BROWSER_CHANNEL');
+    ```
+  - MODIFY `scripts/check_preview.cjs`; location `main`; lines `8-9`; reason: 预览回归使用同一浏览器选项并拒绝未知值。
+    - SHA256: before `37d14dcfdb8988e22aa9365b88066c23fd442d5fd89b1af83ad9c3e84e36eb23`; after `9c61b153db67e8ac5d5a895f6bd526ec4f7ec70aecfcd8c98c9ba0fccaaae735`
+    ```text
+ const channel=process.env.AI_CITY_SPINE_BROWSER||'msedge';if(!['msedge','chrome'].includes(channel))throw Error('UNSUPPORTED_BROWSER_CHANNEL');
+    ```
+  - MODIFY `使用说明.md`; location `1. 新环境准备`; lines `n/a`; reason: 说明本机 Chrome 选项与默认 Edge 行为。
+    - SHA256: before `7f1c9f4b4c0469269a6fcf0aa389900738c929d2ea5167f7697b6a5718203f2d`; after `051f938b2b6416835d30d0f41b1fee39b36bbc92ac0b84aef94bdff4cda475c5`
+- Tests (actual outcomes only):
+  - `AI_CITY_SPINE_BROWSER=chrome node scripts/check_preview.cjs http://127.0.0.1:18784` : `PASS` (exit `0`); evidence: Chrome 157: 24 samples, 11 skins, zero browser errors; official reference, no model calls.
+  - `AI_CITY_SPINE_BROWSER=chrome node scripts/capture_review.cjs <synthetic-config>` : `PASS` (exit `0`); evidence: Official reference bundle, same bundle at three view scales: 246 frames, zero errors; no model calls.
+  - `PowerShell assertion: unsupported AI_CITY_SPINE_BROWSER is rejected` : `PASS` (exit `0`); evidence: Assertion succeeded: child exited 1 and emitted UNSUPPORTED_BROWSER_CHANNEL before launch.
+- Risks: Default Edge unavailable on this machine; default Edge path not tested. Three-scale test reused one reference bundle and does not validate production texture sizes.; Actual photo candidate remains hard-failed and is not quality approved.
+- Next task: Integrate the isolated tool task with a durable, consent-bound worker and verified output.

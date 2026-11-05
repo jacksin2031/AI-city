@@ -30,7 +30,7 @@ const messages: Record<string, string> = {
   PHOTO_INVALID: "写真を読み取れません。JPEG、PNG または WebP を選んでください。",
   PHOTO_SIZE: "写真の容量を確認してください。",
   PHOTO_CONSENT_REQUIRED:
-    "写真の処理と、完成したキャラクターの公開について同意を確認してください。",
+    "写真の処理、外部AIへの送信、完成したキャラクターの公開について同意を確認してください。",
 };
 
 async function readPhoto(request: Request) {
@@ -123,6 +123,7 @@ export async function handleVisitorRequest(
     if (path === "spine/jobs" && request.method === "POST" && spineStorage) {
       if (
         request.headers.get("x-spine-processing-consent") !== "1" ||
+        request.headers.get("x-spine-model-upload-consent") !== "1" ||
         request.headers.get("x-spine-publication-consent") !== "1"
       )
         throw new DevelopmentServiceError("PHOTO_CONSENT_REQUIRED", 400);
@@ -132,8 +133,9 @@ export async function handleVisitorRequest(
       try {
         const job = await submitSpinePhoto(service, spineStorage, token, bytes, {
           processing: true,
+          externalModelUpload: true,
           automaticPublication: true,
-          version: 1,
+          version: 2,
         });
         return json({ mode: "LOCAL_PRIVATE_TEST", ...job }, 202);
       } catch (error) {

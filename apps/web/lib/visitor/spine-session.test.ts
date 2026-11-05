@@ -38,7 +38,12 @@ describe("visitor-bound Spine admission", () => {
     const now = Date.parse("2026-11-05T00:00:00Z");
     const service = new VisitorService(store, () => now);
     const { token } = await service.createOpenSession();
-    const consent = { processing: true, automaticPublication: true, version: 1 };
+    const consent = {
+      processing: true,
+      externalModelUpload: true,
+      automaticPublication: true,
+      version: 2,
+    };
     await expect(
       service.createSpineJob(token, "a", "a".repeat(64), { ...consent, processing: false }),
     ).rejects.toThrow();
@@ -67,7 +72,12 @@ describe("visitor-bound Spine admission", () => {
     const service = new VisitorService(store, () => now);
     const first = await service.createOpenSession();
     const owner = createHash("sha256").update(first.token).digest("hex");
-    const consent = { processing: true, automaticPublication: true, version: 1 };
+    const consent = {
+      processing: true,
+      externalModelUpload: true,
+      automaticPublication: true,
+      version: 2,
+    };
     await service.createSpineJob(first.token, "a", "a".repeat(64), consent);
     const jobs = new SpineJobs(store, () => now);
     await service.closeSession(first.token);

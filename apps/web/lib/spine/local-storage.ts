@@ -153,4 +153,20 @@ export class LocalSpineStorage {
       .map((entry) => entry.name)
       .sort();
   }
+
+  /** Internal worker-only path; never return this value from an HTTP endpoint. */
+  async privateRootForWorker(task: string): Promise<string> {
+    await this.taskDirectory(task, false);
+    return this.root;
+  }
+
+  async toolWorkspaceForWorker(task: string): Promise<string> {
+    const directory = await this.taskDirectory(task, false);
+    const workspace = join(directory, "tool-workspace");
+    const info = await lstat(workspace);
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error("PRIVATE_TASK_INVALID");
+    const resolved = await realpath(workspace);
+    if (relative(directory, resolved) !== "tool-workspace") throw new Error("PRIVATE_TASK_INVALID");
+    return resolved;
+  }
 }

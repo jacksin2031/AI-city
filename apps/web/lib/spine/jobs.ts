@@ -1,4 +1,5 @@
 import { SpineBundleSchema } from "@ai-city/contracts";
+import { SpinePhotoConsentSchema, SpineTaskStateSchema } from "@ai-city/contracts/spine";
 import { z } from "zod";
 import type { VisitorStore, VisitorTransaction } from "../visitor/store";
 import { verifySpineBundle } from "./bundle";
@@ -7,26 +8,20 @@ import { addSpineResident, removeSpineResident } from "./roster-index";
 
 const id = z.string().regex(/^[A-Za-z0-9_-]{1,96}$/);
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
-const consentSchema = z.strictObject({
+const legacyConsentSchema = z.strictObject({
   processing: z.literal(true),
   automaticPublication: z.literal(true),
   version: z.literal(1),
   recordedAt: z.iso.datetime(),
 });
+const liveConsentSchema = SpinePhotoConsentSchema.extend({ recordedAt: z.iso.datetime() });
+const consentSchema = z.discriminatedUnion("version", [legacyConsentSchema, liveConsentSchema]);
 const recordSchema = z
   .strictObject({
     owner: digest,
     photoSha256: digest.nullable(),
     consent: consentSchema.nullable(),
-    state: z.enum([
-      "QUEUED",
-      "RUNNING",
-      "UNKNOWN",
-      "REQUIRES_REVIEW",
-      "FAILED",
-      "PUBLISHED",
-      "WITHDRAWN",
-    ]),
+    state: SpineTaskStateSchema,
     processingConsent: z.boolean(),
     publicationConsent: z.boolean(),
     worker: id.nullable(),
@@ -34,6 +29,12 @@ const recordSchema = z
     sessionExpiresAt: z.number().int().nonnegative().optional(),
     cleanupPending: z.boolean().optional(),
     toolCleanupPending: z.boolean().optional(),
+    toolFlow: z
+      .string()
+      .regex(/^flow-[a-f0-9]{32}$/)
+      .nullable()
+      .optional(),
+    liveIntent: z.boolean().optional(),
   })
   .refine((record) => {
     if (record.state === "WITHDRAWN")
@@ -53,6 +54,7 @@ const recordSchema = z
     )
       return false;
     if (record.state === "PUBLISHED") return record.worker !== null && record.bundle != null;
+    if (record.state === "PREPARED" && !record.toolFlow) return false;
     if (record.bundle != null) return false;
     return record.state === "QUEUED" ? record.worker === null : record.worker !== null;
   }, "Inconsistent job state");
@@ -61,6 +63,7 @@ export type SpineConsent = {
   automaticPublication: boolean;
   version: number;
   recordedAt: string;
+  externalModelUpload?: boolean;
 };
 
 export function makeSpineJob(
@@ -78,6 +81,8 @@ export function makeSpineJob(
     bundle: null,
     cleanupPending: false,
     toolCleanupPending: false,
+    toolFlow: null,
+    liveIntent: false,
     ...(sessionExpiresAt === undefined ? {} : { sessionExpiresAt }),
   });
 }
@@ -195,8 +200,121 @@ export class SpineJobs {
       return next;
     });
   }
+  /** Bind an already-created tool flow before any live model operation begins. */
+  async bindToolFlow(task: string, worker: string, flow: string, photoSha256: string) {
+    const path = this.path(task);
+    id.parse(worker);
+    digest.parse(photoSha256);
+    z.string()
+      .regex(/^flow-[a-f0-9]{32}$/)
+      .parse(flow);
+    return this.store.run(async (tx) => {
+      const record = recordSchema.parse(await tx.get(path));
+      if (record.worker !== worker || record.state !== "RUNNING")
+        throw new Error("WORKER_MISMATCH");
+      if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
+      if (record.photoSha256 !== photoSha256 || (record.toolFlow && record.toolFlow !== flow))
+        throw new Error("TOOL_FLOW_MISMATCH");
+      const next = { ...record, toolFlow: flow };
+      tx.set(path, next);
+      return next;
+    });
+  }
+  /** Internal recovery lookup; callers must independently verify that no tool call was sent. */
+  async preflightRecoveryContext(task: string) {
+    return this.store.run(async (tx) => {
+      const parsed = recordSchema.safeParse(await tx.get(this.path(task)));
+      if (
+        !parsed.success ||
+        parsed.data.liveIntent ||
+        !["RUNNING", "UNKNOWN"].includes(parsed.data.state)
+      )
+        return null;
+      if (!(await sessionActive(tx, parsed.data, this.now()))) return null;
+      return {
+        owner: parsed.data.owner,
+        photoSha256: parsed.data.photoSha256,
+        toolFlow: parsed.data.toolFlow ?? null,
+      };
+    });
+  }
+  /** Only call after the read-only helper verifies a model-disabled flow and its receipt. */
+  async recoverPrepared(task: string, owner: string, flow: string, photoSha256: string) {
+    const path = this.path(task);
+    digest.parse(owner);
+    digest.parse(photoSha256);
+    z.string()
+      .regex(/^flow-[a-f0-9]{32}$/)
+      .parse(flow);
+    return this.store.run(async (tx) => {
+      const record = recordSchema.parse(await tx.get(path));
+      if (
+        record.owner !== owner ||
+        record.liveIntent ||
+        !["RUNNING", "UNKNOWN"].includes(record.state) ||
+        record.photoSha256 !== photoSha256 ||
+        (record.toolFlow && record.toolFlow !== flow)
+      )
+        throw new Error("TOOL_FLOW_MISMATCH");
+      if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
+      const next = { ...record, toolFlow: flow, state: "PREPARED" as const };
+      tx.set(path, next);
+      return next;
+    });
+  }
   async markReview(task: string, worker: string) {
     return this.finishWithoutPublication(task, worker, "REVIEW");
+  }
+  /** Reserve one irreversible live attempt before any tool process can send data. */
+  async claimPreparedLive(task: string, worker: string, maxTasks: number) {
+    const path = this.path(task);
+    id.parse(worker);
+    if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || maxTasks > 1000)
+      throw new Error("BUDGET_CONFIG_INVALID");
+    return this.store.run(async (tx) => {
+      const record = recordSchema.parse(await tx.get(path));
+      const budgetRaw = await tx.get("meta/spine-live-budget");
+      const reservationPath = `requests/spine-live-${task}`;
+      const existing = await tx.get(reservationPath);
+      if (record.state !== "PREPARED" || !record.toolFlow || record.liveIntent)
+        throw new Error("INVALID_TRANSITION");
+      if (record.sessionExpiresAt === undefined) throw new Error("SESSION_REQUIRED");
+      if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
+      if (record.consent?.version !== 2 || record.consent.externalModelUpload !== true)
+        throw new Error("CONSENT_REQUIRED");
+      const budget = budgetRaw
+        ? z
+            .strictObject({
+              maxTasks: z.number().int().min(1).max(1000),
+              reserved: z.number().int().nonnegative(),
+            })
+            .parse(budgetRaw)
+        : { maxTasks, reserved: 0 };
+      if (budget.maxTasks !== maxTasks) throw new Error("BUDGET_CONFIG_CHANGED");
+      if (existing || budget.reserved >= budget.maxTasks) throw new Error("BUDGET_EXHAUSTED");
+      const next = {
+        ...record,
+        ...transitionProductionJob(record, { type: "RESUME" }),
+        worker,
+        liveIntent: true,
+      };
+      tx.set("meta/spine-live-budget", { ...budget, reserved: budget.reserved + 1 });
+      tx.set(reservationPath, { task, reserved: true });
+      tx.set(path, next);
+      return next;
+    });
+  }
+  async markPrepared(task: string, worker: string) {
+    const path = this.path(task);
+    id.parse(worker);
+    return this.store.run(async (tx) => {
+      const record = recordSchema.parse(await tx.get(path));
+      if (record.worker !== worker || !record.toolFlow) throw new Error("TOOL_FLOW_MISMATCH");
+      if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
+      const next = { ...record, ...transitionProductionJob(record, { type: "PREPARE" }) };
+      tx.set(path, next);
+      return next;
+    });
   }
   async markFailed(task: string, worker: string) {
     return this.finishWithoutPublication(task, worker, "FAIL");
