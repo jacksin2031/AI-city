@@ -69,7 +69,12 @@ describe.skipIf(!enabled)("live photo to published character with the local emul
         const run = promisify(execFile);
         const out = await run(
           process.execPath,
-          [join(project, "scripts/run-spine-preflight.mjs"), "--once", "--live", "--cap=18"],
+          [
+            join(project, "scripts/run-spine-preflight.mjs"),
+            "--once",
+            "--live",
+            `--cap=${process.env.AI_CITY_SPINE_LIVE_CAP ?? "12"}`,
+          ],
           { cwd: project, env, windowsHide: true, timeout: 3 * 60 * 60 * 1000, maxBuffer: 8192 },
         );
         expect(out.stdout).toContain('"claimed":1');

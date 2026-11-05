@@ -63,6 +63,8 @@ def main():
         Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft/Edge/Application/msedge.exe"
     ).exists():
         os.environ.setdefault("AI_CITY_SPINE_BROWSER", "chrome")
+    # The tool's renderer only accepts private work paths under this base.
+    os.environ["AI_CITY_SPINE_WORK_BASE"] = str(workspace)
     sys.path.insert(0, str(tool / "src"))
     try:
         from spine_skin_tool.photo_import import import_photo

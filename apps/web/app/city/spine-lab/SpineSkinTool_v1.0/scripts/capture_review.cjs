@@ -1,7 +1,7 @@
 /* Actual Spine evidence renderer. Private config only; no model or external requests. */
 const fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),{chromium}=require(path.join(root,'runtime/js/node_modules/playwright'));
-function work(p){const absolute=path.resolve(p),relative=path.relative(path.join(root,'runtime/work'),absolute);assert(!relative.startsWith('..')&&!path.isAbsolute(relative),'PRIVATE_WORK_REQUIRED');return absolute;}
+function work(p){const absolute=path.resolve(p),relative=path.relative(path.join(process.env.AI_CITY_SPINE_WORK_BASE?path.resolve(process.env.AI_CITY_SPINE_WORK_BASE):root,'runtime/work'),absolute);assert(!relative.startsWith('..')&&!path.isAbsolute(relative),'PRIVATE_WORK_REQUIRED');return absolute;}
 function start(python,bundle){return new Promise((resolve,reject)=>{
  const child=spawn(python,['-B',path.join(root,'scripts/preview.py'),'--source',path.join(bundle,'skeleton.json'),'--atlas',path.join(bundle,'skeleton.atlas'),'--port','0'],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
  let output='',diagnostic='';const timeout=setTimeout(()=>{child.kill();reject(Error('PREVIEW_START_TIMEOUT'));},20000);
