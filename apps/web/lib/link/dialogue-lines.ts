@@ -19,7 +19,13 @@ export function parseLines(text: string, a: string, b: string) {
         l.text.trim() !== "",
     )
     .slice(0, 6)
-    .map((l) => ({ residentId: l.speaker === "a" ? a : b, text: l.text.trim().slice(0, 80) }));
+    .map((l) => ({
+      residentId: l.speaker === "a" ? a : b,
+      text: l.text
+        .trim()
+        .replace(/^[^\s：:「]{1,12}[：:]\s*/, "")
+        .slice(0, 80),
+    }));
   if (lines.length < 2) return null;
   // The tablet rejects the same resident speaking twice in a row.
   return lines.every((line, i) => i === 0 || line.residentId !== lines[i - 1]?.residentId)

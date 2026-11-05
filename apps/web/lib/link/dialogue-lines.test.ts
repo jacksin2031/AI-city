@@ -9,6 +9,10 @@ describe("worker dialogue parsing", () => {
       { residentId: "y", text: "やあ" },
     ]);
   });
+  it("strips a leading speaker name", () => {
+    const t = '[{"speaker":"a","text":"そら：やあ"},{"speaker":"b","text":"はる：こんにちは"}]';
+    expect(parseLines(t, "x", "y")?.map((l) => l.text)).toEqual(["やあ", "こんにちは"]);
+  });
   it("rejects too few lines, bad JSON and the same speaker twice in a row", () => {
     expect(parseLines('[{"speaker":"a","text":"のみ"}]', "x", "y")).toBeNull();
     expect(parseLines("not json", "x", "y")).toBeNull();
