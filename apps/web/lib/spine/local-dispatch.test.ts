@@ -78,6 +78,50 @@ async function candidate(task: string) {
 }
 
 describe("local task dispatch with isolated synthetic data", () => {
+  it("removes the photo after publication but holds a tool copy until writers are verified stopped", async () => {
+    const f = await fixture();
+    const workspace = join(f.root, f.task, "tool-workspace");
+    await mkdir(workspace);
+    await writeFile(join(workspace, "photo-copy.png"), "synthetic");
+    const output = await candidate(f.task);
+    await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    expect(await f.storage.read(f.task, "photo.png", 10000)).toBeNull();
+    expect(await readFile(join(workspace, "photo-copy.png"), "utf8")).toBe("synthetic");
+    expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("PENDING");
+    expect(await f.jobs.publishedBundle(f.task)).toEqual(output.descriptor);
+    expect(await f.storage.read(f.task, "page.png", 10000)).not.toBeNull();
+  });
+  it("retries post-publication photo cleanup after a storage failure", async () => {
+    const f = await fixture();
+    const output = await candidate(f.task);
+    const remove = vi.spyOn(f.storage, "remove");
+    remove.mockRejectedValueOnce(new Error("temporary"));
+    await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    expect(await f.storage.read(f.task, "photo.png", 10000)).not.toBeNull();
+    expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("COMPLETE");
+    expect(await f.storage.read(f.task, "photo.png", 10000)).toBeNull();
+    expect(await f.jobs.publishedBundle(f.task)).toEqual(output.descriptor);
+  });
+  it("keeps published assets if cleanup cannot read its durable marker", async () => {
+    const f = await fixture();
+    const output = await candidate(f.task);
+    vi.spyOn(f.jobs, "publishedPhotoCleanupPending").mockRejectedValueOnce(
+      new Error("store unavailable"),
+    );
+    const result = await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    expect(result?.state).toBe("PUBLISHED");
+    expect(await f.storage.read(f.task, "page.png", 10000)).not.toBeNull();
+    expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("COMPLETE");
+  });
   it("claims once, stages verified assets, serves them, and withdraws all stored files", async () => {
     const f = await fixture();
     const before = await f.service.snapshot();

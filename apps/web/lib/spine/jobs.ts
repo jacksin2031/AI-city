@@ -30,6 +30,7 @@ const recordSchema = z
     cleanupPending: z.boolean().optional(),
     toolCleanupPending: z.boolean().optional(),
     toolCleanupSafe: z.boolean().optional(),
+    publishedPhotoCleanupPending: z.boolean().optional(),
     toolFlow: z
       .string()
       .regex(/^flow-[a-f0-9]{32}$/)
@@ -364,6 +365,7 @@ export class SpineJobs {
         ...record,
         ...transitionProductionJob(record, { type: "PUBLISH", verified: true, approved: true }),
         bundle: descriptor,
+        publishedPhotoCleanupPending: true,
       };
       if (record.sessionExpiresAt !== undefined)
         await addSpineResident(tx, {
@@ -384,6 +386,26 @@ export class SpineJobs {
         (await sessionActive(tx, record.data, this.now()))
         ? (record.data.bundle ?? null)
         : null;
+    });
+  }
+  /** Publication records the need for cleanup in the same transaction as the public bundle. */
+  async publishedPhotoCleanupPending(task: string) {
+    return this.store.run(async (tx) => {
+      const parsed = recordSchema.safeParse(await tx.get(this.path(task)));
+      return Boolean(
+        parsed.success &&
+          parsed.data.state === "PUBLISHED" &&
+          parsed.data.publishedPhotoCleanupPending,
+      );
+    });
+  }
+  async finishPublishedPhotoCleanup(task: string) {
+    return this.store.run(async (tx) => {
+      const path = this.path(task);
+      const parsed = recordSchema.safeParse(await tx.get(path));
+      if (!parsed.success || parsed.data.state !== "PUBLISHED") return false;
+      tx.set(path, { ...parsed.data, publishedPhotoCleanupPending: false });
+      return true;
     });
   }
   /** Local maintenance: expire session-bound tasks and retain a durable cleanup marker. */
