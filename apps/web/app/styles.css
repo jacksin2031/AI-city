@@ -1039,7 +1039,7 @@ details.tablet-resident-list > summary {
   position: absolute;
   z-index: 3;
   left: max(12px, env(safe-area-inset-left));
-  bottom: 64px;
+  bottom: max(12px, env(safe-area-inset-bottom));
   display: flex;
   gap: 8px;
   margin: 0;
@@ -1088,4 +1088,14 @@ details.tablet-resident-list > summary {
   .scene-logo-sub::before {
     width: 14px;
   }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

@@ -23,6 +23,7 @@ export function TabletCity({
   sample,
   focus,
   totalParticipants,
+  tools,
 }: {
   snapshot: CitySnapshot;
   motion: boolean;
@@ -30,6 +31,8 @@ export function TabletCity({
   focus: { id: string; residentId: string; expiresAt: number } | null;
   /** Running total of public joins; the roster alone would forget withdrawn participants. */
   totalParticipants?: number;
+  /** Shows the operator pickers and status line that stay hidden on the public screen. */
+  tools: boolean;
 }) {
   const parent = useRef<HTMLDivElement>(null);
   const city = useRef<IllustratedCity | null>(null);
@@ -216,9 +219,11 @@ export function TabletCity({
           participants={Math.max(totalParticipants ?? 0, residents.length)}
           inScene={inScene}
         />
-        <p className="tablet-dialogue-status">
-          {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
-        </p>
+        {tools && (
+          <p className="tablet-dialogue-status">
+            {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
+          </p>
+        )}
         <p className="canvas-failure" role="alert">
           街を表示できません。ページを読み直してください。
         </p>
@@ -246,7 +251,7 @@ export function TabletCity({
           />
         )}
       </section>
-      {residents.length > 0 && (
+      {tools && residents.length > 0 && (
         <details className="tablet-resident-list">
           <summary>住民のプロフィールを選ぶ</summary>
           <div className="tablet-resident-buttons">
@@ -258,25 +263,27 @@ export function TabletCity({
           </div>
         </details>
       )}
-      <details className="tablet-landmark-list">
-        <summary>建物・駅を選ぶ</summary>
-        <div>
-          {LANDMARKS.map((item) => (
-            <button
-              type="button"
-              key={item.key}
-              disabled={!ready || failed}
-              onClick={() => {
-                if (view.active) close();
-                setLandmark(item);
-                city.current?.selectLandmark(item.id);
-              }}
-            >
-              {item.name}
-            </button>
-          ))}
-        </div>
-      </details>
+      {tools && (
+        <details className="tablet-landmark-list">
+          <summary>建物・駅を選ぶ</summary>
+          <div>
+            {LANDMARKS.map((item) => (
+              <button
+                type="button"
+                key={item.key}
+                disabled={!ready || failed}
+                onClick={() => {
+                  if (view.active) close();
+                  setLandmark(item);
+                  city.current?.selectLandmark(item.id);
+                }}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
     </>
   );
 }

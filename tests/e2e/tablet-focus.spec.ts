@@ -32,7 +32,7 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     const pairing = await (
       await manager.request.post("/api/link/pairing", { data: {}, headers: { origin } })
     ).json();
-    await page.goto("/tablet");
+    await page.goto("/tablet?tools=1");
     await page.getByLabel("8桁の接続コード").fill(pairing.code);
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
     const canvas = page.locator("canvas");
@@ -174,7 +174,7 @@ test("new residents wave at their city position, profiles have priority and remo
     const pairing = await (
       await manager.request.post("/api/link/pairing", { data: {}, headers: postHeaders })
     ).json();
-    await page.goto("/tablet");
+    await page.goto("/tablet?tools=1");
     await page.getByLabel("8桁の接続コード").fill(pairing.code);
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
     await expect(page.locator("section.tablet-city")).toHaveAttribute("data-ready", "true", {
