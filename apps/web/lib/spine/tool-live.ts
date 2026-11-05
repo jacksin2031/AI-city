@@ -123,10 +123,9 @@ export function createToolLiveExecutor(
       return { status: "UNKNOWN" };
     }
     if (result.status === "FAILED") return { status: "UNKNOWN" };
-    // Keep the reason visible to the operator without logging private content.
+    // The tool output is untrusted and may contain private data; never log it.
     if (!result.bundle || !result.auto_publish) {
-      process.stderr.write(`Spine task held: ${JSON.stringify(result).slice(0, 600)}
-`);
+      process.stderr.write("Spine task held for review.\n");
       return { status: "REQUIRES_REVIEW" };
     }
     try {
