@@ -155,7 +155,7 @@ export default function Tablet() {
                 : state.snapshot.mode === "LOCAL_PRIVATE_TEST"
                   ? "キャラクターは本機テスト"
                   : "仮のイラスト"}
-              ・会話と交通は見本
+              ・交通は見本
               {!control.motionEnabled && "・動きは停止中"}
             </p>
           </>

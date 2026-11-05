@@ -1,8 +1,9 @@
-import type { PublicResident } from "@ai-city/contracts";
+import type { DialoguePlace, DialogueResult, PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { type AnimatedCharacter, animationFor, characterAspect } from "./animated-character";
 import { autumnLighting } from "./autumn";
+import { encounterPlace, findEncounter } from "./encounter";
 import {
   clampCamera,
   DEFAULT_ZOOM,
@@ -19,6 +20,7 @@ import {
   VIEW,
 } from "./focus";
 import { characterDataUrl, illustrationPalette } from "./illustrations";
+import { LANDMARKS, type Landmark } from "./landmarks";
 import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
 import {
   type Actor,
@@ -37,6 +39,7 @@ export type IllustratedCity = {
   setResidents(residents: PublicResident[], addedIds?: string[]): void;
   setMotionEnabled(enabled: boolean): void;
   select(id: string | null): void;
+  selectLandmark(id: number | null): void;
   act(id: string, action: CityAction): void;
   present(presentation: ScenePresentation | null): void;
   destroy(): void;
@@ -174,6 +177,8 @@ export async function createDevelopmentCity(
     /** Where the exported 3D city is served from (same origin). */
     assetBase?: string;
     onSelect?: (id: string) => void;
+    onSelectLandmark?: (landmark: Landmark | null) => void;
+    onEncounter?: (ids: [string, string], place: DialoguePlace) => Promise<DialogueResult | null>;
     onAction?: (id: string, action: CityAction) => void;
     onReady?: () => void;
     onPresentationFrame?: (frame: ScenePresentationFrame | null) => void;
@@ -311,7 +316,12 @@ function startCity(
   // Read this before mergeCity bakes the source mesh transforms into the combined geometry.
   const metroRailHeightOffset =
     cityModel.scene.getObjectByName("Rail_Metro_Marunouchi")?.position.y ?? 0;
-  const buildingFade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const buildingFade = {
+    center: { value: new THREE.Vector2() },
+    zoom: { value: 0 },
+    selected: { value: 0 },
+    pulse: { value: 0 },
+  };
   const city = mergeCity(cityModel.scene, specs, buildingFade);
   scene.add(city);
   const vehicles = vehicleModel.scene;
@@ -339,6 +349,15 @@ function startCity(
   let residents = options.residents ?? [];
   let moving = options.motionEnabled ?? true;
   let selectedId: string | null = null;
+  let exchange: {
+    ids: [string, string];
+    lines: DialogueResult["lines"];
+    startedAt: number;
+  } | null = null;
+  let dialoguePending = false;
+  let pendingPair: [string, string] | null = null;
+  const lastSpoke = new Map<string, number>();
+  let nextEncounter = 10;
   let presentation: ScenePresentation | null = null;
   let lastFrame = "";
   let destroyed = false;
@@ -570,6 +589,17 @@ function startCity(
     const hit = raycaster.intersectObjects(ghosts, false)[0];
     return hit ? (hit.object.userData.residentId as string) : null;
   }
+  function landmarkAt(point: { x: number; y: number }): Landmark | null {
+    raycaster.setFromCamera(
+      new THREE.Vector2((point.x / SCREEN.width) * 2 - 1, -(point.y / SCREEN.height) * 2 + 1),
+      camera,
+    );
+    const hit = raycaster.intersectObjects(city.children, false)[0];
+    if (!hit?.face) return null;
+    const attribute = (hit.object as THREE.Mesh).geometry.getAttribute("cityLandmark");
+    const id = attribute?.getX(hit.face.a) ?? 0;
+    return LANDMARKS.find((item) => item.id === id) ?? null;
+  }
   function onPointerDown(event: PointerEvent) {
     canvas.setPointerCapture(event.pointerId);
     const point = toScreen(event);
@@ -612,10 +642,18 @@ function startCity(
       const id = residentAt(point);
       const entry = id ? entries.get(id) : undefined;
       if (id && entry) {
+        buildingFade.selected.value = 0;
+        options.onSelectLandmark?.(null);
         // A quick hop acknowledges the tap before the camera moves.
         if (moving) entry.hopUntil = now + 0.28;
         options.onSelect?.(id);
-      } else options.onClearSelection?.();
+      } else {
+        const landmark = landmarkAt(point);
+        buildingFade.selected.value = landmark?.id ?? 0;
+        options.onSelectLandmark?.(landmark);
+        if (landmark) hold();
+        else options.onClearSelection?.();
+      }
     }
     if (!pointers.size) drag = null;
   }
@@ -707,8 +745,20 @@ function startCity(
     }
     placeCamera(shown);
     updateBuildingFade(buildingFade, shown.centerX, shown.centerY, shown.zoom);
+    buildingFade.pulse.value = moving ? 0.3 + 0.25 * (1 + Math.sin(now * 4)) : 0.45;
     parent.dataset.cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
     const screenUnit = 1 / shown.zoom;
+    const lineIndex = exchange ? Math.floor((now - exchange.startedAt) / 3.5) : -1;
+    if (
+      exchange &&
+      (lineIndex >= exchange.lines.length || !moving || exchange.ids.some((id) => !entries.has(id)))
+    ) {
+      for (const id of exchange.ids) {
+        const entry = entries.get(id);
+        if (entry?.actor.action === "talk") entry.actor = commandActor(world, entry.actor, "idle");
+      }
+      exchange = null;
+    }
     let index = 0;
     for (const [id, entry] of entries) {
       const leaving = entry.leaveAt > 0;
@@ -722,14 +772,23 @@ function startCity(
       const previousAction = entry.actor.action;
       const presenting = id === presentation?.id && !leaving;
       // Keep the underlying route position. Camera focus never relocates the original sprite.
-      entry.actor = presenting
-        ? { ...entry.actor, elapsed: entry.actor.elapsed + (moving ? seconds : 0) }
-        : leaving
-          ? entry.actor
-          : stepActor(world, entry.actor, seconds, moving, {
-              signals: trafficData.pedestrianSignals,
-              time: clock,
-            });
+      const conversing = Boolean(exchange?.ids.includes(id));
+      entry.actor = pendingPair?.includes(id)
+        ? entry.actor
+        : conversing
+          ? {
+              ...entry.actor,
+              action: "talk",
+              elapsed: entry.actor.elapsed + (moving ? seconds : 0),
+            }
+          : presenting
+            ? { ...entry.actor, elapsed: entry.actor.elapsed + (moving ? seconds : 0) }
+            : leaving
+              ? entry.actor
+              : stepActor(world, entry.actor, seconds, moving, {
+                  signals: trafficData.pedestrianSignals,
+                  time: clock,
+                });
       if (
         moving &&
         !leaving &&
@@ -802,8 +861,16 @@ function startCity(
       entry.ring.visible = (id === selectedId || presenting) && !leaving;
       entry.ring.scale.setScalar(size / RESIDENT_HEIGHT);
       entry.ring.position.y = 0.06;
-      const speech =
-        entry.actor.action === "talk" ? preset : now < entry.welcomeUntil ? "ようこそ！" : "";
+      const currentLine = exchange?.lines[lineIndex];
+      const speech = conversing
+        ? currentLine?.residentId === id
+          ? `AI：${currentLine.text}`
+          : ""
+        : entry.actor.action === "talk"
+          ? preset
+          : now < entry.welcomeUntil
+            ? "ようこそ！"
+            : "";
       if (entry.bubble.sprite.userData.text !== speech) {
         entry.bubble.sprite.userData.text = speech;
         if (speech) entry.bubble.set(speech);
@@ -842,6 +909,61 @@ function startCity(
         }
       }
       index++;
+    }
+    if (
+      moving &&
+      options.onEncounter &&
+      !exchange &&
+      !dialoguePending &&
+      now >= nextEncounter &&
+      !presentation
+    ) {
+      nextEncounter = now + 2;
+      const pair = findEncounter(
+        [...entries.values()].map((entry) => ({
+          id: entry.resident.residentId,
+          actor: entry.actor,
+          personality: entry.resident.personalityLabel,
+        })),
+        selectedId,
+        groundAt,
+        now,
+        lastSpoke,
+      );
+      if (pair) {
+        const ids = pair;
+        const first = entries.get(ids[0]);
+        const second = entries.get(ids[1]);
+        if (!first || !second) return;
+        const place = encounterPlace(first.actor, second.actor, world.pois);
+        for (const entry of [first, second]) {
+          // Individual cooldowns remain bounded and never shorten the global request interval.
+          lastSpoke.set(entry.resident.residentId, now);
+        }
+        nextEncounter = now + 45;
+        dialoguePending = true;
+        pendingPair = ids;
+        void options
+          .onEncounter(ids, place)
+          .then((result) => {
+            if (
+              !destroyed &&
+              moving &&
+              !presentation &&
+              !ids.includes(selectedId ?? "") &&
+              result?.safety === "PASSED" &&
+              result.source === "LIVE" &&
+              ids.every((id) => entries.has(id)) &&
+              result.lines.every((line) => ids.includes(line.residentId))
+            )
+              exchange = { ids, lines: result.lines, startedAt: now };
+          })
+          .catch(() => {})
+          .finally(() => {
+            dialoguePending = false;
+            pendingPair = null;
+          });
+      }
     }
   }
 
@@ -910,6 +1032,9 @@ function startCity(
     },
     select(id) {
       selectedId = id;
+    },
+    selectLandmark(id) {
+      buildingFade.selected.value = id ?? 0;
     },
     present(next) {
       if (presentation?.id === next?.id && presentation?.kind === next?.kind) return;

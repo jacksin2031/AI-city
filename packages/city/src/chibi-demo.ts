@@ -48,12 +48,21 @@ export async function loadChibiDemo(signal: AbortSignal) {
       dispose() {
         if (!disposed) {
           disposed = true;
-          manager.dispose();
+          releaseManager(manager);
         }
       },
     };
   } catch (error) {
-    manager.dispose();
+    releaseManager(manager);
     throw error;
+  }
+}
+
+// Releasing an AssetManager mid-load can throw inside spine-webgl; never let cleanup crash the page.
+function releaseManager(manager: { dispose(): void }) {
+  try {
+    manager.dispose();
+  } catch {
+    // Partially loaded assets are discarded with the page.
   }
 }

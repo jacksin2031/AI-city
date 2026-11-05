@@ -279,6 +279,11 @@ describe("dialogue contracts", () => {
   };
   it("accepts a two-resident Japanese request", () => {
     expect(DialogueRequestSchema.safeParse(request).success).toBe(true);
+    expect(DialogueRequestSchema.safeParse({ ...request, place: "station" }).success).toBe(true);
+    expect(
+      DialogueRequestSchema.safeParse({ ...request, place: "untrusted arbitrary text" }).success,
+    ).toBe(false);
+    expect(DialogueRequestSchema.safeParse({ ...request, x: 1, y: 2 }).success).toBe(false);
   });
   it("rejects self-talk, crowds and private context in requests", () => {
     expect(

@@ -3,6 +3,7 @@
 // are rebuilt as small shader additions on three.js standard materials. Colours are linear.
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { landmarkForNode } from "./landmarks";
 
 type Colour = [number, number, number];
 export type MaterialSpec = {
@@ -26,6 +27,8 @@ export type MaterialSpecs = Record<string, MaterialSpec>;
 export type BuildingFade = {
   center: { value: THREE.Vector2 };
   zoom: { value: number };
+  selected?: { value: number };
+  pulse?: { value: number };
 };
 
 /** Fade buildings near the view target as the orthographic camera zooms in. */
@@ -43,16 +46,21 @@ function enableBuildingFade(material: THREE.MeshStandardMaterial, fade: Building
     compile.call(material, shader, renderer);
     shader.uniforms.cityFadeCenter = fade.center;
     shader.uniforms.cityFadeZoom = fade.zoom;
+    shader.uniforms.citySelectedLandmark = fade.selected ?? { value: 0 };
+    shader.uniforms.cityLandmarkPulse = fade.pulse ?? { value: 0 };
     shader.vertexShader = shader.vertexShader
       .replace(
         "#include <common>",
-        "#include <common>\nattribute vec4 cityBounds;\nvarying vec4 vCityBounds;",
+        "#include <common>\nattribute vec4 cityBounds;\nattribute float cityLandmark;\nvarying vec4 vCityBounds;\nvarying float vCityLandmark;",
       )
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvCityBounds = cityBounds;");
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nvCityBounds = cityBounds;\nvCityLandmark = cityLandmark;",
+      );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
-        "#include <common>\nvarying vec4 vCityBounds;\nuniform vec2 cityFadeCenter;\nuniform float cityFadeZoom;",
+        "#include <common>\nvarying vec4 vCityBounds;\nvarying float vCityLandmark;\nuniform vec2 cityFadeCenter;\nuniform float cityFadeZoom;\nuniform float citySelectedLandmark;\nuniform float cityLandmarkPulse;",
       )
       .replace(
         "#include <alphahash_fragment>",
@@ -62,6 +70,13 @@ function enableBuildingFade(material: THREE.MeshStandardMaterial, fade: Building
         float closeZoom = smoothstep(8.0, 20.0, cityFadeZoom);
         diffuseColor.a *= 1.0 - 0.7 * nearby * closeZoom;
         #include <alphahash_fragment>`,
+      )
+      .replace(
+        "#include <opaque_fragment>",
+        `
+        if (vCityLandmark > 0.5 && abs(vCityLandmark - citySelectedLandmark) < 0.25)
+          outgoingLight = mix(outgoingLight, vec3(1.0), cityLandmarkPulse);
+        #include <opaque_fragment>`,
       );
   };
 }
@@ -371,6 +386,11 @@ export function mergeCity(
         for (let index = 0; index < count; index++)
           values.set([bounds.min.x, bounds.min.z, bounds.max.x, bounds.max.z], index * 4);
       geometry.setAttribute("cityBounds", new THREE.BufferAttribute(values, 4));
+      const landmark = landmarkForNode(owner?.name ?? mesh.name);
+      geometry.setAttribute(
+        "cityLandmark",
+        new THREE.BufferAttribute(new Float32Array(count).fill(landmark?.id ?? 0), 1),
+      );
     }
     const key = `${name}:${isBuilding ? "building" : "other"}`;
     const group = groups.get(key) ?? { name, source, geometries: [], building: isBuilding };

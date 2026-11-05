@@ -178,6 +178,17 @@ export const CityModeEventSchema = z.strictObject({
 export const CityStreamEventSchema = z.union([CityEventSchema, CityModeEventSchema]);
 
 // Residents' public context is looked up server-side from PublicResident; requests carry IDs only.
+export const DialoguePlaceSchema = z.enum([
+  "station",
+  "bridge",
+  "river",
+  "sola",
+  "nikolai",
+  "yushima",
+  "meiji",
+  "street",
+]);
+export type DialoguePlace = z.infer<typeof DialoguePlaceSchema>;
 export const DialogueRequestSchema = z
   .strictObject({
     schemaVersion: z.literal(1),
@@ -185,6 +196,7 @@ export const DialogueRequestSchema = z
     eventId: Id,
     residentIds: z.tuple([Id, Id]),
     locale: z.literal("ja-JP"),
+    place: DialoguePlaceSchema.optional(),
     maxLines: z.number().int().min(1).max(6),
   })
   .refine((request) => request.residentIds[0] !== request.residentIds[1], {

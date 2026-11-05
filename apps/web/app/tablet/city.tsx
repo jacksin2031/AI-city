@@ -4,13 +4,17 @@ import {
   createDevelopmentCity,
   fetchSpineBundle,
   type IllustratedCity,
+  LANDMARKS,
+  type Landmark,
   loadChibiDemo,
   openProfile,
   type ScenePresentationFrame,
   updatePresentation,
 } from "@ai-city/city";
+import { DialogueResultSchema } from "@ai-city/contracts";
 import type { CitySnapshot } from "@ai-city/contracts/development";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LandmarkCard } from "../landmark-card";
 import { ResidentSpeech } from "./resident-speech";
 export function TabletCity({
   snapshot,
@@ -42,15 +46,17 @@ export function TabletCity({
   const [animated, setAnimated] = useState(false);
   const [spineSample, setSpineSample] = useState<"loading" | "ready" | "failed" | null>(null);
   const [spineBundles, setSpineBundles] = useState(0);
+  const [landmark, setLandmark] = useState<Landmark | null>(null);
+  const [dialogueAvailable, setDialogueAvailable] = useState(false);
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
-  const select = useCallback(
-    (id: string) =>
-      setPresentation((previous) =>
-        openProfile(updatePresentation(previous, latest.current.snapshot), id),
-      ),
-    [],
-  );
+  const select = useCallback((id: string) => {
+    setLandmark(null);
+    city.current?.selectLandmark(null);
+    setPresentation((previous) =>
+      openProfile(updatePresentation(previous, latest.current.snapshot), id),
+    );
+  }, []);
   const close = useCallback(
     () =>
       setPresentation((previous) =>
@@ -71,9 +77,23 @@ export function TabletCity({
     setFailed(false);
     setSpineBundles(0);
     let active = true;
+    let aiEnabled = false;
     const lifetime = new AbortController();
     let sampleAssets: Awaited<ReturnType<typeof loadChibiDemo>> | undefined;
     const bundleAssets = new Map<string, Awaited<ReturnType<typeof fetchSpineBundle>>>();
+    void fetch("/api/link/dialogue", {
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: lifetime.signal,
+    })
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((value: unknown) => {
+        aiEnabled = Boolean(
+          value && typeof value === "object" && "available" in value && value.available === true,
+        );
+        if (active) setDialogueAvailable(aiEnabled);
+      })
+      .catch(() => {});
     const media = matchMedia("(prefers-reduced-motion: reduce)");
     const applyMotion = () => {
       const enabled = latest.current.motion && !media.matches;
@@ -141,6 +161,38 @@ export function TabletCity({
           onSelect: (id) => {
             if (active) select(id);
           },
+          onSelectLandmark: (item) => {
+            if (!active) return;
+            if (item && latest.current.active) close();
+            setLandmark(item);
+          },
+          onEncounter: async (residentIds, place) => {
+            if (!aiEnabled || !active) return null;
+            const response = await fetch("/api/link/dialogue", {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json" },
+              signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(15_000)]),
+              body: JSON.stringify({
+                schemaVersion: 1,
+                requestId: crypto.randomUUID(),
+                eventId: latest.current.snapshot.eventId,
+                residentIds,
+                place,
+                locale: "ja-JP",
+                maxLines: 4,
+              }),
+            });
+            if (!response.ok) {
+              if (response.status === 503) {
+                aiEnabled = false;
+                if (active) setDialogueAvailable(false);
+              }
+              return null;
+            }
+            return DialogueResultSchema.parse(await response.json());
+          },
           onClearSelection: () => {
             if (active && latest.current.active) close();
           },
@@ -192,6 +244,11 @@ export function TabletCity({
   const active = view.active;
   const resident = residents.find((item) => item.residentId === active?.id);
   useEffect(() => {
+    if (!active) return;
+    setLandmark(null);
+    city.current?.selectLandmark(null);
+  }, [active]);
+  useEffect(() => {
     if (!ready) return;
     city.current?.select(active?.id ?? null);
     city.current?.present(active);
@@ -219,12 +276,27 @@ export function TabletCity({
         data-failed={failed || undefined}
         data-spine-sample={spineSample ?? undefined}
         data-spine-bundles={spineBundles}
-        aria-label="街の住民をタップすると公開プロフィールを表示します。"
+        aria-label="街の住民や建物をタップすると紹介を表示します。"
       >
         <div className="tablet-scene-canvas" ref={parent} />
+        <p className="tablet-dialogue-status">
+          {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
+        </p>
         <p className="canvas-failure" role="alert">
           街を表示できません。ページを読み直してください。
         </p>
+        {landmark && (
+          <aside className="tablet-landmark">
+            <LandmarkCard
+              key={landmark.key}
+              landmark={landmark}
+              close={() => {
+                setLandmark(null);
+                city.current?.selectLandmark(null);
+              }}
+            />
+          </aside>
+        )}
         {resident && active && anchor?.id === active.id && anchor.kind === active.kind && (
           <ResidentSpeech
             key={`${active.kind}:${active.id}`}
@@ -252,6 +324,25 @@ export function TabletCity({
           </div>
         </details>
       )}
+      <details className="tablet-landmark-list">
+        <summary>建物・駅を選ぶ</summary>
+        <div>
+          {LANDMARKS.map((item) => (
+            <button
+              type="button"
+              key={item.key}
+              disabled={!ready || failed}
+              onClick={() => {
+                if (view.active) close();
+                setLandmark(item);
+                city.current?.selectLandmark(item.id);
+              }}
+            >
+              {item.name}
+            </button>
+          ))}
+        </div>
+      </details>
     </>
   );
 }
