@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ParticipantExperience } from "./participant-experience";
 import { ParticipationFlow } from "./participation-flow";
+import { SpineParticipantFlow } from "./spine-flow";
 export const dynamic = "force-dynamic";
 
 export default function Join() {
@@ -18,6 +19,9 @@ export default function Join() {
     process.env.AI_CITY_SPINE_CLOUD_INTAKE === "1" &&
     process.env.AI_CITY_SPINE_CLOUD_ASSETS === "1" &&
     Boolean(process.env.AI_CITY_PUBLIC_ORIGIN);
+  // Photo-to-character flow: hosted when cloud intake is on; locally only when asked for explicitly.
+  if (codeFree && (spineCloud || (spineLocal && process.env.AI_CITY_SPINE_FLOW === "1")))
+    return <SpineParticipantFlow />;
   if (codeFree) return <ParticipantExperience spineLocal={spineLocal || spineCloud} />;
   return (
     <main className="participation">
