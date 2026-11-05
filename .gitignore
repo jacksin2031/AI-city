@@ -32,3 +32,6 @@ output/playwright/
 
 # Large Blender blockout renders and scene files: build output, not source.
 output/
+
+# Local end-to-end probe artifacts: reference photos and screenshots.
+.probe/

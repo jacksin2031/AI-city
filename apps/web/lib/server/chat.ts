@@ -2,9 +2,16 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { ResidentDoc } from "./residents";
 
 export type ChatLine = { speaker: "a" | "b"; text: string };
-export type Conversation = { lines: ChatLine[]; source: "gemini" | "fallback"; createdAt: number };
+/** `codex` is produced by the local worker; `gemini` by the cloud model; `fallback` by template. */
+export type ConversationSource = "codex" | "gemini" | "fallback";
+export type Conversation = {
+  lines: ChatLine[];
+  source: ConversationSource;
+  createdAt: number;
+};
 
 const MAX_TEXT = 60;
+const MAX_LINES = 6;
 const MAX_CALLS_PER_MINUTE = 12;
 const calls: number[] = [];
 
@@ -14,6 +21,43 @@ function allowModelCall() {
   if (calls.length >= MAX_CALLS_PER_MINUTE) return false;
   calls.push(now);
   return true;
+}
+
+/**
+ * Validate and normalise dialogue produced elsewhere (the local Codex worker).
+ * Returns null when the payload is unusable, so the caller can fall back rather than
+ * publish half-parsed lines. The model output is data: only the two speaker keys and
+ * a bounded, trimmed string survive.
+ */
+export function normalizeLines(raw: unknown): ChatLine[] | null {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === "object" && Array.isArray((raw as { lines?: unknown }).lines)
+      ? ((raw as { lines: unknown[] }).lines as unknown[])
+      : null;
+  if (!list) return null;
+  const lines = list
+    .filter(
+      (l): l is ChatLine =>
+        !!l &&
+        typeof l === "object" &&
+        ((l as ChatLine).speaker === "a" || (l as ChatLine).speaker === "b") &&
+        typeof (l as ChatLine).text === "string" &&
+        (l as ChatLine).text.trim() !== "",
+    )
+    .slice(0, MAX_LINES)
+    .map((l) => ({ speaker: l.speaker, text: l.text.trim().slice(0, MAX_TEXT) }));
+  return lines.length >= 2 ? lines : null;
+}
+
+/**
+ * Wrap dialogue the local worker generated with the Codex CLI. The payload shape is
+ * checked here rather than trusted, because it arrives from outside this process.
+ */
+export function codexConversation(raw: unknown, createdAt = Date.now()): Conversation | null {
+  const lines = normalizeLines(raw);
+  if (!lines) return null;
+  return { lines, source: "codex", createdAt };
 }
 
 /** Template dialogue, used when no model is configured or a call fails. Always labelled `fallback`. */
@@ -70,17 +114,8 @@ export async function generateConversation(a: ResidentDoc, b: ResidentDoc): Prom
       },
     });
     const parsed = JSON.parse(response.text ?? "[]") as unknown;
-    const lines = (Array.isArray(parsed) ? parsed : [])
-      .filter(
-        (l): l is ChatLine =>
-          !!l &&
-          (l.speaker === "a" || l.speaker === "b") &&
-          typeof l.text === "string" &&
-          l.text.trim() !== "",
-      )
-      .slice(0, 6)
-      .map((l) => ({ speaker: l.speaker, text: l.text.trim().slice(0, MAX_TEXT) }));
-    if (lines.length < 2) return fallbackConversation(a, b);
+    const lines = normalizeLines(parsed);
+    if (!lines) return fallbackConversation(a, b);
     return { lines, source: "gemini", createdAt: Date.now() };
   } catch (error) {
     const status = (error as { status?: number })?.status;

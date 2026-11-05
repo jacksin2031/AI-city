@@ -4,10 +4,11 @@ import { createLiveCity, type LiveCity } from "@ai-city/city";
 import { useEffect, useRef, useState } from "react";
 
 type Resident = { residentId: string; nickname: string; avatarUrl: string; avatarSource: string };
+type ConversationSource = "codex" | "gemini" | "fallback";
 type Conversation = {
   speakers: { a: string; b: string };
   lines: { speaker: "a" | "b"; text: string }[];
-  source: "gemini" | "fallback";
+  source: ConversationSource;
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -16,7 +17,7 @@ export function CityPreview() {
   const parent = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
   const [count, setCount] = useState(0);
-  const [source, setSource] = useState<"gemini" | "fallback" | null>(null);
+  const [source, setSource] = useState<ConversationSource | null>(null);
   useEffect(() => {
     if (!parent.current) return;
     let disposed = false;
@@ -80,6 +81,7 @@ export function CityPreview() {
       <section className="city" ref={parent} aria-label="街の住民たち" />
       <p className="fine" role="status">
         {count === 0 ? "住民を待っています…" : `住民 ${count} 人`}
+        {source === "codex" && " ・ 会話はAIが生成しています"}
         {source === "gemini" && " ・ 会話はGeminiが生成しています"}
         {source === "fallback" && " ・ 会話は用意された文章です（AI生成ではありません）"}
       </p>
