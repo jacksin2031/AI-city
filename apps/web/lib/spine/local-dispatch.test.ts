@@ -173,6 +173,60 @@ describe("local task dispatch with isolated synthetic data", () => {
     expect(await f.storage.read(f.task, "page.png", 10000)).not.toBeNull();
     expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("COMPLETE");
   });
+  it("uploads every file to the cloud before publishing and removes them if publication fails", async () => {
+    const f = await fixture();
+    const output = await candidate(f.task);
+    const written: string[] = [];
+    const removed: string[] = [];
+    const cloud = {
+      write: vi.fn(async (_task: string, name: string) => {
+        written.push(name);
+        return "1";
+      }),
+      remove: vi.fn(async (_task: string, name: string) => {
+        removed.push(name);
+      }),
+    };
+    const result = await dispatchLocalTask(
+      f.jobs,
+      f.storage,
+      f.task,
+      "worker1",
+      async () => ({ status: "APPROVED", candidate: output }),
+      cloud,
+    );
+    expect(result?.state).toBe("PUBLISHED");
+    expect(new Set(written)).toEqual(
+      new Set([
+        "build-manifest.json",
+        "skeleton.json",
+        "skeleton.atlas",
+        "orientation-policy.json",
+        "page.png",
+      ]),
+    );
+    expect(removed).toEqual([]);
+    const g = await fixture();
+    const failing = {
+      write: vi.fn(async (_t: string, name: string) => {
+        if (name === "skeleton.json") throw new Error("upload failed");
+        return "1";
+      }),
+      remove: vi.fn(async () => {}),
+    };
+    // A cloud outage after generation is UNKNOWN (never re-sent, never published), not a crash.
+    const failed = await dispatchLocalTask(
+      g.jobs,
+      g.storage,
+      g.task,
+      "worker1",
+      async () => ({ status: "APPROVED", candidate: await candidate(g.task) }),
+      failing,
+    );
+    expect(failed?.state).toBe("UNKNOWN");
+    expect(await g.jobs.publishedBundle(g.task)).toBeNull();
+    expect(failing.remove).toHaveBeenCalledWith(g.task, "build-manifest.json");
+  });
   it("claims once, stages verified assets, serves them, and withdraws all stored files", async () => {
     const f = await fixture();
     const before = await f.service.snapshot();

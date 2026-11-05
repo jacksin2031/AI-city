@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { verifySpineBundle } from "./bundle";
+import type { CloudAssetStorage } from "./cloud-asset-storage";
 import type { SpineJobs } from "./jobs";
 import { cleanupLocalTask } from "./local-cleanup";
 import type { LocalSpineStorage } from "./local-storage";
@@ -12,10 +13,16 @@ export async function dispatchLocalTask(
   task: string,
   worker: string,
   execute: (photo: Uint8Array, worker: string) => Promise<ToolOutcome>,
+  cloud: Pick<CloudAssetStorage, "write" | "remove"> | null = null,
 ) {
   const queued = await jobs.queuedForWorker(task);
   if (!queued?.photoSha256) return null;
   const staged: string[] = [];
+  const stagedCloud: string[] = [];
+  const unstage = async () => {
+    for (const name of staged) await storage.remove(task, name);
+    for (const name of stagedCloud) await cloud?.remove(task, name).catch(() => {});
+  };
   try {
     const result = await runSpineWorker(jobs, task, queued.owner, worker, async () => {
       const photo = await storage.read(task, "photo.png", 24 * 1024 * 1024);
@@ -44,6 +51,11 @@ export async function dispatchLocalTask(
         if (!bytes) return { status: "FAILED" };
         await storage.write(task, name, bytes);
         staged.push(name);
+        // Upload before publication commits, so a published bundle is never missing in the cloud.
+        if (cloud) {
+          await cloud.write(task, name, bytes);
+          stagedCloud.push(name);
+        }
       }
       return outcome;
     });
@@ -52,10 +64,10 @@ export async function dispatchLocalTask(
       await cleanupLocalTask(jobs, storage, task).catch(() => "PENDING" as const);
       return result;
     }
-    for (const name of staged) await storage.remove(task, name);
+    await unstage();
     return result;
   } catch (error) {
-    for (const name of staged) await storage.remove(task, name);
+    await unstage();
     throw error;
   }
 }
