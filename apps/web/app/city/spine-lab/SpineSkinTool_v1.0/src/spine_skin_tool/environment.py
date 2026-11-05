@@ -74,6 +74,12 @@ def environment_report(config: ToolConfig, production: bool = False) -> dict:
     except (KeyError, OSError, ValueError):
         raise ConfigError("MANIFEST_INVALID") from None
     limitations = ["M07_FULL_CHARACTER_QUALITY_NOT_APPROVED", "PRODUCTION_SIZES_NOT_APPROVED", "CLEAN_WINDOWS_INSTALL_NOT_VALIDATED", "REFERENCE_ART_REDISTRIBUTION_NOT_VERIFIED", "M08_HELD_OUT_PHOTOS_NOT_VALIDATED"]
+    if (root/'references/spine').exists():
+        from .reference_assets import inspect
+        try:
+            inspect(root);checks.append({'code':'BUNDLED_REFERENCE_ASSETS','ok':True})
+            limitations[3]='REFERENCE_ART_COMMERCIAL_USE_NOT_AUTHORIZED'
+        except (OSError,ValueError,KeyError):checks.append({'code':'BUNDLED_REFERENCE_ASSETS','ok':False})
     if production:
         checks.extend({"code": code, "ok": False} for code in limitations)
     ready = all(check["ok"] for check in checks)

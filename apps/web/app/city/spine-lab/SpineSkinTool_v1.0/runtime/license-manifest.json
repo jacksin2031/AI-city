@@ -1,7 +1,17 @@
 {
   "schema_version": "1.0.0",
-  "assets": [],
-  "note": "原始角色及参考图未复制进工具，公开再分发许可未验证；Spine Editor 未安装。",
+  "assets": [
+    {
+      "name": "Chibi Stickers 4.3 original reference and fixed runtime template",
+      "path": "references/spine",
+      "manifest": "references/spine/ASSET_MANIFEST.json",
+      "license": "references/spine/Chibi-Stickers-4.3/extracted/license.txt",
+      "reference_only": true,
+      "commercial_use_allowed": false,
+      "notice": "Original project public domain; images redistribution requires accompanying original license and excludes commercial use."
+    }
+  ],
+  "note": "按用户明确要求将原始参考工程/贴图与运行母版对齐收录，保留原许可证，限定参考与非商用；Spine Editor未安装/未做Editor打开验收。",
   "components": [
     {
       "name": "@esotericsoftware/spine-canvas",

@@ -62,7 +62,7 @@ def main():
         if args.action in ('source','backup'):
             value=create_archive(ROOT,args.output,'SOURCE' if args.action=='source' else 'PRIVATE_BACKUP')
             if args.action=='source':
-                m=verify_archive(ROOT/args.output);seal(ROOT,'source_package',{'status':'PASS','message_ja':'写真・鍵・依存物・原素材を含まない開発用ソースZIPを検証しました。実行環境同梱インストーラーではありません。','facts':value,'artifacts':[artifact(ROOT,ROOT/args.output)]})
+                m=verify_archive(ROOT/args.output);seal(ROOT,'source_package',{'status':'PASS','message_ja':'個人写真・鍵・依存物を含まない開発用ZIPを検証しました。同梱の原参考素材は付属ライセンスに従う参照専用・非商用です。実行環境同梱インストーラーではありません。','facts':value,'artifacts':[artifact(ROOT,ROOT/args.output)]})
         elif args.action=='verify':
             m=verify_archive(ROOT/args.archive);value={'status':'PASS','kind':m['kind'],'files':len(m['files']),'bytes':m['bytes']}
         elif args.action=='restore':

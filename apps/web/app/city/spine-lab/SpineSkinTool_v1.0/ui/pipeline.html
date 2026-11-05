@@ -1,7 +1,7 @@
 <!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>写真からキャラクター制作</title>
 <style>body{font:15px system-ui;background:#18232d;color:#eef;margin:24px}a{color:#9de}input,select,button,textarea{padding:8px;margin:6px}textarea{display:block;width:min(96%,950px);background:#223442;color:#eef}pre{white-space:pre-wrap;overflow-wrap:anywhere}iframe{width:590px;height:1000px;border:1px solid #789;max-width:95%}#previews{display:flex;gap:16px;flex-wrap:wrap}fieldset{margin:15px 0}table{border-collapse:collapse}td,th{padding:8px;border:1px solid #789}</style>
 <h1>写真からキャラクター制作</h1>
-<p>元写真から設計・全部位・全身構築・動作レビュー・有限返修を順番に実行します。頭・表情は原素材、耳は髪と一緒に小さく生成し、原耳は常に非表示です。腕は標準形状の配色です。判断が不確かな候補は「確認待ち」として保存します。</p>
+<p>元写真から設計・全部位・全身構築・動作レビュー・有限返修を順番に実行します。頭・表情は原素材、耳は原写真に応じて標準の小耳を追加し、原耳は常に非表示です。腕は標準形状の配色です。判断が不確かな候補は「確認待ち」として保存します。</p>
 <p><a href="/reviews">レビュー</a> ／ <a href="/repairs">返修作業</a> ／ <a href="/trials">詳細な素材試験</a></p>
 <fieldset id="settings"><legend>新しい制作</legend>
 <label>方式<select id="mode"><option value="GENERATE">元写真から新規制作</option><option value="HAIR_REFRESH">保存キャラクターの髪・小耳だけ再制作</option><option value="REPLAY">保存素材を再構築（画像生成なし）</option></select></label>

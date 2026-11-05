@@ -1832,3 +1832,604 @@ window.renderProductionTiming=(container,value)=>{
   - `python -B scripts/package_release.py --output runtime/output/M08/spine-skin-tool-0.1.0-20261104-m08-accepted.zip` : `PASS` (exit `0`); evidence: 204 source files, no credentials/photos/reference art; archive SHA256 c0c8e3ff72234c1675550cc693cede263f6dd3dabd8776f05621d8e9c1c9bf89
 - Risks: 用户验收关闭M08，不伪造未执行的实机/云服务/生产尺寸/许可测试；不改变生产开关或其它里程碑历史。; 仅文档/源码ZIP/日志；无照片、凭证、原画或新模型调用。
 - Next task: 按已交付工具与根说明复用，后续改进另行记录。
+
+### 2026-11-05T12:27:50.764650+09:00 | TASK-M08-BUNDLED-REFERENCES | 20261105T032750Z-TASK-M08-BUNDLED-REFERENCES | COMPLETE
+- UTC: 2026-11-05T03:27:50.764650+00:00
+- Goal: 用户要求同仓原Spine及对应素材/路径一致，后续明确保留启动器、自动配置和界面；当前冻结已验证功能、完整记录范围。
+- Files and corresponding code/sections:
+  - MODIFY `AGENTS.md`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `1221c205d3f166b7519ef198318f23a8486008ca30521b76eebcdf06d03b9c1b`; after `b5f1ea4faf3b9245e98eb625b61b87df8d09e7a0cb7bc2607fbe6624d6287bed`
+  - MODIFY `DISTRIBUTION.json`; location `bundled reference / explicit subscription launch / distribution`; lines `1-5`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `ccbdde3ef9aa871fe93855e549f01a7464c463e12c5b7da0384a8b1633da6cf9`; after `91024ae4144a3f7285e1d1bef7e9ca7d78a8d4364f00ca72ba412a8033a83b94`
+    ```text
+{
+  "schema_version": "1.0.0",
+  "release_id": "spine-skin-tool-0.1.0-20261105-bundled",
+  "source_directories": [
+    "src",
+    ```
+  - MODIFY `README.md`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `2a22b83044a1710c817d0604771648aa5a0a7695f2bbb556e0d90b6355978083`; after `7097f008b24f399eb3f3a47a52fe78b6b7cf5026ddd546652ef025a127fafd2e`
+  - MODIFY `docs/CODEX_IMPLEMENTATION_SPEC.md`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `3aaee7162575b96a66e55a5b2dee1f3ca8a15bb26a746efb9f687884c29d7111`; after `ecabf32f1ec0bedcc27f5735764b6ef0e41e1df4dac6c4caa72bd9ef5ed529a7`
+  - MODIFY `docs/OPS.md`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `a09127c6881ee69cfc83e63e043ca662145f947f78ebaf7dc8781edb89a3d494`; after `c063d509f0db4d1739dea1df3739a720c6b08ffc64445a051ae2db6816cb5dd6`
+  - MODIFY `docs/RELEASE_STATUS.md`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `769c8a0dcea0be83f7c0c64bb19c97370567cd99f5e4422af331e4f3001869b0`; after `7dac5a229db542adeb46334f2a8c986c1db0d5ab035fb276ece92748663882d6`
+  - ADD `references/spine/ASSET_MANIFEST.json`; location `bundled reference / explicit subscription launch / distribution`; lines `1-5`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `52babac46ec886b13ad01ec632e25abdf99ba20e248bdc9b4d85dc06ad56dce0`
+    ```text
+{
+  "schema_version": "1.0.0",
+  "revision": "bundled-spine-reference-001",
+  "reference_only": true,
+  "commercial_use_allowed": false,
+    ```
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/chibi-stickers-pro.spine`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9c7dcd10ef15f04e7abc2b5fbac2389845991defc0c91bfa31726256fc4ba515`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma.atlas`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `3c0c3ed4b6863f16c0e10b74f6296e6a831c77ae528223c7a7bf932468edeadc`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `c7082b0ff2aaba3afdfcc94c0563a8f2a4767eee3ffb5e5b07cde4f66fab80d6`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_10.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6ade7976138d58580d6f08f5676d000506c76c139a9baac43dad0290cc2a8493`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_11.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b20a97c5127b711e53e124d5b7ceffe32f48485d694c5fae900c1646a3cac726`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_2.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `fd1e4ee81bb7515cda84d01d8623c0133912d8225b5f26c05718682b85b5a9ba`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_3.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `4795e477edc17e13db2879be804936096adb495da079ec1f6773f696cd14cb0f`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_4.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b366fecf9a16a0938e9d3463c67683517093495930ee0ace76c674d6ef752fbf`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_5.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `d13031c36041328e7a09399b695cea218764b8e3acc3e3ac020191d20b9d40bc`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_6.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `bb60441977a88cf4a296549e70504779b131e8c4a5e02a1dfbd1cf253e9db566`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_7.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a5506e8e8187df0fa9c22b427d11aaba3c47313f1855927214878feec6532dc0`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_8.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `12db47768de40bb2a21fa44406777d6fdc9bbc39092b69560c41a790aef4d47d`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_9.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9553f31b51856d92e1b591f246de4dc462443bc8f426a07a995b44606af96b9f`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers.atlas`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `e8609249909788d2c3ccdf8404c346f9c1e0e98a764fa15bed101acd17f8f7b0`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers.json`; location `bundled reference / explicit subscription launch / distribution`; lines `1-5`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `591f69af04414ef348d2df5b1446a9a8a4f7f91c153e5aee0193ecdbc9e1a046`
+    ```text
+{
+"skeleton": {
+	"hash": "332sNAu1s4k",
+	"spine": "4.3.75-beta",
+	"x": -179.99997,
+    ```
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `00eb71f6c6b005956cde903036e163a50ad6abe1292cdb5327f99838cb76b81b`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers.skel`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7d4b3c712d1db52776206e08a163eb95d1112a0e96813483f44feac1e0918eec`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_10.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `97af1a8c3925e0bd3dc2a85b577287a269c260c6cc1d8058d2f15a8825b8588e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_11.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `c1cde5ab1f8922f50f3eef5be52d603b1a4cf93fb152337f2309a9483ae5f4b4`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_2.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f1c9b4df76c384c2ea9c29e150a0272844731b88dcbe829973658a3349e1bfc5`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_3.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `c460e6c08093f5c83e3e527518b1fae8191b600d9064c08f7fc5c3248347eb96`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_4.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `61af121670355c66fd5fd3f7fa74cf1cb913236fe8e7a5903f2dde187de223a9`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_5.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `48a88eea4140bef9c187893618543b6e8bfdeb6af35744a21b646558eb45cd85`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_6.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `318456c4b2e358f06690c906b325124eec52ce3587b4944ed3c6c9dfe293f697`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_7.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6c9bde7f04757e48d4ff8555bbc240c91e07ed747f97610899283912e8eeb199`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_8.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `2a02271ac51d44586c075a1169b12e20897a37f437c82a5fecc0152c8b9eaa30`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_9.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `5c257c82008b137252c55800de12ff7023fe7288fbc2b69121a4ce200737c890`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/angry-mark.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `2f8ea3bed441fa18209bc3b712e2b6ce4f92f90225ef4aa8cca86f6c3cae8aed`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/big-purple-fear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `dc6f1a1b4a8b7759ae5bd02d168c7f98cc5a2a6a1665e67ecbaa61b728779c9d`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/big-tear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `fa2c0576cefe06c72d4cc210fecea5262e9b3c06cf91a88b4950a4ae9e214fe3`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-3.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `240222bffc27883d1b6fa52c252f33f91d8dee87eb6aef97cba2bc7e2b0fffdd`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-closed-happy.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `eade105c0e4e0d136859d2a59ac5a27cd267f6ffb8433bbaa77370c9153f79cb`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-dafault.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `22a1124945aa1912405719d6ae9c8184b235e50c9a8d5ac1ac22247c552f1f24`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-equal.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `61e9d1293cc52b358ff749c23b35741f6099690e36b9269bc9e8372fe6e3de78`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-fire.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9702523df46cc45bc7d312c8a2740062a549fe8493dfb48ad285cbedec40a307`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-half-open.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6c7ffcbbb09360854db3dfa2f078817d51c0b0d366cc6e00b31e808e4446b4ca`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-heart.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `abd2928169f96f1cd7759a5348501a8ae7c03d750890e183bcad5d19f6802b96`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-reverse-v.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `201a7aba5c731fc5267e3ccfddc128086589c8b9751144acd455982ebd1318b3`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-sideway-v.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `dd646c5c959f75ffdf59b78bfc1c01fb43578d57f4e703631c3f72553751a069`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-slant-close.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `bfe9949c300c802b959a113479c9f1514f9ab7c16dc7de61b2d504ec8234ca1f`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-small-dot.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f9c173ec210fd81a952655b64c1b2f73b525aea22d61f7755d7a50b40b2d6cc7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-sparkle.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `ba94df7db390eb59de27c799f25444692b667d279315a2fe793e149d05eb430b`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-star.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `5e9f4a8a80db6ec846b61d7823f1b9a857790ecdc8ec0a8fc57098248f24b737`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-twirl.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `91a4207bbbfa9d5a344513a1ce49fac8e38ce7afe6ef607c7fcd99e5006e636a`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-u.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `fa9d134a71b34459dfa098ddc50beb72771a01a1695b5ce2fe2f0ca1574dfe33`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-x.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `1e9125a22cb2b9bf078f1cc9d3b3d6cee670bbc85b6147441a97bac737a6aabc`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/lamp.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `c2cacefb6cc9584d9a7ce6880ca2f818ccdf18284ae44defc28f23dbe99466e7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-3.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `4aa8d79fd69fadc267c7836cb682f52a388bd20de06f31ca83e0bdb8bb1d1894`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-bracket.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `da29828852756e8deab18659f8a761d1032e96c3cd43e6549c1eef09664b50b1`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-doubt.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `1c4241f9f260a1cab90057a055434e7ce1af1efadabb6f3121cd9ff951b261c2`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-fangs.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b0b3cc6c4be297ff02eb2be9f94c35f614a61c4d878d71ed3da40424f6d7fbbf`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-line.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f7a338cc76391b934bf14e0433c450ab8eb882d7b9c75ad1b26caa40148a35ed`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-neutral.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `0a1c8eaac6d422a261f45f34451fc103db6befe6b3aeaaea1d0ec9367a9e597f`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-o-tall.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `064d8131270767aea049e723017c56a3bba6f425540fb9229dde6241066813ed`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-open-smile.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `1145a6c12281682d90d0bca703e9a60ff649ec6655c7efeeae67d7527a1b11d9`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-rectangle.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b1fe06a4454c6ebd309660a78a050ecb1c61d7ee53db1c78b859fbeecc3858ee`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-reverse-v.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `903083e5e729d017f840b7babd1be9228d0f4699c60b9f57f21eb11b208f2092`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-s.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `d3453ef976e4167bb172ba97a2e9c07b4f0211432a35d06c042018a17fcd32b6`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-smile-little.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9bc52c77d9c1e4aa631db39458c1decdf9352f0386f01141b1ddca0000894af8`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-toungue-sticking-out.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `ad988846c3673de6698cf75974f679c0033fefd9226cdc88227e71ed9966e7dd`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-u.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `0c08d6365a4ddcf99988df62de3d63984077e8f5fee4e20cf2e2dd77c51a6053`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-v.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `4c75f586096a16d499fd5ac9eebd5c44645a2be45ac31b46b8d1a81d4133a7f7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-x.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f2bcb017da3d982a7b8a8758a5e918d7527cc6eb9ca09160f1e0ffaae8cbf26c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/purple-fear-lines.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `cbf16163294f22e88af1a283c8b3abc3c77ea55f1ae74ade656b73bf86b4cf04`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/shadow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `63a9fdd09e8b8e1bfe283a16eec4b5cfaf59b5b775873a7f804c0f278bdd30a4`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/small-dash.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a429c48412f84cccad248580532a2acbec8a6959f98274dd2fd42b4bca68b1cb`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/small-drop-line.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `ff995c129fa4198abaa7bcb95d989831e67064b29b2fbb8d0759b8de91922649`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/small-purple-fear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6001f9706768503875babd75edbe7b71de6491ca1c3ea7f63c8af0dcf272d44f`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/common/tear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `73645decd3848db74baf5709c5e5b352e0ad794446321805b61d60051adf756e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/davide/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `d360cb14f588aff71cc3261c3709141f4a3e6d10928d1a575b48d39640beaba6`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/davide/body-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `dbc9df785918cd110d6cd099bda98cd1870e2e2d143d775b1c970e54e9e9ac72`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/davide/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f7233ef281765d4285bbc832df4d99d33e5a1cf1716dae752ceea3d12592eb9f`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/davide/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a3fb2de6255aa5c09a8414ac678c497cdd0ef6b2cf8a164a4dc4400972690e87`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/davide/hair-back.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `23708f11826ae324830704ad22817169dd2fabd1c0cea0497837dd7ddce8c7ff`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/davide/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `82ca19701fe3c141fdeb5988217966183eb764a657188c1ed2e3edaf8ebe0636`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/davide/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `abcf2ee3f24fe4a8094de9ccdaad03b44bc7e9043afb64303acb38b7953b8832`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/arm-shoulder-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b948ae4830ee79c025f22cc2977e1309ee6f7482fab79076c9c6a704424e016c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `c8f98ca9bfc1dfdbc3a472706b0b574288788c4e518ea8c719e8a429c4fd1074`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/back-hair-long.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `47b804a4fb58ce1fdfe74cc6f6e84eb6807326f4f965ed90384c0c3979f3421b`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `3c845dab5b7daf0a394307417dfba42b2b9047545f00dd3daf2f7b66d8da8fa1`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9857bfaa47b41c625023083f943d08d5593a42f5ff8966fcb17cbe1c6c41ab34`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `213897d6ddd45ebc4c2f5e882ca6d48e8b2d8cc9400b6a352c1960cc921a544c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/bracelet.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `033933434623ef9e908e88de1685653739f74f2a0b4146482752c0fe0cafbba7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/collar.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `57296ee3150b5ea46c5e73858a69e5f977416f60a460f09c19e0d73a4fe13130`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/ear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `8b1fcffcc2ce9442894ef6b494127f58348a95ba353b0f3362a2d54c849bdb12`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f41fe7e5b611ee8af5ac42af5758325004bf9d7c4e2443f60a3ed3858826a10c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7f89ba951c1ab8636f8b7386f786719b25f354592bc0278e68cc67963b1722a7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/hair-side.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6c9c8950e4ecae023f41fb8d83c7961d4728a4bf6320dfa7c7e6a90781d2f8bb`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/hat-border.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `064d1818929295ae89c94699935b054c96ed546e01b02c5b36467d8c24270124`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/hat-top.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b59c220cad0b0264e63e18f4e66b4fe2fc43fe3c99cc5d433c76d9c3c2558675`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `261332fbed014746ec1db40efb2787aef9b689a8b872a512fdde7937a9356bf0`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/leg-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `1544ce170def78ca3c6543bf39c3689c64a4b952f2db4e6d234066025bd8b711`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b0240a1611eb67eaad9621d8a620e9262af3e87112f99e05b9258bcf007bb423`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/skirt.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `45438faa6d3efe67657467c0209e998d26589de250fd87d6dd37ce2f574cb563`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/erikari/strawberries-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `5bf087cdd8514e4929f61077c45cb84618a7f98d911b4409abd5fcfcb572c7e2`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `87c76f104a1757f79030874293a14d87e9f1f0e3633ff2b971fd82da4dce2cb6`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/back-hair-long.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `2e4dd22c7966aa2333098923edd207700dbf40d280c856b3aac38aa8ecb3d7a2`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `e80a75bd86691f5ba50d2ad58c97a2e48051ba82f975344bb24f411e97af787e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/beard.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `4cbdabe31f822ffe0ae49df163b0dcc26abf5bfad934332fdfc844ed84baf633`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `053a324447fbe9cd4940e9c2964c28a90559a6ae8dcb5c4de91e9bd160c68ae3`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/body-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `5c80999cc57b7c0b6c2eaebb80353c0994006e1fb709c7ef595616a73bdc6d58`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a5950ca73186342f2463161d15a83bec0091d2bef8b0534383503d7ef8d55b61`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/ear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a7c43dc3e11138ee2f9c6dc37485f721dd2453de006e539da2d83b4e11a40afc`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9941b827aee7b5051410dbf691d72b6a86b896a76c410682fc6018f8ca29197e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7fc00d1708d324c6c2d4c22faf4d6e21579529df4928bb2aa48fe7d36fdbc503`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `3b116e45e50160bb05f9e61d79283a5f15099424b21c979acfbe317f0c7350f2`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f555016dadb2f87ddb03f992129d96b6d469b5d9e88e37a053022c858b391772`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/harri/sword.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `8b1dfe9830f5babec240ef14393f3782612b9870d3bd6a59c1b59c4f0c1c4d88`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/arm-shoulder-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `85801baa3a32bc7741931faa58fb14580d099c1f572527cfc72971b6feeb685e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6e6d9fdcc187f1c830d37e759f388fe02ce9aa3d5f73a729019e9b6f64dfab06`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f387762394571c63c17f94663adaf66da4abd6c4e7197f7b12cb0ca7788ebfa7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `053a324447fbe9cd4940e9c2964c28a90559a6ae8dcb5c4de91e9bd160c68ae3`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b129e498d0f00397c75963893c6b014bf1a48710af18a3d4c858f4073965fe48`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `aedd785df8a60ea506e495697d5cdc15b933610f5d089c095324ea663cd50a6a`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/face-cover.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `153fa6fcb7e567267df5f8f9ef2a2b9f93ffb9ef91e38b0e66a67add97860574`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/glasses-shadow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `ee7cf4ade68b1aff34081a5b07866e280805c74a49ae6db9c2c75794379951eb`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/hair-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f90796d91392cb2d724fb09c815176b0f3407ced931e83d65392de4bfba34ee0`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `8738ec4e21cfbad9ba1f2af371c15685ebe81aa3921b6e550a82e8e45c833550`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `3b116e45e50160bb05f9e61d79283a5f15099424b21c979acfbe317f0c7350f2`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `aafc0c09ef874ef6565a9b2753271d5d1a487b8698b3e221e33df82d67cd122c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/shield.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `805f88daf499b911adcee84bfdfed93b3a5755afdf60eb334c6b66d9e39ad614`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/skirt.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7133ed046b17f2de6f9214b06fecbd216608c7beedc7c75fb63db870eb8b2293`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/luke/sword.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `c9e68913fa50d60fb5490cd02fa33b51818dc6333a9edd0ba606b094dbae3617`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `8b5c3e1cabc98139889c36f06ba0438e8cdcf213ff1ed397cf5dcccb679de2b5`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/back-hair-long.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `4fe5883298a42cda749eae80663eb402704b4c3249c310fcfc589b624c55b07c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `4d2be44ad9b438e9708a5789d81b0ed385a29a47fd54f4aeb8de0d523631cb17`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/beard.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9b0955c9f65520df16a6201591969e751b1ac0ed91a10a3675d5b630059a8436`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `557a47298392cff920be37cdd5a29ddcc890e968b4d0b442c79c4b995eddda93`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `85ae01d2fc6f78c010f40a1156af07afc59a5d73c8ab50eda4f1c299873836c7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/ear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `651996d61c383ff01ef2c759e00ad63bc721de002dce40562e3d8553eac4913e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `0062874cf778c4246db218663766c626f4f02b2b794d418c14698fcaaa77bb78`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `b66004cea52457c6651b35b737e8a211e1930b994dee007fefeb582f07a1223a`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f43ba5a52ae3038ce3f521bd927540ace8ac94158497aeecf017793363ad491b`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/mario/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `217cb14bd7f7fa8c54970d6b98f7bb0d52861ced0dfbfcb0d9d16b21349422f6`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `cc01c11a9d632f2d301f0796dbc903fddfee2846c48fe2a8ab87ed68a8419a50`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/back-hair-long.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `89a344d9efa579790d82dabbb9d54bd2dd1e1952ba2fed43b5003a8888f2627a`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `03544d499f77cf69c60e0e14757c0013cc3cf9f97aeb1c29378b54bfcd9ccc46`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/belt.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `1399c5423088b9e1036959103286c21875cb67890b9853614fd8d1a15e187ff5`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `aefd1cf966e7f758411194c9d30ce45c367af8db355ce34714846e5756c5c23a`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `bd6cb2a5f75caa1e2613b37df8f2a1c3e69fb14b6742cc0d54d3ff6c86d33615`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/ear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `5f839ea8e1c00ee23a3e29f3b860745b0dbd0a8bfe3d5ffda827ba1c471c3ea0`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `fa8adebb20904b2d45448833252b5dc5d7ba8338acd6500e25d49a8c0d83d32a`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/glasses-side.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `da1210ee11be042f6ec2a0d71cd029cf1e27a52e2a71d080e7df891e4319480d`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/glasses.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `19ca19ad20a5763bd98241051dc21489e087a4303ffd65f28050bcbbe96fdf1c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9a38d72eab7658165ea899de67579404109448a354b866d8f17888a6d7b02307`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/hair-side.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `5439b614b9d2bef54d95ac0db2223e58d2e20b2cfab9b84fa7dc1685f8505935`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `15e387b58f53e6c0fef224fa583196e713a0cb1c756404d7ae9911b09efe819c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `4d2637f5040d74df6dd1b22c15c7c1cbdd27ec9e30c25478cec55e9d447d52ac`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/misaki/skirt.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `ef2b0ce635f769fe8766ac0cc8449f82cc12e9fd2cb84e694dcdb1b3712b328f`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6b68f3588f02816e5aa8bc367b794e86a1ba537890ccd61cd29138a238e9495e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `e836f041e8c1e79bc13d7eedc7a05d5837bdbf2a99e31a56910298abb25b2740`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/beard.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `1cf83e722f611a4208f53fa31551da3c4b8f8089554ca7f5769971637637a018`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `053a324447fbe9cd4940e9c2964c28a90559a6ae8dcb5c4de91e9bd160c68ae3`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `683b8e1f0f26da45abb5a873d394880d2d9335d6a268e8afa59d8b2a79768ebe`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/ear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `9e0378bf8bd01d85d03260efe3966041b21704909b4686c8140de448f18c0910`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `aedd785df8a60ea506e495697d5cdc15b933610f5d089c095324ea663cd50a6a`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/glasses-side.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a51db20cdce7b178a75ed4540778e2414b113c894b861dec3568e9f611986659`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/glasses.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `8c8801405cd5518aae6d6d28da71237a106a3e31a087b3bd083ca24cc2338cd0`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7dae3713db0d5c8a2ffa8ddeb4d522d6755f4733d59c71e549f404f645fd40fa`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `765eb1d278d538d1dfa629431150e74b7706af833599cd409a8a00e66562a4e8`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/nate/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `30a59ec1fb6f3b0226af4ea1e7deb4eb01d60532a35f763789e0a04b946e26bc`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `407b9a8cf60f4e181e3c524646a13d80dc73e8482465073feadd889afc44657b`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `d397874cfaebf398341ca4a93109d4d471a4dbcc168c9b9b4c7090363853e0e8`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/beard.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `374cac66d5dfae1917d0e397c2a276153a4441a9d1dc79f8624f3d49c18e7765`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `98504e7bbe614c0da7d4d0696c2b4af71d4dcf56e1e45106d0cd7e7916bda8c0`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/body-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `17586984dd8b832214c0655e5337037d40b03bf188b58f3f396efbaea4535a0d`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `11ffb8a01d81435d349a2446b365c1cb44c0f17ae331b2cb05974af670eeb7fb`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/ear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7dd050eb9318371f8b4bd438a5d3a1501a1423769189973fbf6a0fa1c189ac0d`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `341aa197ceb26e4976ea76690898221ba6b08da14c976b9275c06184fcadec4b`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `04ad0bd962b53e45954971c07d3510ec5c0f9a8cdb9590e3589426b28ef318f7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `67fd52d398a34129859334a712467350d8021b7143fdf0f84b82338f764ff969`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7e23a010166763060f6dadf52a137283427d939704411038212f4c0da13198d8`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `591318c40d105503283c0703be4fb7d82e0b7d12dbca6501cdc102607c08b0bd`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `969adab67e1a696aa09236d2d9fe88e2b814f207a548b47b8892c2680aa8b373`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/beard.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `04344a5578541da5b871ebc02af7cba8d565035b9e95601ec497de30f6a792db`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `532d83595138896b1cd398eed9a6b6b46fc3f9c93587ef3e57a97c89e63faa43`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7a5d099c194cd01aa5adfe96412ec9ee0c253032279de10969d72f7b402d053c`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/ear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a7c43dc3e11138ee2f9c6dc37485f721dd2453de006e539da2d83b4e11a40afc`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `8edca283380826597c22e9db7d46f944147c438331956d58942fed33a366efc8`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/glasses-side.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `0a0891bea15591aa7d2cbb7f2a566380169f71118e4b3e0915fd3d393d490faa`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/glasses.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `5d45fa2966cb90e9abdcfee69b5937b35de10f16d4da1d4edb3405a40f473d46`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/glove.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `e4af74ed86593304207c908cb574cbacbbdc099c8a31c047fe67c8501a663e22`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `461487f99cc5b1b88c047be7512a97ba322d3ec7e0b3612874ad424635afa4f7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `3b116e45e50160bb05f9e61d79283a5f15099424b21c979acfbe317f0c7350f2`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/soeren/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `0e0c9377f0d885a0873246643098a2b7e46a497a8a71ae2730466eac6f659a9e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/arm-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `3a211589f36b0d15846d05c3d2e77b185d40350cca0a056bdce81c8da88031e7`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/arm-shoulder-decoration.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a968d31fbc2d41e55d9680bb4c288167b127095f57f2395c0c7fa26546c42782`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `7660014a2a9134bd65e1b6d3e6c68b363c58dab433a30de6fd9d26b835d5f9db`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/back-hair.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `aa7f0fd3895328637ccd57dd4f357c96e503d78f9a5c40dbbde25532bc48c203`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/blush.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `053a324447fbe9cd4940e9c2964c28a90559a6ae8dcb5c4de91e9bd160c68ae3`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `e1c7fcb68e7ba20fa22d39074d6e50e001b481f0f88137c1555395810f90375e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/ear.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a7c43dc3e11138ee2f9c6dc37485f721dd2453de006e539da2d83b4e11a40afc`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/eyebrow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `aedd785df8a60ea506e495697d5cdc15b933610f5d089c095324ea663cd50a6a`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/glasses-shadow.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `015686b2fceaca24c5b554953a0faee92a5963a3432dd11e3980ec2348d8199e`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/glasses.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a4271a8a1530136691ed937bf0b0b3ceb161e98dac0f378e4c4f771fd51a7262`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/hair-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f773513a06508f5d171823faab863b2b11d16b5dae176d2b6f0229ddb1c79d0b`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/head-base.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `3b116e45e50160bb05f9e61d79283a5f15099424b21c979acfbe317f0c7350f2`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `fdf24176b823b941db66bcfd885bc21e7e2b174ef3b5db986e9623ad82acf658`
+  - ADD `references/spine/Chibi-Stickers-4.3/extracted/license.txt`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `66a6298677e45ef485f0aaa62944ef70255e1f0c01b57df7acf85a945998d234`
+  - ADD `references/spine/REFERENCE_ONLY.md`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `951555b9c5113a6631bd0845bf9a2d9c39c724e94002359f9460a0a1b5b5172b`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-original-template.atlas`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `bcb3f8d9c697de18a9bbfb38259983e2a34b7e67faf098f897691ebc8df912e0`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-original-template.json`; location `bundled reference / explicit subscription launch / distribution`; lines `1-5`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `1e069d208ebaaa8c3eee459f26afe61d418ad03e604f2ab67fa710b8f0daa651`
+    ```text
+{
+  "skeleton": {
+    "hash": "332sNAu1s4k",
+    "spine": "4.3.75-beta",
+    "x": -179.99997,
+    ```
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-arm-back.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `de004e6393a645c22c4268048f63e18330f4e29ca71e411d92f63e35e1481b9e`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-arm.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `8a08e3cbccec6f5eb78b7ea7ee9d1cd23a9992ae1daf24bb3cc8b7f54d0c6955`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-blank.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6fa466e21df6bf014ed03517399a711777f572b1f0be6a561b947790cda9f634`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-body-back.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `bb40f6e12a72d46b6ab4cd593d7c49589b130911033bac141ac9a054b9117ce0`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-body.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `d8db5b5be31f9f87d2438c197d744df6e8a003fdedd8a253430ef148e923b8ed`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-head-back.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `353db5afd85d59569309a668e1eba3da3fd1b1e0bcf03b86c12ecc0c96c15d90`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-head-front.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `88ed7a9574a1fa752fee69c68bec9b2aad2a6660ba06c0bfa2d58423e266ddab`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-leg-back.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `a9dcfc6da1c77c4e3e9fb8321b6bf304f624c13394f559a250dbe6c81c46aa00`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-leg.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `181e575532fd8dda5f8b0a61a57052240ef5f72f278fc6c97243f4a12ea3c5e2`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `00eb71f6c6b005956cde903036e163a50ad6abe1292cdb5327f99838cb76b81b`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_10.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `97af1a8c3925e0bd3dc2a85b577287a269c260c6cc1d8058d2f15a8825b8588e`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_11.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `c1cde5ab1f8922f50f3eef5be52d603b1a4cf93fb152337f2309a9483ae5f4b4`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_2.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `f1c9b4df76c384c2ea9c29e150a0272844731b88dcbe829973658a3349e1bfc5`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_3.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `c460e6c08093f5c83e3e527518b1fae8191b600d9064c08f7fc5c3248347eb96`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_4.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `61af121670355c66fd5fd3f7fa74cf1cb913236fe8e7a5903f2dde187de223a9`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_5.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `48a88eea4140bef9c187893618543b6e8bfdeb6af35744a21b646558eb45cd85`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_6.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `318456c4b2e358f06690c906b325124eec52ce3587b4944ed3c6c9dfe293f697`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_7.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `6c9bde7f04757e48d4ff8555bbc240c91e07ed747f97610899283912e8eeb199`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_8.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `2a02271ac51d44586c075a1169b12e20897a37f437c82a5fecc0152c8b9eaa30`
+  - ADD `references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_9.png`; location `REFERENCE_ONLY original source / pinned assets`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `5c257c82008b137252c55800de12ff7023fe7288fbc2b69121a4ce200737c890`
+  - MODIFY `runtime/README.md`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `2c48f41258deab3f3f90c9b9390014e885fba48e42a823fb531ba37e4cb868d5`; after `1fe0916be5042ae63fd06ded414111f76032dad1cbc12d6e29ca46f596b68181`
+  - MODIFY `runtime/license-manifest.json`; location `bundled reference / explicit subscription launch / distribution`; lines `3-7`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `fae1a81cea22b06000cf06f51c7ec8c458e0810febf3be5e6814e999e757c62b`; after `5ba670e8667b3b6e2fe68ee0c88982d703ccf78db71358e6d8673de24db62200`
+    ```text
+  "assets": [
+    {
+      "name": "Chibi Stickers 4.3 original reference and fixed runtime template",
+      "path": "references/spine",
+      "manifest": "references/spine/ASSET_MANIFEST.json",
+    ```
+  - MODIFY `scripts/configure_subscription.py`; location `bundled reference / explicit subscription launch / distribution`; lines `7-11`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `f526f01a343e21c5b76eb63ba13c7d48a14308af54df7af24b9116b3f97b8173`; after `8edc6df67bfe5173ba6fbb02ec7d56441d0be1908c96672d96e7251c8a782e7d`
+    ```text
+def configure(root,enable=False,calls=24,preserve_existing_limits=False):
+    root=Path(root).resolve();folder=root/'runtime/secrets'
+    if folder.is_symlink() or not folder.resolve().is_relative_to(root):raise ValueError('CONFIG_PATH')
+    folder.mkdir(parents=True,exist_ok=True)
+    for name in ('providers','design','review'):
+    ```
+  - ADD `scripts/launch.py`; location `bundled reference / explicit subscription launch / distribution`; lines `1-5`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `02c375cc6418bb9d6ed0e9d7d61432d83940f0b46570114ee6ded0c0c9cc48b7`
+    ```text
+"""Launch the bundled-reference tool, reusing each operator's own CLI login."""
+import argparse,importlib.util,json,os,subprocess,sys,threading,time,urllib.request,webbrowser
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))
+
+    ```
+  - MODIFY `scripts/maintenance.py`; location `bundled reference / explicit subscription launch / distribution`; lines `65-69`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `cc185960888fb6df5293e9387ab71dbb5f31f1e826a4dfff2c0c97d3fed3c577`; after `c5e33abdc216d3d1263d694fb7fdf7bf0b8599fd42ab2aad8e903ff267a6987d`
+    ```text
+                m=verify_archive(ROOT/args.output);seal(ROOT,'source_package',{'status':'PASS','message_ja':'個人写真・鍵・依存物を含まない開発用ZIPを検証しました。同梱の原参考素材は付属ライセンスに従う参照専用・非商用です。実行環境同梱インストーラーではありません。','facts':value,'artifacts':[artifact(ROOT,ROOT/args.output)]})
+        elif args.action=='verify':
+            m=verify_archive(ROOT/args.archive);value={'status':'PASS','kind':m['kind'],'files':len(m['files'])
+    ```
+  - MODIFY `src/spine_skin_tool/distribution.py`; location `bundled reference / explicit subscription launch / distribution`; lines `23-27`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `f8440d1c31ded507f23de614fcf68f9b7e6422d2b4fc957bead175f3987219ef`; after `a0726642ad0cd0e3753947bdc67f7851d5f539cbc8715978e8e6c86dbe69e9e1`
+    ```text
+    reference_files={};reference_folder=p.get('reference_directory')
+    if reference_folder:
+        require(reference_folder=='references/spine','RELEASE_REFERENCE_PATH')
+        from .reference_assets import verify_bundled
+        reference_files=verify_bundled(root)['files']
+    ```
+  - MODIFY `src/spine_skin_tool/environment.py`; location `bundled reference / explicit subscription launch / distribution`; lines `77-81`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `26b9ff6480b41ba0c6ac746e5c00737f6352702964b213135771a9d5d6e58a33`; after `32425e9b4fe791c30f2ddfd186cf2904c3c356482de2d65cfda69248b4dcc997`
+    ```text
+    if (root/'references/spine').exists():
+        from .reference_assets import inspect
+        try:
+            inspect(root);checks.append({'code':'BUNDLED_REFERENCE_ASSETS','ok':True})
+            limitations[3]='REFERENCE_ART_COMMERCIAL_USE_NOT_AUTHORIZED'
+    ```
+  - MODIFY `src/spine_skin_tool/maintenance.py`; location `bundled reference / explicit subscription launch / distribution`; lines `107-111`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `52197a86b7feaf3d2a2392fc375af57e83d5b28f2722c5b6518ec99f27437550`; after `d7df65b45ba73683e8a270cddbdc9a39fd455d66d316bc8fb41f0f5d8aec83d0`
+    ```text
+                  'files':before,'bytes':total,'privacy':'PRIVATE_PHOTOS_AND_TASKS_DO_NOT_SHARE' if kind=='PRIVATE_BACKUP' else 'SOURCE_WITH_LICENSED_NONCOMMERCIAL_REFERENCES_NO_PRIVATE_PHOTOS_KEYS_OR_DEPENDENCIES' if any(n.startswith('references/spine/') for n in before) else 'SOURCE_ONLY_NO_PHOTOS_KEYS_DEPENDENCIES_OR_REFERENCE_ART'}
+        destination.parent.mkdir(parents=True,exist_ok=True);t
+    ```
+  - MODIFY `src/spine_skin_tool/reference_assets.py`; location `bundled reference / explicit subscription launch / distribution`; lines `1-5`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `ae370d0c5b032c021cef58e4485ed0830e30ebdca3da7f68a5bc4e0ca47ec709`; after `0545ede11f7703973b2a2f8d0cb4c71e1963538f1b13caa0e5be45d66a30c352`
+    ```text
+"""Repository reference library, with explicit original license and pinned bytes."""
+import json, shutil, uuid
+from pathlib import Path
+from .design import require, digest
+
+    ```
+  - MODIFY `tests/test_distribution.py`; location `bundled reference / explicit subscription launch / distribution`; lines `6-10`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `f686f0659aa79f7a116afe89fb38c5a9e3e2d673086bddb38c777e05dc656093`; after `21e279ac80c5d9d4afcc86f1a4f3c831ed7486b42ead5fc39b7b9a4cdcb8781f`
+    ```text
+from spine_skin_tool.reference_assets import library_root,import_library,verify_bundled
+ROOT=Path(__file__).resolve().parents[1]
+
+class DistributionTests(unittest.TestCase):
+ def setUp(self):
+    ```
+  - MODIFY `ui/pipeline.html`; location `bundled reference / explicit subscription launch / distribution`; lines `4-8`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `1c3d61a17c77c1e17b7203fe6a8c427031b857ce91a997ede020078fe76ba7a1`; after `f8e2b6045dc3dedcce7cd148f6a2a3cceda95df88dbc3aec17f1653c87c99e4e`
+    ```text
+<p>元写真から設計・全部位・全身構築・動作レビュー・有限返修を順番に実行します。頭・表情は原素材、耳は原写真に応じて標準の小耳を追加し、原耳は常に非表示です。腕は標準形状の配色です。判断が不確かな候補は「確認待ち」として保存します。</p>
+<p><a href="/reviews">レビュー</a> ／ <a href="/repairs">返修作業</a> ／ <a href="/trials">詳細な素材試験</a></p>
+<fieldset id="settings"><legend>新しい制作</legend>
+<label>方式<select id="mode"><option value="GENERATE">元写真から新規制作</option><option value="HAIR_REFRESH">保存キャラクターの髪・小耳だけ再制作</option><option 
+    ```
+  - MODIFY `ui/pipeline.js`; location `bundled reference / explicit subscription launch / distribution`; lines `2-6`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `130404d955514969e20c2d4ec7b6320a78edbd7cc94b03705cecceedf11a076f`; after `046951aaf7758c807676131f5f4ea2bedb980cf1558540a0c053f9d367e0e012`
+    ```text
+ const $=id=>document.getElementById(id),names={PLANNED:'計画保存済み',RUNNING:'制作中',INTERRUPTED:'中断・復旧可能（外部要求は再送しません）',DESIGN_READY:'設計の確認が必要です',CONFIGURATION_BLOCKED:'利用設定・残り試験上限を確認してください',WAIT_RESULT:'送信済みの結果を確認中・自動再送なし',ERROR_OR_RESULT_UNKNOWN:'エラー・結果未確認',OUTPUT_BLOCKED:'サービスが処理を拒否しました・自動再試行なし',STALE:'元資料または仕様が変更されました',CANCELLED:'後続処理を停止しました',REQUIRES_REVIEW:'美術・不確かな項目の確認待ち',READY_FOR_REVIEWED_EXPOR
+    ```
+  - MODIFY `使用说明.md`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `07526b4f8b2e52c63d6582ce0b6112c2992daaab008a76dfce7b2a77fcf16c17`; after `7f1c9f4b4c0469269a6fcf0aa389900738c929d2ea5167f7697b6a5718203f2d`
+  - ADD `启动工具.cmd`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `None`; after `d5f37363e5cc195c6149d24b92c97ea5146e4cb716cb0bffd56d91730ca39d68`
+  - MODIFY `文件分类与发布说明.md`; location `operator instructions / launcher`; lines `n/a`; reason: 同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。
+    - SHA256: before `b9abc1241810a0f9342c0b1ace2dbcf0417a5ec08aedcd78cceab86050890b20`; after `e3195ac5bb86067aa5232fc5dd505300158f41e454120d83f3955df681319571`
+  - MODIFY `releases/spine-skin-tool-0.1.0-20261104.zip`; location `429-file bundle and embedded SHA manifest`; lines `n/a`; reason: 同步现有下载路径为含原参考的当前ZIP，不携带私人数据。
+    - SHA256: before `c0c8e3ff72234c1675550cc693cede263f6dd3dabd8776f05621d8e9c1c9bf89`; after `8f6f3c82198ed27d7c9583443de89ca5c0ac106b52bd33d02cf736e93f05b2e2`
+- Tests (actual outcomes only):
+  - `unittest test_distribution test_maintenance test_current_pipeline014 test_character_session` : `PASS` (exit `0`); evidence: 44 targeted tests /48.816 seconds before final labels/UI reset consistency fixes; superseded by final full regression.
+  - `python private parallel_regression.py (final frozen source)` : `PASS` (exit `0`); evidence: 344 discovered tests, 324.656s, exact IDs/no skips/unchanged source fingerprint 9e9134e3cf2c348cb6d238ed92630672af5a138538a21ccd8e2b69ffaad2151e. Earlier superseded runs were interrupted and not claimed PASS.
+  - `new same-host directory locked dependency setup + root launcher --check-only` : `PASS` (exit `0`); evidence: No parent library or private reference import. Repository references selected; native .cmd check returned READY with own CLI ChatGPT login and0 model calls. Not a fresh Windows-machine or real paid generation test.
+  - `node scripts/check_preview.cjs http://127.0.0.1:8784` : `PASS` (exit `0`); evidence: Independent actual Runtime:24 motion samples,11 original skins,0 browser errors.
+  - `headless UI configured subscription/new character/synthetic import/plan/cancel request` : `PASS` (exit `0`); evidence: Subscription checked initially and for new character; synthetic PNG import, off-line plan and CANCEL_REQUESTED recorded; all reservation counters0, no advance/model request, no final page/HTTP errors. Cancel request is not a completed CANCELLED phase.
+  - `initial private browser assertions` : `FAIL` (exit `1`); evidence: QA script first tried hidden collapsed control, then read hidden pre with innerText, then incorrectly expected cancellation status projection. Script corrected to use visible controls/textContent and real cancellation response/marker; no application pass inferred from failed checks.
+  - `original archive comparison / license /39 runtime assets /429-member release SHA checks` : `PASS` (exit `0`); evidence: All199 original archive files copied unchanged;221 reference/template files pinned, license retained. All429 package members verified, credentials/photos/generated characters/session data excluded. Image license permits accompanied noncommercial redistribution; project file public domain as stated in original license. Editor itself not installed/tested.
+  - `parent/model-reservation/user-material boundaries` : `PASS` (exit `0`); evidence: 5 parent files,299 existing reservations,four characters original raw parts/base manifests unchanged.0 new model calls.
+- Risks: M08既有用户验收COMPLETE保持；本次没有新增真实生图或Editor打开测试。; 贴图只按原许可证参考/非商用；不宣称商用许可。; 环境仍需一次准备，必须本人账号具备CLI/ImageGen权限；启动不等于无限订阅或任意照片必成功。; 照片、生成角色、API配置、订阅凭证/会话不提交，旧预算/预留不清零。
+- Next task: 仅提交上述已说明版本；按现有工具制作，后续功能另外沟通。
