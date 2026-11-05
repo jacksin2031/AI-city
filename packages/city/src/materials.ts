@@ -417,3 +417,108 @@ export function mergeCity(
   }
   return city;
 }
+
+/** Metres the white rim extends beyond a tappable landmark. Kept small so it stays subtle. */
+const OUTLINE_MARGIN = 0.6;
+const OUTLINE_OPACITY = 0.6;
+
+/**
+ * A faint white rim around every tappable landmark, drawn as slightly enlarged back faces.
+ * It fades with the building so it never floats once the building turns transparent.
+ */
+export function createLandmarkOutlines(
+  city: THREE.Object3D,
+  fade: BuildingFade,
+): THREE.Mesh | null {
+  const triangles = new Map<number, { positions: number[]; bounds: number[] }>();
+  city.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const geometry = mesh.geometry;
+    const landmark = geometry.getAttribute("cityLandmark");
+    const bounds = geometry.getAttribute("cityBounds");
+    const position = geometry.getAttribute("position");
+    if (!landmark || !bounds || !position) return;
+    const index = geometry.index;
+    const count = index ? index.count : position.count;
+    for (let corner = 0; corner + 2 < count; corner += 3) {
+      const a = index ? index.getX(corner) : corner;
+      const id = landmark.getX(a);
+      if (id < 0.5) continue;
+      const entry = triangles.get(id) ?? { positions: [], bounds: [] };
+      for (let offset = 0; offset < 3; offset++) {
+        const vertex = index ? index.getX(corner + offset) : corner + offset;
+        entry.positions.push(position.getX(vertex), position.getY(vertex), position.getZ(vertex));
+        entry.bounds.push(
+          bounds.getX(vertex),
+          bounds.getY(vertex),
+          bounds.getZ(vertex),
+          bounds.getW(vertex),
+        );
+      }
+      triangles.set(id, entry);
+    }
+  });
+  const positions: number[] = [];
+  const bounds: number[] = [];
+  for (const entry of triangles.values()) {
+    const box = new THREE.Box3();
+    const point = new THREE.Vector3();
+    for (let i = 0; i < entry.positions.length; i += 3)
+      box.expandByPoint(
+        point.set(
+          entry.positions[i] ?? 0,
+          entry.positions[i + 1] ?? 0,
+          entry.positions[i + 2] ?? 0,
+        ),
+      );
+    const centre = box.getCenter(new THREE.Vector3());
+    const half = box.getSize(new THREE.Vector3()).multiplyScalar(0.5);
+    const grow = new THREE.Vector3(
+      1 + OUTLINE_MARGIN / Math.max(half.x, 1),
+      1 + OUTLINE_MARGIN / Math.max(half.y, 1),
+      1 + OUTLINE_MARGIN / Math.max(half.z, 1),
+    );
+    for (let i = 0; i < entry.positions.length; i += 3) {
+      positions.push(
+        centre.x + ((entry.positions[i] ?? 0) - centre.x) * grow.x,
+        // Grow upward from the foot so the rim never sinks below the ground.
+        box.min.y + ((entry.positions[i + 1] ?? 0) - box.min.y) * grow.y,
+        centre.z + ((entry.positions[i + 2] ?? 0) - centre.z) * grow.z,
+      );
+    }
+    bounds.push(...entry.bounds);
+  }
+  if (!positions.length) return null;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(positions), 3));
+  geometry.setAttribute("cityBounds", new THREE.BufferAttribute(new Float32Array(bounds), 4));
+  const material = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false,
+    uniforms: { cityFadeCenter: fade.center, cityFadeZoom: fade.zoom },
+    vertexShader: /* glsl */ `
+      attribute vec4 cityBounds;
+      varying vec4 vCityBounds;
+      void main() {
+        vCityBounds = cityBounds;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec2 cityFadeCenter;
+      uniform float cityFadeZoom;
+      varying vec4 vCityBounds;
+      void main() {
+        // Same fade as the building itself.
+        vec2 nearest = clamp(cityFadeCenter, vCityBounds.xy, vCityBounds.zw);
+        float nearby = 1.0 - smoothstep(8.0, 35.0, distance(cityFadeCenter, nearest));
+        float closeZoom = smoothstep(8.0, 20.0, cityFadeZoom);
+        gl_FragColor = vec4(1.0, 1.0, 1.0, ${OUTLINE_OPACITY.toFixed(2)} * (1.0 - 0.7 * nearby * closeZoom));
+      }`,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = "landmark-outline";
+  mesh.matrixAutoUpdate = false;
+  return mesh;
+}
