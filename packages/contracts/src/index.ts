@@ -29,7 +29,7 @@ export const SpineBundleSchema = z
     pages: z
       .array(z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.png$/))
       .min(1)
-      .max(16),
+      .max(32),
     orientationPolicy: z
       .string()
       .regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/orientation-policy\.json$/),

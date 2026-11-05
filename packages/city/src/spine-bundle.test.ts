@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { checkBundleBytes, prepareSpineBundle, validatePngHeader } from "./spine-bundle";
+import {
+  checkBundleBytes,
+  fetchSpineBundle,
+  prepareSpineBundle,
+  validatePngHeader,
+} from "./spine-bundle";
 
 describe("browser Spine bundle verification", () => {
   const base = "/avatars/person/v1/";
@@ -26,6 +31,26 @@ describe("browser Spine bundle verification", () => {
         {},
       ),
     ).rejects.toThrow("SPINE_DESCRIPTOR_INVALID");
+  });
+  it("rejects unsafe paths before fetching and refuses oversized responses", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("x", { headers: { "content-length": "1048577" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const signal = new AbortController().signal;
+      await expect(
+        fetchSpineBundle({ ...descriptor, pages: ["/avatars/other/v1/page.png"] }, signal),
+      ).rejects.toThrow("SPINE_DESCRIPTOR_INVALID");
+      expect(fetchMock).not.toHaveBeenCalled();
+      await expect(fetchSpineBundle(descriptor, signal)).rejects.toThrow("SPINE_ASSET_TOO_LARGE");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      fetchMock.mockResolvedValueOnce(new Response("{}"));
+      await expect(fetchSpineBundle(descriptor, signal)).rejects.toThrow("SPINE_MANIFEST_HASH");
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
   it("accepts matching bytes and rejects a changed texture", async () => {
     const hash = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
@@ -102,6 +127,17 @@ describe("browser Spine bundle verification", () => {
     vi.stubGlobal("document", {
       createElement: () => ({ width: 0, height: 0, getContext: () => ctx }),
     });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) => {
+        const name = path.slice(path.lastIndexOf("/") + 1);
+        const content =
+          name === "build-manifest.json" ? manifest : assets[name as keyof typeof assets];
+        return content
+          ? new Response(Uint8Array.from(content))
+          : new Response(null, { status: 404 });
+      }),
+    );
     try {
       const bundle = await prepareSpineBundle(
         { ...descriptor, sha256: hash(manifest) },
@@ -114,6 +150,12 @@ describe("browser Spine bundle verification", () => {
       bundle.dispose();
       expect(close).toHaveBeenCalledTimes(1);
       expect(() => bundle.create()).toThrow("SPINE_BUNDLE_DISPOSED");
+      const fetched = await fetchSpineBundle(
+        { ...descriptor, sha256: hash(manifest) },
+        new AbortController().signal,
+      );
+      fetched.dispose();
+      expect(close).toHaveBeenCalledTimes(2);
     } finally {
       vi.unstubAllGlobals();
     }

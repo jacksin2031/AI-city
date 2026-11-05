@@ -11,6 +11,58 @@ import { createSpinePlayer } from "./spine-player";
 type Descriptor = NonNullable<import("@ai-city/contracts").AvatarManifest["spine"]>;
 type Manifest = { skin: string; files: Record<string, string> };
 
+/** Fetch a scoped public bundle with bounded responses before verifying its contents. */
+export async function fetchSpineBundle(descriptor: Descriptor, signal: AbortSignal) {
+  if (!SpineBundleSchema.safeParse(descriptor).success) throw new Error("SPINE_DESCRIPTOR_INVALID");
+  async function read(path: string, limit: number): Promise<Uint8Array> {
+    const response = await fetch(path, { signal, redirect: "error", credentials: "same-origin" });
+    if (!response.ok || !response.body) throw new Error("SPINE_FETCH_FAILED");
+    const declared = response.headers.get("content-length");
+    if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > limit))
+      throw new Error("SPINE_ASSET_TOO_LARGE");
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let length = 0;
+    try {
+      while (true) {
+        const result = await reader.read();
+        if (result.done) break;
+        length += result.value.byteLength;
+        if (length > limit) throw new Error("SPINE_ASSET_TOO_LARGE");
+        chunks.push(result.value);
+      }
+    } catch (error) {
+      await reader.cancel().catch(() => {});
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+    const bytes = new Uint8Array(length);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return bytes;
+  }
+  const manifest = await read(descriptor.buildManifest, 1024 * 1024);
+  if ((await sha(manifest)) !== descriptor.sha256) throw new Error("SPINE_MANIFEST_HASH");
+  const paths = [
+    descriptor.skeleton,
+    descriptor.atlas,
+    descriptor.orientationPolicy,
+    ...descriptor.pages,
+  ];
+  const entries: Array<readonly [string, Uint8Array]> = [];
+  let remaining = 64 * 1024 * 1024;
+  for (const path of paths) {
+    const bytes = await read(path, Math.min(remaining, 32 * 1024 * 1024));
+    remaining -= bytes.byteLength;
+    entries.push([path.slice(path.lastIndexOf("/") + 1), bytes]);
+  }
+  return prepareSpineBundle(descriptor, manifest, Object.fromEntries(entries));
+}
+
 export function validatePngHeader(bytes: Uint8Array): void {
   const signature = [137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82];
   if (bytes.length < 24 || signature.some((value, index) => bytes[index] !== value))

@@ -119,6 +119,28 @@ describe("AvatarManifest v0.2", () => {
     ])
       expect(AvatarManifestSchema.safeParse({ ...manifest, spine: bad }).success).toBe(false);
   });
+
+  it("supports the tool's multi-page export but keeps an upper bound", () => {
+    const base = "/avatars/r1/v1/";
+    const spine = {
+      runtime: "4.3",
+      skeleton: `${base}skeleton.json`,
+      atlas: `${base}skeleton.atlas`,
+      orientationPolicy: `${base}orientation-policy.json`,
+      buildManifest: `${base}build-manifest.json`,
+      sha256: "0".repeat(64),
+    };
+    const pages = (count: number) =>
+      Array.from({ length: count }, (_, i) => `${base}page-${i}.png`);
+    expect(
+      AvatarManifestSchema.safeParse({ ...manifest, spine: { ...spine, pages: pages(22) } })
+        .success,
+    ).toBe(true);
+    expect(
+      AvatarManifestSchema.safeParse({ ...manifest, spine: { ...spine, pages: pages(33) } })
+        .success,
+    ).toBe(false);
+  });
 });
 
 describe("GenerationJob v0.2", () => {
