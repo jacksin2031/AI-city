@@ -57,6 +57,7 @@ export function TabletCity({
   const [failed, setFailed] = useState(false);
   const [anchor, setAnchor] = useState<ScenePresentationFrame | null>(null);
   const [animated, setAnimated] = useState(false);
+  const [sound, setSound] = useState(false);
   const [spineSample, setSpineSample] = useState<"loading" | "ready" | "failed" | null>(null);
   const [spineBundles, setSpineBundles] = useState(0);
   const [landmark, setLandmark] = useState<Landmark | null>(null);
@@ -248,6 +249,7 @@ export function TabletCity({
       media.removeEventListener("change", applyMotion);
       city.current?.destroy();
       city.current = null;
+      setSound(false);
       sampleAssets?.dispose();
       for (const assets of bundleAssets.values()) assets.dispose();
     };
@@ -332,6 +334,21 @@ export function TabletCity({
         <div className="tablet-scene-canvas" ref={parent} />
         <AutumnFilter animated={animated} />
         <SceneLogo />
+        <button
+          type="button"
+          className="sound-toggle"
+          aria-pressed={sound}
+          disabled={!ready}
+          onClick={() => {
+            const next = !sound;
+            setSound(next);
+            // Called directly from the tap: browsers only allow sound after a user gesture.
+            void city.current?.setSoundEnabled(next);
+          }}
+        >
+          <span aria-hidden="true">{sound ? "🔊" : "🔈"}</span>
+          {sound ? "街の音：オン" : "街の音：オフ"}
+        </button>
         <SceneCounts
           participants={Math.max(totalParticipants ?? 0, residents.length)}
           inScene={inScene}
