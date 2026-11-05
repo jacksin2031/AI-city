@@ -182,7 +182,7 @@ canvas {
   position: absolute;
   z-index: 3;
   left: 12px;
-  top: 12px;
+  top: 92px;
   max-width: min(360px, 70vw);
   max-height: 60vh;
   overflow: auto;
@@ -925,4 +925,133 @@ details.tablet-resident-list > summary {
   margin-block: 1rem;
   overflow-wrap: anywhere;
   font-size: 1.1rem;
+}
+
+/* Autumn grade, logo and counts over the tablet scene. */
+.autumn-filter {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 55%, rgb(122 52 14 / 30%) 100%),
+    linear-gradient(180deg, rgb(255 176 72 / 24%), rgb(214 98 32 / 18%));
+  mix-blend-mode: multiply;
+}
+.autumn-leaves {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.autumn-leaf {
+  position: absolute;
+  top: -8%;
+  height: auto;
+  color: #c4571e;
+  opacity: 0.8;
+  animation: autumn-fall linear infinite;
+}
+.autumn-leaf:nth-child(3n) {
+  color: #d9902a;
+}
+.autumn-leaf:nth-child(3n + 1) {
+  color: #a63a1c;
+}
+@keyframes autumn-fall {
+  from {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(36px, 55vh, 0) rotate(180deg);
+  }
+  to {
+    transform: translate3d(-12px, 112vh, 0) rotate(360deg);
+  }
+}
+.scene-logo {
+  position: absolute;
+  z-index: 3;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 10px 12px;
+  border: 1px solid rgb(188 120 38 / 45%);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgb(255 250 238 / 94%), rgb(250 232 200 / 92%));
+  box-shadow: 0 6px 20px #5a2a0e33;
+  pointer-events: none;
+}
+.scene-logo-mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 7px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e0702a, #a63a1c);
+  color: #fffaf0;
+}
+.scene-logo p {
+  margin: 0;
+}
+.scene-logo-title {
+  color: #7a2e12;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+}
+.scene-logo-sub {
+  color: #8a5a2c;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+.scene-counts {
+  position: absolute;
+  z-index: 3;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: 64px;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  pointer-events: none;
+}
+.scene-counts > div {
+  min-width: 96px;
+  padding: 8px 14px;
+  border: 1px solid rgb(188 120 38 / 40%);
+  border-radius: 12px;
+  background: rgb(255 250 238 / 92%);
+  box-shadow: 0 4px 14px #5a2a0e29;
+}
+.scene-counts dt {
+  color: #8a5a2c;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.scene-counts dd {
+  margin: 0;
+  color: #7a2e12;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.scene-counts small {
+  margin-left: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .scene-logo-title {
+    font-size: 0.95rem;
+  }
+  .scene-logo-mark {
+    width: 32px;
+    height: 32px;
+  }
 }

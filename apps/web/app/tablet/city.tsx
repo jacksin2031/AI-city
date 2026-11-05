@@ -6,13 +6,16 @@ import {
   LANDMARKS,
   type Landmark,
   openProfile,
+  SCENE_RESIDENT_LIMIT,
   type ScenePresentationFrame,
+  sceneResidentCount,
   updatePresentation,
 } from "@ai-city/city";
 import { DialogueResultSchema } from "@ai-city/contracts";
 import type { CitySnapshot } from "@ai-city/contracts/development";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LandmarkCard } from "../landmark-card";
+import { AutumnFilter, SceneCounts, SceneLogo } from "./hud";
 import { ResidentSpeech } from "./resident-speech";
 export function TabletCity({
   snapshot,
@@ -167,6 +170,9 @@ export function TabletCity({
   }, [residents, motion]);
   const active = view.active;
   const resident = residents.find((item) => item.residentId === active?.id);
+  // A focused resident outside the drawn limit is added to the scene on top of the cap.
+  const focusedOutside = resident && residents.indexOf(resident) >= SCENE_RESIDENT_LIMIT ? 1 : 0;
+  const inScene = sceneResidentCount(residents.length) + focusedOutside;
   useEffect(() => {
     if (!active) return;
     setLandmark(null);
@@ -201,6 +207,9 @@ export function TabletCity({
         aria-label="街の住民や建物をタップすると紹介を表示します。"
       >
         <div className="tablet-scene-canvas" ref={parent} />
+        <AutumnFilter animated={animated} />
+        <SceneLogo />
+        <SceneCounts participants={residents.length} inScene={inScene} />
         <p className="tablet-dialogue-status">
           {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
         </p>
