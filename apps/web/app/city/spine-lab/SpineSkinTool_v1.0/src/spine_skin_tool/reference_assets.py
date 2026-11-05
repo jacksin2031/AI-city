@@ -1,14 +1,42 @@
-"""Private, relocatable licensed reference library; never include it in releases."""
+"""Repository reference library, with explicit original license and pinned bytes."""
 import json, shutil, uuid
 from pathlib import Path
 from .design import require, digest
 
 EXPORT='ai-city-spineboy-skin-v13/spine-export'
 IMAGES='Chibi-Stickers-4.3/extracted/images'
+BUNDLED='references/spine'
+
+def bundled_manifest(root):
+    folder=Path(root)/BUNDLED;path=folder/'ASSET_MANIFEST.json'
+    require(path.is_file() and not path.is_symlink(),'REFERENCE_MANIFEST_MISSING')
+    value=json.loads(path.read_text(encoding='utf-8'))
+    require(value.get('reference_only') is True and value.get('commercial_use_allowed') is False and isinstance(value.get('files'),dict),'REFERENCE_MANIFEST_INVALID')
+    require('Chibi-Stickers-4.3/extracted/license.txt' in value['files'] and 'Chibi-Stickers-4.3/extracted/chibi-stickers-pro.spine' in value['files'],'REFERENCE_LICENSE_MISSING')
+    for name,item in value['files'].items():
+        relative=Path(name)
+        require(not relative.is_absolute() and '..' not in relative.parts and '\\' not in name,'REFERENCE_MANIFEST_PATH')
+        require(relative.parts[0] in ('Chibi-Stickers-4.3','ai-city-spineboy-skin-v13') and relative.suffix in ('.spine','.skel','.png','.json','.atlas','.txt'),'REFERENCE_MANIFEST_PATH')
+        require(isinstance(item,dict) and isinstance(item.get('sha256'),str) and len(item['sha256'])==64,'REFERENCE_MANIFEST_INVALID')
+    return value
+
+def verify_bundled(root):
+    folder=Path(root)/BUNDLED;value=bundled_manifest(root)
+    for name,item in value['files'].items():
+        path=folder/name
+        require(path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(folder.resolve()),'REFERENCE_FILE_MISSING')
+        require(not any(p.is_symlink() or (hasattr(p,'is_junction') and p.is_junction()) for p in (path,*path.parents) if p.is_relative_to(folder)),'REFERENCE_LINK')
+        require(digest(path)==item['sha256'],'REFERENCE_ASSET_CHANGED')
+    return value
 
 def library_root(root):
     root=Path(root).resolve();private=root/'runtime/vendor-untracked/reference-library'
-    # Existing installations keep working. New installations use tool-local assets.
+    bundled=root/BUNDLED
+    if bundled.exists():
+        require(not bundled.is_symlink() and bundled.resolve().is_relative_to(root),'REFERENCE_LINK')
+        bundled_manifest(root)
+        return bundled
+    # Legacy installations remain readable, but a damaged bundled library never falls back.
     return private if private.exists() else root.parent/'library'
 
 def required_files(source):
@@ -29,7 +57,9 @@ def required_files(source):
 
 def inspect(root):
     folder=library_root(root);names=required_files(folder)
-    return {'status':'REFERENCE_READY','files':len(names),'private':True,'redistribution_approved':False}
+    bundled=folder==Path(root).resolve()/BUNDLED
+    if bundled:verify_bundled(root)
+    return {'status':'REFERENCE_READY','files':len(names),'private':not bundled,'reference_only':True,'commercial_use_allowed':False,'source':'BUNDLED' if bundled else 'LEGACY_PRIVATE','redistribution_approved':bundled}
 
 def import_library(root,source):
     root=Path(root).resolve();source=Path(source).resolve();names=required_files(source)

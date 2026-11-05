@@ -20,6 +20,13 @@ def release_files(root):
             require(not path.is_symlink() and not (hasattr(path,'is_junction') and path.is_junction()),'RELEASE_LINK')
             if path.is_file() and path.suffix in EXTENSIONS and '__pycache__' not in path.parts:names.add(path.relative_to(root).as_posix())
     names.update(SYNTHETIC);files=[]
+    reference_files={};reference_folder=p.get('reference_directory')
+    if reference_folder:
+        require(reference_folder=='references/spine','RELEASE_REFERENCE_PATH')
+        from .reference_assets import verify_bundled
+        reference_files=verify_bundled(root)['files']
+        names.update(reference_folder+'/'+n for n in reference_files)
+        names.update((reference_folder+'/ASSET_MANIFEST.json',reference_folder+'/REFERENCE_ONLY.md'))
     for name in sorted(names):
         rel=Path(name);require(not rel.is_absolute() and '..' not in rel.parts,'RELEASE_PATH')
         require(rel.name.lower() not in ('auth.json','credentials.json','providers.json','review.json','design.json') or name=='fixtures/synthetic/shared-design/design.json','RELEASE_PRIVATE_FILE')
@@ -28,6 +35,8 @@ def release_files(root):
         require(path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(root),'RELEASE_MISSING_FILE')
         require(not any(q.is_symlink() or (hasattr(q,'is_junction') and q.is_junction()) for q in path.parents if q.is_relative_to(root)),'RELEASE_LINK')
         if name in SYNTHETIC:require(hashlib.sha256(path.read_bytes()).hexdigest()==SYNTHETIC[name],'RELEASE_SYNTHETIC_CHANGED')
+        elif reference_folder and name.startswith(reference_folder+'/') and name[len(reference_folder)+1:] in reference_files:
+            pass  # Exact reference bytes were pinned and checked above, not arbitrary images.
         elif path.suffix!='.png':
             data=path.read_bytes()
             require(not any(re.search(rule,data) for rule in SECRET_PATTERNS),'RELEASE_SECRET_PATTERN')
@@ -36,7 +45,7 @@ def release_files(root):
 
 def audit(root):
     root=Path(root).resolve();p=policy(root);files=release_files(root)
-    return {'status':'PASS','release_id':p['release_id'],'files':{f.relative_to(root).as_posix():{'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'bytes':f.stat().st_size,'category':'DEVELOPMENT' if f.relative_to(root).parts[0]=='tests' or f.name.startswith(('check_','capture_')) else 'PRODUCT_SOURCE'} for f in files},'excluded':{kind:p[kind] for kind in ('private_directories','rebuildable_directories','local_history_directories')},'credentials_included':False,'reference_art_included':False,'production_approved':False}
+    return {'status':'PASS','release_id':p['release_id'],'files':{f.relative_to(root).as_posix():{'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'bytes':f.stat().st_size,'category':'REFERENCE_ONLY_NONCOMMERCIAL' if f.relative_to(root).as_posix().startswith('references/spine/') else 'DEVELOPMENT' if f.relative_to(root).parts[0]=='tests' or f.name.startswith(('check_','capture_')) else 'PRODUCT_SOURCE'} for f in files},'excluded':{kind:p[kind] for kind in ('private_directories','rebuildable_directories','local_history_directories')},'credentials_included':False,'reference_art_included':bool(p.get('reference_directory')),'reference_only':True,'commercial_use_allowed':False,'production_approved':False}
 
 def build(root,output):
     root=Path(root).resolve();output=Path(output).absolute()

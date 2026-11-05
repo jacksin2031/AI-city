@@ -104,7 +104,7 @@ def create_archive(root,destination,kind='SOURCE'):
         files=select(root);before=inventory(root,files);total=sum(x['size'] for x in before.values())
         require(shutil.disk_usage(root).free>total+64*1024**2,'ARCHIVE_DISK_SPACE')
         manifest={'schema_version':VERSIONS['product']['api_schema'],'kind':kind,'production_approved':False,'versions':VERSIONS,'source_fingerprint':fingerprint(root),
-                  'files':before,'bytes':total,'privacy':'PRIVATE_PHOTOS_AND_TASKS_DO_NOT_SHARE' if kind=='PRIVATE_BACKUP' else 'SOURCE_ONLY_NO_PHOTOS_KEYS_DEPENDENCIES_OR_REFERENCE_ART'}
+                  'files':before,'bytes':total,'privacy':'PRIVATE_PHOTOS_AND_TASKS_DO_NOT_SHARE' if kind=='PRIVATE_BACKUP' else 'SOURCE_WITH_LICENSED_NONCOMMERCIAL_REFERENCES_NO_PRIVATE_PHOTOS_KEYS_OR_DEPENDENCIES' if any(n.startswith('references/spine/') for n in before) else 'SOURCE_ONLY_NO_PHOTOS_KEYS_DEPENDENCIES_OR_REFERENCE_ART'}
         destination.parent.mkdir(parents=True,exist_ok=True);temp=destination.with_name('.'+uuid.uuid4().hex+'.tmp')
         try:
             with zipfile.ZipFile(temp,'x',compression=zipfile.ZIP_STORED,allowZip64=True) as z:
@@ -137,10 +137,21 @@ def verify_archive(path):
         require(m['schema_version']==VERSIONS['product']['api_schema'] and m['kind'] in ('SOURCE','PRIVATE_BACKUP') and m['production_approved'] is False,'ARCHIVE_MANIFEST')
         require(isinstance(m['files'],dict) and isinstance(m['versions'],dict) and type(m['bytes']) is int and 0<=m['bytes']<=MAX_TOTAL,'ARCHIVE_MANIFEST')
         require(set(names)=={'archive-manifest.json',*m['files']},'ARCHIVE_CONTENTS')
+        reference_members=set()
+        ref_name='references/spine/ASSET_MANIFEST.json'
+        if m['kind']=='SOURCE' and any(n.startswith('references/spine/') for n in m['files']):
+            require(ref_name in m['files'] and z.getinfo(ref_name).file_size<=2*1024**2,'ARCHIVE_REFERENCE_MANIFEST')
+            ref=json.loads(z.read(ref_name))
+            require(ref.get('reference_only') is True and ref.get('commercial_use_allowed') is False and isinstance(ref.get('files'),dict),'ARCHIVE_REFERENCE_MANIFEST')
+            require('Chibi-Stickers-4.3/extracted/license.txt' in ref['files'] and 'Chibi-Stickers-4.3/extracted/chibi-stickers-pro.spine' in ref['files'],'ARCHIVE_REFERENCE_LICENSE')
+            reference_members={ref_name,'references/spine/REFERENCE_ONLY.md'}
+            for name,item in ref['files'].items():
+                member_name(name);require(name.split('/')[0] in ('Chibi-Stickers-4.3','ai-city-spineboy-skin-v13') and PurePosixPath(name).suffix in ('.png','.spine','.skel','.atlas','.json','.txt'),'ARCHIVE_REFERENCE_SCOPE')
+                full='references/spine/'+name;require(full in m['files'] and item.get('sha256')==m['files'][full].get('sha256'),'ARCHIVE_REFERENCE_HASH');reference_members.add(full)
         for name,item in m['files'].items():
             require(isinstance(item,dict) and set(item)=={'size','sha256'} and type(item['size']) is int and item['size']>=0 and isinstance(item['sha256'],str) and re.fullmatch(r'[a-f0-9]{64}',item['sha256']),'ARCHIVE_FILE_DESCRIPTOR')
             if m['kind']=='PRIVATE_BACKUP':require(name.startswith(('runtime/work/','runtime/data/','runtime/output/')) and not name.startswith('runtime/output/M08/'),'ARCHIVE_PRIVATE_SCOPE')
-            else:require(name in (*SOURCE_TOP,'使用说明.md','文件分类与发布说明.md','DISTRIBUTION.json') or name in CONTRACTS or name in {'runtime/config/'+n for n in CONFIGS} or (name in SYNTHETIC_ASSETS and item['sha256']==SYNTHETIC_ASSETS[name]) or (name.split('/')[0] in SOURCE_DIRS and PurePosixPath(name).suffix in EXTENSIONS),'ARCHIVE_SOURCE_SCOPE')
+            else:require(name in (*SOURCE_TOP,'使用说明.md','文件分类与发布说明.md','DISTRIBUTION.json','启动工具.cmd') or name in reference_members or name in CONTRACTS or name in {'runtime/config/'+n for n in CONFIGS} or (name in SYNTHETIC_ASSETS and item['sha256']==SYNTHETIC_ASSETS[name]) or (name.split('/')[0] in SOURCE_DIRS and PurePosixPath(name).suffix in EXTENSIONS),'ARCHIVE_SOURCE_SCOPE')
             require(type(item['size']) is int and item['size']==z.getinfo(name).file_size,'ARCHIVE_FILE_SIZE')
             h=hashlib.sha256()
             with z.open(name) as f:

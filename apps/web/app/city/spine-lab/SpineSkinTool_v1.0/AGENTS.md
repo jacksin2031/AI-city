@@ -14,9 +14,9 @@
 
 ## 环境、权限与发布
 
-依赖仅放runtime并用锁文件。--online只显式下载锁定依赖，不升级全局工具。私用原画用scripts/reference_assets.py导入；不提交原画或个人盘符。本人执行codex login，工具只复用官方CLI登录，不读/复制auth.json，不代管登录凭证。
+依赖仅放runtime并用锁文件。--online只显式下载锁定依赖，不升级全局工具。用户于2026-11-05明确授权收录原参考。默认使用references/spine：原始.spine与同级images/export、固定JSON/atlas/PNG母版和原许可证按ASSET_MANIFEST锁定；仅参考/非商用。只能提交清单内原参考，不将用户照片/生成角色或个人盘符混入。旧私用导入仅兼容旧安装，不是新环境前置。启动工具.cmd调用launch.py --subscription，使用本人codex login并自动准备本地开关，页面默认沿用已启用配置；不读取/复制auth.json，不代管登录凭证，点击制作前不调用模型。
 
-真实上传/调用默认关闭，必须用户授权才启用配置与任务开关；本次发布授权不是新生图授权。只绑定loopback；不提交照片、输出、API配置、订阅会话、CODEX_HOME或runtime私人目录。发布必须使用scripts/package_release.py白名单并核对Git暂存清单。
+配置样例的真实调用默认关闭；操作者显式启动订阅入口即准备本地上传/调用开关，实际调用仍在导入照片并点击制作后发生。本次发布工作不执行真实生图。只绑定loopback；不提交照片、输出、API配置、订阅会话、CODEX_HOME或runtime私人目录。发布必须使用scripts/package_release.py白名单并核对Git暂存清单。
 
 ## 开发与证据
 
