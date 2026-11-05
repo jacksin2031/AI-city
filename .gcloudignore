@@ -1,0 +1,13 @@
+.git
+.claude
+output
+test-results
+node_modules
+**/node_modules
+**/.next
+firestore-debug.log
+*.log
+.env
+.env.*
+gha-creds-*
+.playwright-mcp

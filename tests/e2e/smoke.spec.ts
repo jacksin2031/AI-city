@@ -1,20 +1,34 @@
 import { expect, type Page, test } from "@playwright/test";
 
 // CSP violations and uncaught errors surface as console errors / page errors in Chromium.
+//
+// Chromium's GPU driver also reports pure performance advisories ("GPU stall due to
+// ReadPixels") through the same console channel when Phaser renders the WebGL city. Those
+// describe the host GPU, not this application, so they are filtered BY EXACT PATTERN only:
+// a real console error, a CSP violation, a page error, or any warning that is not a GL driver
+// performance message still fails the test.
+const DRIVER_PERF_WARNING = /^\[.WebGL-[^\]]+\]GL Driver Message \([^)]*Performance[^)]*\)/;
+
+function isHostGpuAdvisory(type: string, text: string) {
+  return type === "warning" && DRIVER_PERF_WARNING.test(text);
+}
+
 function collectProblems(page: Page) {
   const problems: string[] = [];
   page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning")
-      problems.push(`${message.type()}: ${message.text()}`);
+    const type = message.type();
+    const text = message.text();
+    if (isHostGpuAdvisory(type, text)) return;
+    if (type === "error" || type === "warning") problems.push(`${type}: ${text}`);
   });
   page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
   return problems;
 }
 
 for (const [path, heading] of [
-  ["/", "あなたの分身を、この街へ。"],
-  ["/join", "AIシティへの参加"],
-  ["/city", "街の開発サンプル"],
+  ["/", "バーチャル御茶ノ水～もうひとりの自分が暮らす街～"],
+  ["/join", "バーチャル御茶ノ水への参加"],
+  ["/city", "街の住民たち"],
 ] as const) {
   test(`${path} renders in Japanese under a nonce CSP without errors`, async ({ page }) => {
     const problems = collectProblems(page);
@@ -50,17 +64,68 @@ test("nonces differ per request", async ({ request }) => {
   expect(nonces[0]).not.toBe(nonces[1]);
 });
 
-test("the city sample keeps exactly one Phaser canvas across navigation", async ({ page }) => {
+test("participants may continue without photo consent", async ({ page }) => {
+  const problems = collectProblems(page);
+  await page.goto("/");
+  // The participant pages and the venue city are separate interfaces.
+  await expect(page.locator('a[href="/city"]')).toHaveCount(0);
+
+  const join = page.getByRole("button", { name: "同意して参加する" });
+  await expect(join).toBeDisabled();
+  await expect(page.getByRole("checkbox")).toHaveCount(3);
+
+  // The terms box only ticks after the terms sheet has been shown and confirmed.
+  // The native inputs are visually hidden, so tap the visible labels like a participant would.
+  const terms = page.getByRole("checkbox", { name: "注意事項・免責事項を確認しました" });
+  await page.getByText("注意事項・免責事項を確認しました").click();
+  await expect(terms).not.toBeChecked();
+  const sheet = page.getByRole("dialog", { name: "注意事項・免責事項" });
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole("button", { name: "確認しました" }).click();
+  await expect(sheet).toBeHidden();
+  await expect(terms).toBeChecked();
+
+  await expect(join).toBeDisabled();
+  await expect(
+    page.getByRole("checkbox", { name: "写真のAI処理に同意します（写真を使う場合のみ）" }),
+  ).not.toBeChecked();
+  await page.getByText("アバターを街で公開することに同意します").click();
+  await page.getByRole("button", { name: "同意して参加する" }).click();
+  await expect(page).toHaveURL("/join");
+  expect(problems).toEqual([]);
+});
+
+for (const path of ["/", "/join"]) {
+  test(`${path} fits one phone screen without scrolling`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    // Measure the settled layout: let the finite entrance animations finish first.
+    const overflow = await page.evaluate(async () => {
+      const entrances = document
+        .getAnimations()
+        .filter(
+          (animation) => animation.effect?.getTiming().iterations !== Number.POSITIVE_INFINITY,
+        );
+      await Promise.all(entrances.map((animation) => animation.finished));
+      return document.documentElement.scrollHeight - window.innerHeight;
+    });
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+}
+
+test("the city keeps exactly one Phaser canvas across navigation", async ({ page }) => {
   const problems = collectProblems(page);
   await page.goto("/city");
   const canvas = page.locator("section.city canvas");
   await expect(canvas).toHaveCount(1);
   await expect(canvas).toBeVisible();
-  await expect(page.getByText("動作確認用です")).toBeVisible();
+  await expect(page.getByText("住民を待っています")).toBeVisible();
+  await expect(page.locator('a[href="/"], a[href="/join"]')).toHaveCount(0);
 
-  await page.getByRole("link", { name: "戻る" }).click();
-  await expect(page).toHaveURL("/");
-  await page.getByRole("link", { name: "街のサンプルを見る" }).click();
+  await page.goto("/");
+  await page.goBack();
+  await expect(page).toHaveURL("/city");
   await expect(canvas).toHaveCount(1);
   await expect(page.locator("canvas")).toHaveCount(1);
   expect(problems).toEqual([]);
@@ -73,6 +138,8 @@ test("health stays honest about the mock and denies document use", async ({ requ
     mode: "mock",
     locale: "ja-JP",
     liveServicesConnected: false,
+    chat: "fallback",
+    avatars: "sample",
   });
   expect(response.headers()["content-security-policy"]).toBe(
     "default-src 'none'; frame-ancestors 'none'",

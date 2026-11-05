@@ -1,7 +1,13 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 import { fallbackContentSecurityPolicy } from "./lib/csp";
 
 const config: NextConfig = {
+  // Self-contained server for the Cloud Run image; the workspace root is needed to trace packages.
+  output: "standalone",
+  outputFileTracingRoot: join(dirname(fileURLToPath(import.meta.url)), "../.."),
+  serverExternalPackages: ["sharp"],
   transpilePackages: ["@ai-city/contracts", "@ai-city/city"],
   poweredByHeader: false,
   async redirects() {

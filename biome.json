@@ -9,7 +9,11 @@
       "!pnpm-lock.yaml",
       "!docs/plans",
       "!.artifacts",
-      "!.tools"
+      "!.tools",
+      "!.claude",
+      "!output",
+      "!test-results",
+      "!playwright-report"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "lineWidth": 100 },

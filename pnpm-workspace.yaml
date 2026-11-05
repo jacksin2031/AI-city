@@ -7,3 +7,4 @@ allowBuilds:
   re2: false
   esbuild: true
   sharp: true
+  '@google/genai': false

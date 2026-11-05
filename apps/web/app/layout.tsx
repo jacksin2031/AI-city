@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./styles.css";
 
 export const metadata: Metadata = {
-  title: "AI City 開発プレビュー",
+  title: "バーチャル御茶ノ水～もうひとりの自分が暮らす街～ 開発プレビュー",
   description: "AIの力を体験する街。開発用のサンプルです。",
 };
 

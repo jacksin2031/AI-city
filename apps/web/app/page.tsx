@@ -1,20 +1,19 @@
-import Link from "next/link";
+import { Consent } from "./consent";
+import { ParticipantShell } from "./participant-shell";
 
 export default function Home() {
   return (
-    <main>
-      <p>AI CITY</p>
-      <h1>あなたの分身を、この街へ。</h1>
-      <p>
-        写真から生まれたアバターが、街を歩き、ほかの住民と交流する。AIの力を体験するための展示をつくっています。
-      </p>
-      <p className="notice">
-        開発プレビューです。現在は架空のサンプルのみを使用しています。写真の送信とAIによる生成はまだ利用できません。
-      </p>
-      <nav aria-label="プレビュー">
-        <Link href="/join">参加画面を確認</Link>
-        <Link href="/city">街のサンプルを見る</Link>
-      </nav>
-    </main>
+    <ParticipantShell
+      eyebrow="AI体験展示"
+      title={
+        <>
+          <span className="title-main">バーチャル御茶ノ水</span>
+          <span className="title-sub">～もうひとりの自分が暮らす街～</span>
+        </>
+      }
+      lead="写真から生まれたあなたの分身が、この街で暮らします。"
+    >
+      <Consent />
+    </ParticipantShell>
   );
 }

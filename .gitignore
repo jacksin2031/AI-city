@@ -25,3 +25,10 @@ Thumbs.db
 *.tsbuildinfo
 output/playwright/
 .playwright-cli/
+
+# Local agent scratch: Claude/Codex worktrees nested inside the repo carry their own
+# biome.json, which makes `biome check` abort on a nested root configuration.
+.claude/
+
+# Large Blender blockout renders and scene files: build output, not source.
+output/
