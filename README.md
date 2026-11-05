@@ -2,7 +2,7 @@
 
 面向日本公众的 AI 城市互动展示。项目旨在向路人直观展示 AI 的强大能力：从照片理解与 Q 版形象，到人格偏好与居民交流。**产品 UI 使用日语，项目计划和协作文档使用简体中文。**
 
-当前是共同开发基础，不是已完成的展览产品。默认 mock：只有虚构人物和明确标识的插画/Phaser 动作样例，没有真实照片上传或模型生成。手机管理、配对平板及持久匿名访客已有 HTTPS 预览；本分支新增可显式启用的免代码参加，正式展览尚未开放。
+当前是共同开发基础，不是已完成的展览产品。默认 mock：使用虚构人物、示例插画和 3D 城市场景，没有真实照片上传或模型生成。手机管理、配对平板及持久匿名访客已有 HTTPS 预览，免代码参加需要显式启用；正式展览尚未开放。
 
 ## 开始开发
 
@@ -20,16 +20,16 @@ pnpm dev
 
 - 首页：<http://localhost:3000>
 - A 参与流程入口：<http://localhost:3000/join>
-- A/B 本地接入预览：<http://localhost:3000/integration>（确认后才加入列表，图片素材尚未接入）
-- B 简易插画样例：<http://localhost:3000/city>；本地确认后的居民：<http://localhost:3000/city?mode=participants>
 - 健康状态：<http://localhost:3000/api/health>
 - 手机管理：<http://localhost:3000/admin>；平板展示：<http://localhost:3000/tablet>；本机准备：<http://localhost:3000/setup>
 
-同/不同网络的手机与平板联动设置见 [接入指南](docs/MOBILE_TABLET_LINK.md)。云端入口：[手机管理](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/admin)、[平板展示](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/tablet)；管理钥匙取用、部署身份和验收边界见 [发布记录](docs/releases/2026-10-19-device-link-preview.md)。HTTPS 浏览器联动已验证；2026-10-19 用户已确认实机及不同网络连动成功。localhost 仅供同机浏览器验证。
+同/不同网络的手机与平板联动设置见 [接入指南](docs/MOBILE_TABLET_LINK.md)。云端入口：[参加](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/join)、[手机管理](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/admin)、[平板展示](https://ai-city-link-preview-391632496355.asia-northeast1.run.app/tablet)。新版参与界面的发布与测试边界见 [发布记录](docs/releases/2026-11-04-participant-interface-preview.md)。2026-10-19 的旧版设备联动曾由用户确认实机及不同网络成功；该证据不代表新版参与界面已完成实机验收。localhost 仅供同机浏览器验证。
 
 管理页新增住民搜索/排序/批次撤回、一键开场/休场、通信时间与手动同步、配对倒数及解除确认。操作语义与本地验收见 [管理控制](docs/ADMIN_CONTROLS.md)。
 
 平板支持镜头聚焦角色所在位置、头顶公开资料气泡，以及原地顺序欢迎和挥手。数据边界、减轻动作及验证说明见 [镜头聚焦与场景内欢迎](docs/TABLET_RESIDENT_FOCUS.md)。
+
+参与者可在公开示例角色后从手机请求平板聚焦；请求只在单服务进程短暂保存，不保证并发请求逐一执行。手机自选颜色、图案和娱乐性 AI 风格不发送至平板，刷新后消失；两款既有示例角色可显示在平板。详见 [参与者聚焦](docs/PARTICIPANT_TABLET_FOCUS.md)。
 
 没有 pnpm 时使用 Corepack 启用 `package.json` 指定的版本，或按 [pnpm 官方安装说明](https://pnpm.io/installation) 安装；不要换用 npm/yarn 重新生成 lockfile。开发无需云账号或 API key。
 
@@ -49,12 +49,11 @@ GitHub 的当前基线、PR 依赖、Issue 缺口和整合方案见 [工作索�
 
 仓库默认关闭持久访客和免代码入场开关；使用说明见 [持久访客](docs/PERSISTENT_VISITORS.md)，免代码流程及验证见 [简化参加入口](docs/CODE_FREE_JOIN.md)。原邀请式云端版本证据保留在[访客发布记录](docs/releases/2026-10-19-persistent-visitors-preview.md)，不把历史邀请步骤当成新页面要求。所有模式仍使用虚构插画，浏览器不等于实机验收。
 
-| 主责 | 目录 | 工作范围 |
-| --- | --- | --- |
-| A | `apps/web`（city 除外）、`infra` | 参与流程、任务可靠性、同步、权限、文本服务、运营 |
-| B | `packages/city`、`apps/web/app/city` | 角色素材、动画、城市、行为调度、平板展示 |
-| 共同接口 | `packages/contracts` | schema、版本、fixture；先讨论兼容变化，单人提交 |
-
+| 主责     | 目录                                 | 工作范围                                         |
+| -------- | ------------------------------------ | ------------------------------------------------ |
+| A        | `apps/web`（city 除外）、`infra`     | 参与流程、任务可靠性、同步、权限、文本服务、运营 |
+| B        | `packages/city`、`apps/web/app/city` | 角色素材、动画、城市、行为调度、平板展示         |
+| 共同接口 | `packages/contracts`                 | schema、版本、fixture；先讨论兼容变化，单人提交  |
 1. 从 `main` 建立短分支，例如 `feature/a-consent` 或 `feature/b-avatar`。
 2. 一个 Issue 指定一个实际负责人；把范围、验收和必要上下文交给 AI。
 3. 运行验证，提交 PR，另一位开发者检查证据后合并。不要让两个 AI 同时修改同一个工作目录。

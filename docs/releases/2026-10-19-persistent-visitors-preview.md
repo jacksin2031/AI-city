@@ -14,20 +14,20 @@
 
 ## 精确发布身份
 
-| 项目 | 实际值 |
-| --- | --- |
-| 项目 / 区域 | ai-city-511822 / asia-northeast1 |
-| 源码 | 5b06b52c739f2ed9f28f95bdc9339f8d9041b168，PR #17；发布文档不改变已构建源码 |
-| 输入 | 仅 git archive 的跟踪文件，不上传环境/凭证/未跟踪测试输出 |
-| 归档 SHA-256 | E6B2AAD07E3422891FE2062390376A2C3BC2D6F0E4CAA1DAB8F74960A476B39E |
-| 东京 Cloud Build | 3968635f-1213-4bb2-8b94-1f3199ebcf56，SUCCESS |
-| 镜像 | asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/visitors |
-| 固定 digest | sha256:b555a4cbefe203b02575b78aa1143911f77286bbb22023703851d39304ad4e5c |
-| 首个 revision | ai-city-link-preview-visitors5b06b52a，先 0% / tag 健康验证，再提升 |
-| 最终 revision / 流量 | ai-city-link-preview-visitors5b06b52b / 100%，同一个 digest；实际替换用于恢复验收 |
-| 数据库 / namespace | STANDARD / FIRESTORE_NATIVE / (default) / preview-visitors-20261019 |
-| 规格 | 1 CPU、512Mi、concurrency 20、timeout 30s；service/revision max 1，min 0 |
-| Secret refs | AI_CITY_ADMIN_KEY → ai-city-preview-admin:1；AI_CITY_VISITOR_HMAC_KEY → ai-city-preview-visitor-hmac:1 |
+| 项目                 | 实际值                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------ |
+| 项目 / 区域          | ai-city-511822 / asia-northeast1                                                                       |
+| 源码                 | 5b06b52c739f2ed9f28f95bdc9339f8d9041b168，PR #17；发布文档不改变已构建源码                             |
+| 输入                 | 仅 git archive 的跟踪文件，不上传环境/凭证/未跟踪测试输出                                              |
+| 归档 SHA-256         | E6B2AAD07E3422891FE2062390376A2C3BC2D6F0E4CAA1DAB8F74960A476B39E                                       |
+| 东京 Cloud Build     | 3968635f-1213-4bb2-8b94-1f3199ebcf56，SUCCESS                                                          |
+| 镜像                 | asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/visitors                                         |
+| 固定 digest          | sha256:b555a4cbefe203b02575b78aa1143911f77286bbb22023703851d39304ad4e5c                                |
+| 首个 revision        | ai-city-link-preview-visitors5b06b52a，先 0% / tag 健康验证，再提升                                    |
+| 最终 revision / 流量 | ai-city-link-preview-visitors5b06b52b / 100%，同一个 digest；实际替换用于恢复验收                      |
+| 数据库 / namespace   | STANDARD / FIRESTORE_NATIVE / (default) / preview-visitors-20261019                                    |
+| 规格                 | 1 CPU、512Mi、concurrency 20、timeout 30s；service/revision max 1，min 0                               |
+| Secret refs          | AI_CITY_ADMIN_KEY → ai-city-preview-admin:1；AI_CITY_VISITOR_HMAC_KEY → ai-city-preview-visitor-hmac:1 |
 
 云端明确设置 visitors/mock/cloud opt-in、project、namespace 与原精确 HTTPS origin，移除 emulator/loopback 变量。首次 gcloud 参数被 PowerShell 未引用逗号展开导致 CLI 拒绝，未创建该次 revision；随后完整引用参数部署成功。阶段 tag 只验证健康/页面，错误 origin 的管理 API 403；完成后已移除 tag。
 
@@ -51,16 +51,16 @@ datastore.entities.delete
 
 使用真实 HTTPS 服务、真实 Firestore 与隔离浏览器 context，只创建两名虚构匿名访客。所有检查 PASS：
 
-| 范围 | 实际结果 |
-| --- | --- |
-| 基础与匿名权限 | health 200；匿名 admin/display 401；远端 bootstrap 403；旧 dev API 404 |
-| Admission | 无邀请及伪造 HMAC cookie 401；管理发邀请码成功；已消费码重放 401 |
-| 跨角色 | DISPLAY 发邀请/删除 403；访客读管理 401；另一访客读他人 job 404；跨 origin 管理 403 |
-| 本人恢复/公开 | 刷新恢复 READY；分项确认后平板同步；未同意性格为非公开、兴趣为空，快照无输入/owner/同意记录 |
-| Cookie / 手机 | HttpOnly、Secure、SameSite Strict、Path=/api/visitor；375px 无横向溢出 |
-| 真正云端恢复 | 在住民公开时创建并切换到 revision b；旧管理及显示 session 401，同一 visitor cookie 恢复 PUBLISHED；重配平板后仍显示原住民 |
-| 撤回与删除 | 撤回同步到平板，服务端读回 REMOVED；本人删除后 API 401；另一测试访客也已退出 |
-| UI / JS | 375px 手机及 1024×768 平板截图已视觉检查，浏览器无非预期 JS/console error |
+| 范围           | 实际结果                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 基础与匿名权限 | health 200；匿名 admin/display 401；远端 bootstrap 403；旧 dev API 404                                                    |
+| Admission      | 无邀请及伪造 HMAC cookie 401；管理发邀请码成功；已消费码重放 401                                                          |
+| 跨角色         | DISPLAY 发邀请/删除 403；访客读管理 401；另一访客读他人 job 404；跨 origin 管理 403                                       |
+| 本人恢复/公开  | 刷新恢复 READY；分项确认后平板同步；未同意性格为非公开、兴趣为空，快照无输入/owner/同意记录                               |
+| Cookie / 手机  | HttpOnly、Secure、SameSite Strict、Path=/api/visitor；375px 无横向溢出                                                    |
+| 真正云端恢复   | 在住民公开时创建并切换到 revision b；旧管理及显示 session 401，同一 visitor cookie 恢复 PUBLISHED；重配平板后仍显示原住民 |
+| 撤回与删除     | 撤回同步到平板，服务端读回 REMOVED；本人删除后 API 401；另一测试访客也已退出                                              |
+| UI / JS        | 375px 手机及 1024×768 平板截图已视觉检查，浏览器无非预期 JS/console error                                                 |
 
 测试完成恢复 DEMO、motion enabled；只退出本轮管理及平板，没有撤销其他设备。随后以只读检查目标 namespace metadata：activeSessions、pendingSessions、invitations、public residents 均为 0。保留空状态 metadata/stream，未递归删除真实数据库。临时 tag 已移除；本地临时管理凭证已从环境移除。
 

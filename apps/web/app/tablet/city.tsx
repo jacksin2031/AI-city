@@ -18,10 +18,12 @@ export function TabletCity({
   snapshot,
   motion,
   sample,
+  focus,
 }: {
   snapshot: CitySnapshot;
   motion: boolean;
   sample: boolean;
+  focus: { id: string; residentId: string; expiresAt: number } | null;
 }) {
   const parent = useRef<HTMLDivElement>(null);
   const city = useRef<IllustratedCity | null>(null);
@@ -50,6 +52,13 @@ export function TabletCity({
       ),
     [],
   );
+  const lastFocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focus || focus.id === lastFocus.current || focus.expiresAt <= Date.now()) return;
+    if (!residents.some((resident) => resident.residentId === focus.residentId)) return;
+    lastFocus.current = focus.id;
+    select(focus.residentId);
+  }, [focus, residents, select]);
   useEffect(() => {
     if (!parent.current) return;
     let active = true;

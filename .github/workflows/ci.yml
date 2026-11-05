@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main, 'codex/**', 'feature/**', 'fix/**']
+    branches: [main, "codex/**", "feature/**", "fix/**"]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -26,7 +26,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
         env:
-          NEXT_TELEMETRY_DISABLED: '1'
+          NEXT_TELEMETRY_DISABLED: "1"
   rules:
     name: Firestore rules
     runs-on: ubuntu-24.04
@@ -43,14 +43,14 @@ jobs:
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:rules
         env:
-          CI: 'true'
+          CI: "true"
       - run: pnpm test:persistence
         env:
-          CI: 'true'
+          CI: "true"
   devcontainer:
     name: Dev Container
     runs-on: ubuntu-24.04

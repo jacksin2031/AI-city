@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ParticipantExperience } from "./participant-experience";
 import { ParticipationFlow } from "./participation-flow";
 export const dynamic = "force-dynamic";
 
@@ -6,6 +7,7 @@ export default function Join() {
   const hosted = Boolean(process.env.AI_CITY_PUBLIC_ORIGIN);
   const persistent = process.env.AI_CITY_ENABLE_VISITORS === "1";
   const codeFree = persistent && process.env.AI_CITY_VISITOR_CODE_FREE === "1";
+  if (codeFree) return <ParticipantExperience />;
   return (
     <main className="participation">
       <h1>AIシティへの参加</h1>
@@ -34,7 +36,6 @@ export default function Join() {
       />
       <nav aria-label="サンプルの移動">
         <Link href="/">戻る</Link>
-        {!persistent && <Link href="/integration">連携用の一覧を見る</Link>}
       </nav>
     </main>
   );

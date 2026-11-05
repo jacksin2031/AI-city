@@ -3,6 +3,7 @@ import { LocalParticipationService } from "../development/service";
 import { DeviceLinkService } from "../link/service";
 import { createVisitorBoundary } from "./credentials";
 import { handlePersistentDeviceRequest } from "./device-http";
+import { handleVisitorRequest } from "./http";
 import { VisitorService } from "./service";
 import { MemoryVisitorStore } from "./test-store";
 
@@ -19,6 +20,23 @@ function request(path: string, token?: string, body?: unknown) {
   });
 }
 describe("persistent snapshot device authorization", () => {
+  it("returns no focus for an authorized display when visitors are disabled", async () => {
+    const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    const admin = device.login("a".repeat(64));
+    const display = device.pair(device.createPairing(admin).code);
+    const result = await handlePersistentDeviceRequest(
+      request("focus", display),
+      device,
+      null,
+      true,
+      base,
+    );
+    expect(result.status).toBe(200);
+    expect(await result.json()).toEqual({ mode: "MOCK", focus: null });
+    expect(
+      (await handlePersistentDeviceRequest(request("focus"), device, null, true, base)).status,
+    ).toBe(401);
+  });
   it("issues a signed invitation through the actual administrator request path", async () => {
     const visitor = new VisitorService(new MemoryVisitorStore());
     const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
@@ -136,6 +154,44 @@ describe("persistent snapshot device authorization", () => {
     const admin = device.login("a".repeat(64));
     const display = device.pair(device.createPairing(admin).code);
     device.update(admin, { expectedRevision: 0, displayMode: "LIVE" });
+    const security = createVisitorBoundary("fixture-only-stable-key".repeat(3), "focus-test");
+    const visitorCookie = security.signSession(participant.token);
+    const focusRequest = (body: unknown) =>
+      new Request(`${base}/api/visitor/focus`, {
+        method: "POST",
+        headers: {
+          host: "exhibit.example",
+          origin: base,
+          "content-type": "application/json",
+          cookie: `ai-city-visitor=${visitorCookie}`,
+        },
+        body: JSON.stringify(body),
+      });
+    expect(
+      (
+        await handleVisitorRequest(
+          focusRequest({ residentId: "other" }),
+          visitor,
+          true,
+          base,
+          security,
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (await handleVisitorRequest(focusRequest({}), visitor, true, base, security)).status,
+    ).toBe(200);
+    expect(
+      (await handlePersistentDeviceRequest(request("focus"), device, visitor, true, base)).status,
+    ).toBe(401);
+    const focused = await handlePersistentDeviceRequest(
+      request("focus", display),
+      device,
+      visitor,
+      true,
+      base,
+    );
+    expect((await focused.json()).focus.residentId).toBe(view.resident?.residentId);
     const shown = await handlePersistentDeviceRequest(
       request("display", display),
       device,
@@ -156,6 +212,17 @@ describe("persistent snapshot device authorization", () => {
       ).status,
     ).toBe(200);
     expect((await new VisitorService(store, () => now).snapshot()).residents).toHaveLength(0);
+    const removed = await handlePersistentDeviceRequest(
+      request("focus", display),
+      device,
+      visitor,
+      true,
+      base,
+    );
+    expect((await removed.json()).focus).toBeNull();
+    expect(
+      (await handleVisitorRequest(focusRequest({}), visitor, true, base, security)).status,
+    ).toBe(409);
   });
 });
 

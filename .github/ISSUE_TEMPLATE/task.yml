@@ -1,6 +1,6 @@
 name: 开发任务
 description: 为人和 AI 定义有限、可验证的任务
-title: '[A/B/Shared] '
+title: "[A/B/Shared] "
 body:
   - type: textarea
     id: goal
