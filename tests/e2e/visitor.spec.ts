@@ -111,6 +111,8 @@ test("code-free manager batch withdrawal persists for both owners", async ({
       await expect(visitor.getByRole("region", { name: "あなたのカード" })).toContainText(
         "むらさき・星",
       );
+      await expect(visitor.getByRole("img", { name: /^性格六角形：/ })).toBeVisible();
+      await expect(visitor.getByRole("button", { name: "カードを画像で保存" })).toBeVisible();
       await expect
         .poll(
           async () =>

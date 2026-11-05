@@ -14,6 +14,8 @@ import Link from "next/link";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
 import { LocalPhoto } from "./local-photo";
+import { ParticipantCard } from "./participant-card";
+import { traitValues } from "./trait-values";
 import { useReliableFocus } from "./use-reliable-focus";
 import "./participant.css";
 
@@ -644,34 +646,24 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
                   <h1>街へようこそ</h1>
                   <p>あなたのカードと街の操作</p>
                 </header>
-                <section className="pf-dashboard-card" aria-label="あなたのカード">
-                  <p className="pf-card-label">
-                    YOUR CHARACTER <span>サンプル</span>
-                  </p>
-                  <img
-                    src={characterDataUrl(view.preview.avatarVersion)}
-                    alt="街に表示するサンプル"
-                    width="120"
-                    height="160"
-                  />
-                  <strong>{view.preview.nickname}</strong>
-                  <p>サンプルのアバター</p>
-                  {hasDecoration && (
-                    <p>
-                      スマホの見本：{color.label}・{mark.label}{" "}
-                      <span className={`pf-avatar pf-${color.id}`} aria-hidden="true">
-                        {mark.symbol}
-                      </span>
-                    </p>
-                  )}
-                  <p>
-                    {Object.values(aiStyleLabels).includes(view.preview.personalityLabel)
+                <ParticipantCard
+                  name={view.preview.nickname}
+                  avatarSrc={characterDataUrl(view.preview.avatarVersion)}
+                  tone={hasDecoration ? color.id : "green"}
+                  decoration={
+                    hasDecoration
+                      ? { toneLabel: color.label, markLabel: mark.label, symbol: mark.symbol }
+                      : null
+                  }
+                  isStyle={Object.values(aiStyleLabels).includes(view.preview.personalityLabel)}
+                  styleText={`${
+                    Object.values(aiStyleLabels).includes(view.preview.personalityLabel)
                       ? "スマホのAIスタイル"
-                      : "見本の性格"}
-                    ：{view.preview.personalityLabel}（娯楽用）
-                  </p>
-                  <p className="pf-fine">スマホの色・マークは街には表示されません。</p>
-                </section>
+                      : "見本の性格"
+                  }：${view.preview.personalityLabel}（娯楽用）`}
+                  styleLabel={view.preview.personalityLabel}
+                  values={traitValues(answers, view.preview.personalityLabel)}
+                />
                 <section className="pf-controls" aria-label="平板の操作">
                   <h2>平板の操作</h2>
                   <button
