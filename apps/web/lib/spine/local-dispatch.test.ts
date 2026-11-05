@@ -310,6 +310,35 @@ describe("local task dispatch with isolated synthetic data", () => {
     expect(await cleanupLocalTask(jobs, storage, task)).toBe("PENDING");
     expect(await storage.read(task, "photo.png", 10000)).toBeNull();
   });
+  it("withdraws an expired resident even while a tool workspace remains pending", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-city-expiry-pending-"));
+    roots.push(root);
+    const storage = await LocalSpineStorage.open(root);
+    const store = new MemoryVisitorStore();
+    let now = Date.parse("2026-11-05T00:00:00Z");
+    const service = new VisitorService(store, () => now);
+    const jobs = new SpineJobs(store, () => now);
+    const { token } = await service.createOpenSession();
+    const photo = await sharp({ create: { width: 4, height: 4, channels: 3, background: "red" } })
+      .png()
+      .toBuffer();
+    const { task } = await submitSpinePhoto(service, storage, token, photo, {
+      processing: true,
+      externalModelUpload: true,
+      automaticPublication: true,
+      version: 2,
+    });
+    await mkdir(join(root, task, "tool-workspace"));
+    const output = await candidate(task);
+    await dispatchLocalTask(jobs, storage, task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    now += 25 * 60 * 60 * 1000;
+    expect(await cleanupLocalTask(jobs, storage, task)).toBe("PENDING");
+    expect(store.dump().get(`jobs/spine-${task}`)?.state).toBe("WITHDRAWN");
+    expect(await storage.read(task, "page.png", 10000)).toBeNull();
+  });
   it("allows an administrator to withdraw a Spine resident from the city", async () => {
     const f = await fixture();
     const output = await candidate(f.task);

@@ -3,7 +3,9 @@ import type { LocalSpineStorage } from "./local-storage";
 
 /** Maintenance must be run by the separate local worker; it never starts a model. */
 export async function cleanupLocalTask(jobs: SpineJobs, storage: LocalSpineStorage, task: string) {
-  if (await jobs.publishedPhotoCleanupPending(task)) {
+  // Expiration must revoke access even if a published workspace is still pending cleanup.
+  const state = await jobs.prepareCleanup(task);
+  if (!state?.pending && (await jobs.publishedPhotoCleanupPending(task))) {
     try {
       await storage.remove(task, "photo.png");
       // A tool process may have spawned children. Never delete its workspace without proof
@@ -21,7 +23,6 @@ export async function cleanupLocalTask(jobs: SpineJobs, storage: LocalSpineStora
       return "PENDING" as const;
     }
   }
-  const state = await jobs.prepareCleanup(task);
   if (!state?.pending) return "NOT_REQUIRED" as const;
   try {
     if (state.toolCleanupPending && state.toolCleanupSafe) {
