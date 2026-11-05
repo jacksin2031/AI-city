@@ -33,6 +33,26 @@ class PathCheckingStore implements VisitorStore {
 }
 
 describe("visitor-bound Spine admission", () => {
+  it("serializes orphan cleanup with a racing admission", async () => {
+    const store = new MemoryVisitorStore();
+    const service = new VisitorService(store);
+    const jobs = new SpineJobs(store);
+    const { token } = await service.createOpenSession();
+    const consent = {
+      processing: true,
+      externalModelUpload: true,
+      automaticPublication: true,
+      version: 2,
+    };
+    const [reserved, admitted] = await Promise.allSettled([
+      jobs.reserveOrphanCleanup("race"),
+      service.createSpineJob(token, "race", "a".repeat(64), consent),
+    ]);
+    expect(reserved.status).toBe("fulfilled");
+    if (reserved.status !== "fulfilled") throw new Error("reservation failed");
+    expect(reserved.value).toBe(admitted.status === "rejected");
+    if (admitted.status === "rejected") expect(admitted.reason.code).toBe("ACTIVE_JOB_EXISTS");
+  });
   it("requires a live session and both explicit consents, with one active task per session", async () => {
     const store = new PathCheckingStore();
     const now = Date.parse("2026-11-05T00:00:00Z");

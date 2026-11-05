@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Firestore } from "@google-cloud/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { SpineJobs } from "../../apps/web/lib/spine/jobs";
 import { FirestoreVisitorStore } from "../../apps/web/lib/visitor/firestore";
 import { VisitorService } from "../../apps/web/lib/visitor/service";
 
@@ -38,6 +39,25 @@ const consent = {
 };
 
 describe("real Firestore transaction persistence", () => {
+  it("serializes orphan cleanup against simultaneous admission", async () => {
+    const { namespace, store: repository } = store();
+    const service = new VisitorService(repository);
+    const jobs = new SpineJobs(new FirestoreVisitorStore(db, namespace));
+    const { token } = await service.createOpenSession();
+    const [cleanup, admission] = await Promise.allSettled([
+      jobs.reserveOrphanCleanup("race"),
+      service.createSpineJob(token, "race", "a".repeat(64), {
+        processing: true,
+        externalModelUpload: true,
+        automaticPublication: true,
+        version: 2,
+      }),
+    ]);
+    expect(cleanup.status).toBe("fulfilled");
+    if (cleanup.status !== "fulfilled") throw new Error("reservation failed");
+    expect(cleanup.value).toBe(admission.status === "rejected");
+    if (admission.status === "rejected") expect(admission.reason.code).toBe("ACTIVE_JOB_EXISTS");
+  });
   it("preserves simultaneous focus requests across independent clients and service restart", async () => {
     const { namespace, store: repository } = store();
     let now = Date.now();

@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DeviceDisplaySchema } from "@ai-city/contracts/device-link";
@@ -78,6 +78,57 @@ async function candidate(task: string) {
 }
 
 describe("local task dispatch with isolated synthetic data", () => {
+  it("reclaims an old photo with no job and prevents late job creation", async () => {
+    const f = await fixture();
+    const orphan = `spine-${randomUUID()}`;
+    await f.storage.write(orphan, "photo.png", Buffer.from("synthetic"));
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(join(f.root, orphan, "photo.png"), old, old);
+    await pollLocalSpineTasks(f.jobs, f.storage, async () => ({ status: "FAILED" }), 1);
+    expect(await f.storage.read(orphan, "photo.png", 100)).toBeNull();
+    const other = await f.service.createOpenSession();
+    await expect(
+      f.service.createSpineJob(other.token, orphan, "a".repeat(64), {
+        processing: true,
+        externalModelUpload: true,
+        automaticPublication: true,
+        version: 2,
+      }),
+    ).rejects.toMatchObject({ code: "ACTIVE_JOB_EXISTS" });
+  });
+  it("does not reclaim a fresh photo or an old photo belonging to an existing job", async () => {
+    const f = await fixture();
+    const fresh = `spine-${randomUUID()}`;
+    await f.storage.write(fresh, "photo.png", Buffer.from("synthetic"));
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(join(f.root, f.task, "photo.png"), old, old);
+    await f.jobs.claim(f.task, "worker1");
+    await pollLocalSpineTasks(f.jobs, f.storage, async () => ({ status: "FAILED" }), 1);
+    expect(await f.storage.read(fresh, "photo.png", 100)).not.toBeNull();
+    expect(await f.storage.read(f.task, "photo.png", 1024 * 1024)).not.toBeNull();
+  });
+  it("retries orphan removal after a storage failure without admitting a late job", async () => {
+    const f = await fixture();
+    const orphan = `spine-${randomUUID()}`;
+    await f.storage.write(orphan, "photo.png", Buffer.from("synthetic"));
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000);
+    await utimes(join(f.root, orphan, "photo.png"), old, old);
+    vi.spyOn(f.storage, "remove").mockRejectedValueOnce(new Error("storage failure"));
+    await expect(
+      pollLocalSpineTasks(f.jobs, f.storage, async () => ({ status: "FAILED" }), 1),
+    ).rejects.toThrow("storage failure");
+    const other = await f.service.createOpenSession();
+    await expect(
+      f.service.createSpineJob(other.token, orphan, "a".repeat(64), {
+        processing: true,
+        externalModelUpload: true,
+        automaticPublication: true,
+        version: 2,
+      }),
+    ).rejects.toMatchObject({ code: "ACTIVE_JOB_EXISTS" });
+    await pollLocalSpineTasks(f.jobs, f.storage, async () => ({ status: "FAILED" }), 1);
+    expect(await f.storage.read(orphan, "photo.png", 100)).toBeNull();
+  });
   it("removes the photo after publication but holds a tool copy until writers are verified stopped", async () => {
     const f = await fixture();
     const workspace = join(f.root, f.task, "tool-workspace");

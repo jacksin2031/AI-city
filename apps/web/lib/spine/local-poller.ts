@@ -17,6 +17,11 @@ export async function pollLocalSpineTasks(
   let claimed = 0;
   let cleaned = 0;
   for (const task of await storage.listTasks()) {
+    if ((await storage.hasOldPhoto(task, Date.now())) && (await jobs.reserveOrphanCleanup(task))) {
+      await storage.remove(task, "photo.png");
+      cleaned += 1;
+      continue;
+    }
     const cleanup = await cleanupLocalTask(jobs, storage, task);
     if (cleanup === "COMPLETE") cleaned += 1;
     if (cleanup !== "NOT_REQUIRED" || claimed >= maxTasks) continue;

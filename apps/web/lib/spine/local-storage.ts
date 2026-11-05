@@ -154,6 +154,18 @@ export class LocalSpineStorage {
       .sort();
   }
 
+  /** Only untracked photos old enough for maintenance are eligible for orphan recovery. */
+  async hasOldPhoto(task: string, now: number): Promise<boolean> {
+    try {
+      const info = await lstat(await this.file(task, "photo.png", false));
+      if (!info.isFile() || info.isSymbolicLink()) throw new Error("PRIVATE_FILE_INVALID");
+      return Number.isFinite(now) && now - info.mtimeMs >= 24 * 60 * 60 * 1000;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw error;
+    }
+  }
+
   /** Internal worker-only path; never return this value from an HTTP endpoint. */
   async privateRootForWorker(task: string): Promise<string> {
     await this.taskDirectory(task, false);

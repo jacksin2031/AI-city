@@ -529,6 +529,7 @@ export class VisitorService {
       const session = parseSession(await tx.get(`sessions/${owner}`));
       const existing = await tx.get(`requests/spine-owner-${owner}`);
       const target = await tx.get(`jobs/spine-${task}`);
+      const orphanCleanup = await tx.get(`requests/spine-orphan-${task}`);
       const previousTask = existing?.task;
       const previous =
         typeof previousTask === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(previousTask)
@@ -536,7 +537,7 @@ export class VisitorService {
           : null;
       if (!validSession(session, owner, state, now))
         throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
-      if (target) throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      if (target || orphanCleanup) throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
       if (
         existing &&
         (!previous ||

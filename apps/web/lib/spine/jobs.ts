@@ -159,6 +159,16 @@ export class SpineJobs {
   private path(task: string) {
     return `jobs/spine-${id.parse(task)}`;
   }
+  /** Tombstone serializes orphan cleanup against a late admission transaction. */
+  async reserveOrphanCleanup(task: string): Promise<boolean> {
+    const path = this.path(task);
+    const marker = `requests/spine-orphan-${id.parse(task)}`;
+    return this.store.run(async (tx) => {
+      if (await tx.get(path)) return false;
+      if (!(await tx.get(marker))) tx.set(marker, { cleanup: true });
+      return true;
+    });
+  }
   async create(task: string, owner: string, photoSha256: string, consent: SpineConsent) {
     const path = this.path(task);
     const record = makeSpineJob(owner, photoSha256, consent);
