@@ -75,4 +75,4 @@
 - 已将 origin/main（#31/#36/#37）合并入本分支；契约版本重编为 0.10.0（main 已占用 0.7.0）；平板同时保留 Spine 包加载与地标／AI 对话；修复 Spine AssetManager 中途释放抛错导致平板崩溃。`pnpm check` 通过，`CI=1 playwright --workers=1` 17/17；`test:rules` 因本 worktree 无 JDK 21 未运行。
 - 「照片→角色→自动发布」尚未达成：缺真实执行器（工具经 Codex CLI 内置生图，会消耗订阅用量），且工具自身要求人工审核证据后才可发布（现行流程不保证任意照片免人工审查）。当前用户选择：仅做本机可验证版，真实模型调用保持关闭，待另行授权。
 - 并行 e2e 会因共享设备状态互相干扰，使用 `--workers=1`。
-
+- 2026-11-05 之后：新增 `--live` worker（`scripts/run-spine-live-task.py`、`tool-live.ts`、`tool-bundle.ts`），需环境变量 `AI_CITY_SPINE_LIVE_CONFIRM` 才调用模型。真实用户照片已成功生成角色素材包并通过公开验证器与发布路径（零成本回放测试 `tool-publish-recorded-emulator.test.ts`）；完整实跑一次停在待审，原因未取得（工作目录已被测试清除），可用 `AI_CITY_SPINE_LIVE_KEEP=1` 保留后诊断。自动发布闸门：渲染 PASS、硬检查无 FAIL、无视觉 FAIL；视觉审核结果未知时仍发布（用户决定）。
