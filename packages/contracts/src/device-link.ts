@@ -95,6 +95,8 @@ export const DeviceDisplaySchema = z
   .strictObject({
     control: DeviceControlSchema,
     snapshot: CitySnapshotSchema.nullable(),
+    // Running count of everyone who joined publicly, including those who withdrew.
+    totalParticipants: z.number().int().nonnegative().max(1_000_000).optional(),
   })
   .refine((value) =>
     value.control.displayMode === "MAINTENANCE" ? value.snapshot === null : value.snapshot !== null,

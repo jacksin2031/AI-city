@@ -1,0 +1,44 @@
+{
+  "revision": "quality-mvp-004",
+  "status": "EXPERIMENTAL_CONTROLLED_CALIBRATION_ADVISORY_ONLY",
+  "automatic_visual_pass_enabled": false,
+  "review_schema": "1.0.0",
+  "alpha_threshold": 32,
+  "raw_alpha_outlier_ratio": 1.15,
+  "palette_distance_warning": 60,
+  "front_crown_coverage_warning": 0.95,
+  "rear_head_coverage_warning": 0.98,
+  "leg_root_gap_warning_pixels": 3,
+  "visual_confidence_floor": 0.9,
+  "render_scales": [
+    1,
+    2,
+    4
+  ],
+  "required_visual_checks": [
+    "hair_fit",
+    "hair_consistency",
+    "style",
+    "garment_parts",
+    "material_outlines",
+    "ear_visibility",
+    "leg_connections",
+    "skirt_occlusion"
+  ],
+  "calibration": {
+    "standard_source": "EXISTING_USER_SPEC",
+    "existing_spec_authoritative": true,
+    "requires_reapproval_of_existing_rules": false,
+    "suite_revision": "m05-calibration-001",
+    "golden_set": "TARGET_LEVEL_CONTROLLED_48_NOT_WHOLE_CHARACTER_APPROVAL",
+    "cross_character_blind_test": "COMPLETE_32_CONTROLLED_HELDOUT",
+    "runtime_controls": 24,
+    "live_subscription_calls": 6,
+    "benchmark_hash": "f342d6a30244490031ffe860003bd1d5159d250a9fb0fe656494f0bf12930c0b",
+    "general_population_reliability": "NOT_VALIDATED"
+  },
+  "hard_repair_guards": [
+    "LAYOUT_GEOMETRY_MISMATCH",
+    "ORIENTATION_GUARD_CHANGED"
+  ]
+}

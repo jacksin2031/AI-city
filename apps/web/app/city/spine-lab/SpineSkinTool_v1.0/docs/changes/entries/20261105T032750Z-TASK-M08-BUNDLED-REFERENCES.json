@@ -1,0 +1,2065 @@
+{
+  "schema_version": "1.0.0",
+  "batch_id": "20261105T032750Z-TASK-M08-BUNDLED-REFERENCES",
+  "task_id": "TASK-M08-BUNDLED-REFERENCES",
+  "timestamp_utc": "2026-11-05T03:27:50.764650+00:00",
+  "timestamp_local": "2026-11-05T12:27:50.764650+09:00",
+  "status": "COMPLETE",
+  "goal": "用户要求同仓原Spine及对应素材/路径一致，后续明确保留启动器、自动配置和界面；当前冻结已验证功能、完整记录范围。",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "change_type": "MODIFY",
+      "before_sha256": "1221c205d3f166b7519ef198318f23a8486008ca30521b76eebcdf06d03b9c1b",
+      "after_sha256": "b5f1ea4faf3b9245e98eb625b61b87df8d09e7a0cb7bc2607fbe6624d6287bed",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "DISTRIBUTION.json",
+      "change_type": "MODIFY",
+      "before_sha256": "ccbdde3ef9aa871fe93855e549f01a7464c463e12c5b7da0384a8b1633da6cf9",
+      "after_sha256": "91024ae4144a3f7285e1d1bef7e9ca7d78a8d4364f00ca72ba412a8033a83b94",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "1-5",
+      "code_excerpt": "{\n  \"schema_version\": \"1.0.0\",\n  \"release_id\": \"spine-skin-tool-0.1.0-20261105-bundled\",\n  \"source_directories\": [\n    \"src\","
+    },
+    {
+      "path": "README.md",
+      "change_type": "MODIFY",
+      "before_sha256": "2a22b83044a1710c817d0604771648aa5a0a7695f2bbb556e0d90b6355978083",
+      "after_sha256": "7097f008b24f399eb3f3a47a52fe78b6b7cf5026ddd546652ef025a127fafd2e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "docs/CODEX_IMPLEMENTATION_SPEC.md",
+      "change_type": "MODIFY",
+      "before_sha256": "3aaee7162575b96a66e55a5b2dee1f3ca8a15bb26a746efb9f687884c29d7111",
+      "after_sha256": "ecabf32f1ec0bedcc27f5735764b6ef0e41e1df4dac6c4caa72bd9ef5ed529a7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "docs/OPS.md",
+      "change_type": "MODIFY",
+      "before_sha256": "a09127c6881ee69cfc83e63e043ca662145f947f78ebaf7dc8781edb89a3d494",
+      "after_sha256": "c063d509f0db4d1739dea1df3739a720c6b08ffc64445a051ae2db6816cb5dd6",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "docs/RELEASE_STATUS.md",
+      "change_type": "MODIFY",
+      "before_sha256": "769c8a0dcea0be83f7c0c64bb19c97370567cd99f5e4422af331e4f3001869b0",
+      "after_sha256": "7dac5a229db542adeb46334f2a8c986c1db0d5ab035fb276ece92748663882d6",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "references/spine/ASSET_MANIFEST.json",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "52babac46ec886b13ad01ec632e25abdf99ba20e248bdc9b4d85dc06ad56dce0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "1-5",
+      "code_excerpt": "{\n  \"schema_version\": \"1.0.0\",\n  \"revision\": \"bundled-spine-reference-001\",\n  \"reference_only\": true,\n  \"commercial_use_allowed\": false,"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/chibi-stickers-pro.spine",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9c7dcd10ef15f04e7abc2b5fbac2389845991defc0c91bfa31726256fc4ba515",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma.atlas",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "3c0c3ed4b6863f16c0e10b74f6296e6a831c77ae528223c7a7bf932468edeadc",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "c7082b0ff2aaba3afdfcc94c0563a8f2a4767eee3ffb5e5b07cde4f66fab80d6",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_10.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6ade7976138d58580d6f08f5676d000506c76c139a9baac43dad0290cc2a8493",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_11.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b20a97c5127b711e53e124d5b7ceffe32f48485d694c5fae900c1646a3cac726",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_2.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "fd1e4ee81bb7515cda84d01d8623c0133912d8225b5f26c05718682b85b5a9ba",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_3.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "4795e477edc17e13db2879be804936096adb495da079ec1f6773f696cd14cb0f",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_4.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b366fecf9a16a0938e9d3463c67683517093495930ee0ace76c674d6ef752fbf",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_5.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "d13031c36041328e7a09399b695cea218764b8e3acc3e3ac020191d20b9d40bc",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_6.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "bb60441977a88cf4a296549e70504779b131e8c4a5e02a1dfbd1cf253e9db566",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_7.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a5506e8e8187df0fa9c22b427d11aaba3c47313f1855927214878feec6532dc0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_8.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "12db47768de40bb2a21fa44406777d6fdc9bbc39092b69560c41a790aef4d47d",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers-pma_9.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9553f31b51856d92e1b591f246de4dc462443bc8f426a07a995b44606af96b9f",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers.atlas",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "e8609249909788d2c3ccdf8404c346f9c1e0e98a764fa15bed101acd17f8f7b0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers.json",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "591f69af04414ef348d2df5b1446a9a8a4f7f91c153e5aee0193ecdbc9e1a046",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "1-5",
+      "code_excerpt": "{\n\"skeleton\": {\n\t\"hash\": \"332sNAu1s4k\",\n\t\"spine\": \"4.3.75-beta\",\n\t\"x\": -179.99997,"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "00eb71f6c6b005956cde903036e163a50ad6abe1292cdb5327f99838cb76b81b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers.skel",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7d4b3c712d1db52776206e08a163eb95d1112a0e96813483f44feac1e0918eec",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_10.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "97af1a8c3925e0bd3dc2a85b577287a269c260c6cc1d8058d2f15a8825b8588e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_11.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "c1cde5ab1f8922f50f3eef5be52d603b1a4cf93fb152337f2309a9483ae5f4b4",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_2.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f1c9b4df76c384c2ea9c29e150a0272844731b88dcbe829973658a3349e1bfc5",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_3.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "c460e6c08093f5c83e3e527518b1fae8191b600d9064c08f7fc5c3248347eb96",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_4.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "61af121670355c66fd5fd3f7fa74cf1cb913236fe8e7a5903f2dde187de223a9",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_5.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "48a88eea4140bef9c187893618543b6e8bfdeb6af35744a21b646558eb45cd85",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_6.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "318456c4b2e358f06690c906b325124eec52ce3587b4944ed3c6c9dfe293f697",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_7.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6c9bde7f04757e48d4ff8555bbc240c91e07ed747f97610899283912e8eeb199",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_8.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "2a02271ac51d44586c075a1169b12e20897a37f437c82a5fecc0152c8b9eaa30",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/export/chibi-stickers_9.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "5c257c82008b137252c55800de12ff7023fe7288fbc2b69121a4ce200737c890",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/angry-mark.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "2f8ea3bed441fa18209bc3b712e2b6ce4f92f90225ef4aa8cca86f6c3cae8aed",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/big-purple-fear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "dc6f1a1b4a8b7759ae5bd02d168c7f98cc5a2a6a1665e67ecbaa61b728779c9d",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/big-tear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "fa2c0576cefe06c72d4cc210fecea5262e9b3c06cf91a88b4950a4ae9e214fe3",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-3.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "240222bffc27883d1b6fa52c252f33f91d8dee87eb6aef97cba2bc7e2b0fffdd",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-closed-happy.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "eade105c0e4e0d136859d2a59ac5a27cd267f6ffb8433bbaa77370c9153f79cb",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-dafault.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "22a1124945aa1912405719d6ae9c8184b235e50c9a8d5ac1ac22247c552f1f24",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-equal.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "61e9d1293cc52b358ff749c23b35741f6099690e36b9269bc9e8372fe6e3de78",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-fire.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9702523df46cc45bc7d312c8a2740062a549fe8493dfb48ad285cbedec40a307",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-half-open.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6c7ffcbbb09360854db3dfa2f078817d51c0b0d366cc6e00b31e808e4446b4ca",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-heart.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "abd2928169f96f1cd7759a5348501a8ae7c03d750890e183bcad5d19f6802b96",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-reverse-v.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "201a7aba5c731fc5267e3ccfddc128086589c8b9751144acd455982ebd1318b3",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-sideway-v.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "dd646c5c959f75ffdf59b78bfc1c01fb43578d57f4e703631c3f72553751a069",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-slant-close.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "bfe9949c300c802b959a113479c9f1514f9ab7c16dc7de61b2d504ec8234ca1f",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-small-dot.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f9c173ec210fd81a952655b64c1b2f73b525aea22d61f7755d7a50b40b2d6cc7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-sparkle.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "ba94df7db390eb59de27c799f25444692b667d279315a2fe793e149d05eb430b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-star.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "5e9f4a8a80db6ec846b61d7823f1b9a857790ecdc8ec0a8fc57098248f24b737",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-twirl.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "91a4207bbbfa9d5a344513a1ce49fac8e38ce7afe6ef607c7fcd99e5006e636a",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-u.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "fa9d134a71b34459dfa098ddc50beb72771a01a1695b5ce2fe2f0ca1574dfe33",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/eye-x.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "1e9125a22cb2b9bf078f1cc9d3b3d6cee670bbc85b6147441a97bac737a6aabc",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/lamp.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "c2cacefb6cc9584d9a7ce6880ca2f818ccdf18284ae44defc28f23dbe99466e7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-3.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "4aa8d79fd69fadc267c7836cb682f52a388bd20de06f31ca83e0bdb8bb1d1894",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-bracket.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "da29828852756e8deab18659f8a761d1032e96c3cd43e6549c1eef09664b50b1",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-doubt.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "1c4241f9f260a1cab90057a055434e7ce1af1efadabb6f3121cd9ff951b261c2",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-fangs.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b0b3cc6c4be297ff02eb2be9f94c35f614a61c4d878d71ed3da40424f6d7fbbf",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-line.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f7a338cc76391b934bf14e0433c450ab8eb882d7b9c75ad1b26caa40148a35ed",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-neutral.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "0a1c8eaac6d422a261f45f34451fc103db6befe6b3aeaaea1d0ec9367a9e597f",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-o-tall.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "064d8131270767aea049e723017c56a3bba6f425540fb9229dde6241066813ed",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-open-smile.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "1145a6c12281682d90d0bca703e9a60ff649ec6655c7efeeae67d7527a1b11d9",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-rectangle.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b1fe06a4454c6ebd309660a78a050ecb1c61d7ee53db1c78b859fbeecc3858ee",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-reverse-v.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "903083e5e729d017f840b7babd1be9228d0f4699c60b9f57f21eb11b208f2092",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-s.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "d3453ef976e4167bb172ba97a2e9c07b4f0211432a35d06c042018a17fcd32b6",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-smile-little.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9bc52c77d9c1e4aa631db39458c1decdf9352f0386f01141b1ddca0000894af8",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-toungue-sticking-out.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "ad988846c3673de6698cf75974f679c0033fefd9226cdc88227e71ed9966e7dd",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-u.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "0c08d6365a4ddcf99988df62de3d63984077e8f5fee4e20cf2e2dd77c51a6053",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-v.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "4c75f586096a16d499fd5ac9eebd5c44645a2be45ac31b46b8d1a81d4133a7f7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/mouth-x.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f2bcb017da3d982a7b8a8758a5e918d7527cc6eb9ca09160f1e0ffaae8cbf26c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/purple-fear-lines.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "cbf16163294f22e88af1a283c8b3abc3c77ea55f1ae74ade656b73bf86b4cf04",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/shadow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "63a9fdd09e8b8e1bfe283a16eec4b5cfaf59b5b775873a7f804c0f278bdd30a4",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/small-dash.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a429c48412f84cccad248580532a2acbec8a6959f98274dd2fd42b4bca68b1cb",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/small-drop-line.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "ff995c129fa4198abaa7bcb95d989831e67064b29b2fbb8d0759b8de91922649",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/small-purple-fear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6001f9706768503875babd75edbe7b71de6491ca1c3ea7f63c8af0dcf272d44f",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/common/tear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "73645decd3848db74baf5709c5e5b352e0ad794446321805b61d60051adf756e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/davide/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "d360cb14f588aff71cc3261c3709141f4a3e6d10928d1a575b48d39640beaba6",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/davide/body-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "dbc9df785918cd110d6cd099bda98cd1870e2e2d143d775b1c970e54e9e9ac72",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/davide/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f7233ef281765d4285bbc832df4d99d33e5a1cf1716dae752ceea3d12592eb9f",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/davide/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a3fb2de6255aa5c09a8414ac678c497cdd0ef6b2cf8a164a4dc4400972690e87",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/davide/hair-back.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "23708f11826ae324830704ad22817169dd2fabd1c0cea0497837dd7ddce8c7ff",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/davide/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "82ca19701fe3c141fdeb5988217966183eb764a657188c1ed2e3edaf8ebe0636",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/davide/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "abcf2ee3f24fe4a8094de9ccdaad03b44bc7e9043afb64303acb38b7953b8832",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/arm-shoulder-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b948ae4830ee79c025f22cc2977e1309ee6f7482fab79076c9c6a704424e016c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "c8f98ca9bfc1dfdbc3a472706b0b574288788c4e518ea8c719e8a429c4fd1074",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/back-hair-long.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "47b804a4fb58ce1fdfe74cc6f6e84eb6807326f4f965ed90384c0c3979f3421b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "3c845dab5b7daf0a394307417dfba42b2b9047545f00dd3daf2f7b66d8da8fa1",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9857bfaa47b41c625023083f943d08d5593a42f5ff8966fcb17cbe1c6c41ab34",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "213897d6ddd45ebc4c2f5e882ca6d48e8b2d8cc9400b6a352c1960cc921a544c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/bracelet.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "033933434623ef9e908e88de1685653739f74f2a0b4146482752c0fe0cafbba7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/collar.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "57296ee3150b5ea46c5e73858a69e5f977416f60a460f09c19e0d73a4fe13130",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/ear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "8b1fcffcc2ce9442894ef6b494127f58348a95ba353b0f3362a2d54c849bdb12",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f41fe7e5b611ee8af5ac42af5758325004bf9d7c4e2443f60a3ed3858826a10c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7f89ba951c1ab8636f8b7386f786719b25f354592bc0278e68cc67963b1722a7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/hair-side.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6c9c8950e4ecae023f41fb8d83c7961d4728a4bf6320dfa7c7e6a90781d2f8bb",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/hat-border.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "064d1818929295ae89c94699935b054c96ed546e01b02c5b36467d8c24270124",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/hat-top.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b59c220cad0b0264e63e18f4e66b4fe2fc43fe3c99cc5d433c76d9c3c2558675",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "261332fbed014746ec1db40efb2787aef9b689a8b872a512fdde7937a9356bf0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/leg-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "1544ce170def78ca3c6543bf39c3689c64a4b952f2db4e6d234066025bd8b711",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b0240a1611eb67eaad9621d8a620e9262af3e87112f99e05b9258bcf007bb423",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/skirt.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "45438faa6d3efe67657467c0209e998d26589de250fd87d6dd37ce2f574cb563",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/erikari/strawberries-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "5bf087cdd8514e4929f61077c45cb84618a7f98d911b4409abd5fcfcb572c7e2",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "87c76f104a1757f79030874293a14d87e9f1f0e3633ff2b971fd82da4dce2cb6",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/back-hair-long.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "2e4dd22c7966aa2333098923edd207700dbf40d280c856b3aac38aa8ecb3d7a2",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "e80a75bd86691f5ba50d2ad58c97a2e48051ba82f975344bb24f411e97af787e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/beard.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "4cbdabe31f822ffe0ae49df163b0dcc26abf5bfad934332fdfc844ed84baf633",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "053a324447fbe9cd4940e9c2964c28a90559a6ae8dcb5c4de91e9bd160c68ae3",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/body-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "5c80999cc57b7c0b6c2eaebb80353c0994006e1fb709c7ef595616a73bdc6d58",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a5950ca73186342f2463161d15a83bec0091d2bef8b0534383503d7ef8d55b61",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/ear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a7c43dc3e11138ee2f9c6dc37485f721dd2453de006e539da2d83b4e11a40afc",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9941b827aee7b5051410dbf691d72b6a86b896a76c410682fc6018f8ca29197e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7fc00d1708d324c6c2d4c22faf4d6e21579529df4928bb2aa48fe7d36fdbc503",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "3b116e45e50160bb05f9e61d79283a5f15099424b21c979acfbe317f0c7350f2",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f555016dadb2f87ddb03f992129d96b6d469b5d9e88e37a053022c858b391772",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/harri/sword.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "8b1dfe9830f5babec240ef14393f3782612b9870d3bd6a59c1b59c4f0c1c4d88",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/arm-shoulder-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "85801baa3a32bc7741931faa58fb14580d099c1f572527cfc72971b6feeb685e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6e6d9fdcc187f1c830d37e759f388fe02ce9aa3d5f73a729019e9b6f64dfab06",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f387762394571c63c17f94663adaf66da4abd6c4e7197f7b12cb0ca7788ebfa7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "053a324447fbe9cd4940e9c2964c28a90559a6ae8dcb5c4de91e9bd160c68ae3",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b129e498d0f00397c75963893c6b014bf1a48710af18a3d4c858f4073965fe48",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "aedd785df8a60ea506e495697d5cdc15b933610f5d089c095324ea663cd50a6a",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/face-cover.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "153fa6fcb7e567267df5f8f9ef2a2b9f93ffb9ef91e38b0e66a67add97860574",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/glasses-shadow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "ee7cf4ade68b1aff34081a5b07866e280805c74a49ae6db9c2c75794379951eb",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/hair-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f90796d91392cb2d724fb09c815176b0f3407ced931e83d65392de4bfba34ee0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "8738ec4e21cfbad9ba1f2af371c15685ebe81aa3921b6e550a82e8e45c833550",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "3b116e45e50160bb05f9e61d79283a5f15099424b21c979acfbe317f0c7350f2",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "aafc0c09ef874ef6565a9b2753271d5d1a487b8698b3e221e33df82d67cd122c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/shield.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "805f88daf499b911adcee84bfdfed93b3a5755afdf60eb334c6b66d9e39ad614",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/skirt.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7133ed046b17f2de6f9214b06fecbd216608c7beedc7c75fb63db870eb8b2293",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/luke/sword.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "c9e68913fa50d60fb5490cd02fa33b51818dc6333a9edd0ba606b094dbae3617",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "8b5c3e1cabc98139889c36f06ba0438e8cdcf213ff1ed397cf5dcccb679de2b5",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/back-hair-long.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "4fe5883298a42cda749eae80663eb402704b4c3249c310fcfc589b624c55b07c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "4d2be44ad9b438e9708a5789d81b0ed385a29a47fd54f4aeb8de0d523631cb17",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/beard.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9b0955c9f65520df16a6201591969e751b1ac0ed91a10a3675d5b630059a8436",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "557a47298392cff920be37cdd5a29ddcc890e968b4d0b442c79c4b995eddda93",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "85ae01d2fc6f78c010f40a1156af07afc59a5d73c8ab50eda4f1c299873836c7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/ear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "651996d61c383ff01ef2c759e00ad63bc721de002dce40562e3d8553eac4913e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "0062874cf778c4246db218663766c626f4f02b2b794d418c14698fcaaa77bb78",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "b66004cea52457c6651b35b737e8a211e1930b994dee007fefeb582f07a1223a",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f43ba5a52ae3038ce3f521bd927540ace8ac94158497aeecf017793363ad491b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/mario/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "217cb14bd7f7fa8c54970d6b98f7bb0d52861ced0dfbfcb0d9d16b21349422f6",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "cc01c11a9d632f2d301f0796dbc903fddfee2846c48fe2a8ab87ed68a8419a50",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/back-hair-long.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "89a344d9efa579790d82dabbb9d54bd2dd1e1952ba2fed43b5003a8888f2627a",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "03544d499f77cf69c60e0e14757c0013cc3cf9f97aeb1c29378b54bfcd9ccc46",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/belt.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "1399c5423088b9e1036959103286c21875cb67890b9853614fd8d1a15e187ff5",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "aefd1cf966e7f758411194c9d30ce45c367af8db355ce34714846e5756c5c23a",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "bd6cb2a5f75caa1e2613b37df8f2a1c3e69fb14b6742cc0d54d3ff6c86d33615",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/ear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "5f839ea8e1c00ee23a3e29f3b860745b0dbd0a8bfe3d5ffda827ba1c471c3ea0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "fa8adebb20904b2d45448833252b5dc5d7ba8338acd6500e25d49a8c0d83d32a",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/glasses-side.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "da1210ee11be042f6ec2a0d71cd029cf1e27a52e2a71d080e7df891e4319480d",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/glasses.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "19ca19ad20a5763bd98241051dc21489e087a4303ffd65f28050bcbbe96fdf1c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9a38d72eab7658165ea899de67579404109448a354b866d8f17888a6d7b02307",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/hair-side.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "5439b614b9d2bef54d95ac0db2223e58d2e20b2cfab9b84fa7dc1685f8505935",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "15e387b58f53e6c0fef224fa583196e713a0cb1c756404d7ae9911b09efe819c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "4d2637f5040d74df6dd1b22c15c7c1cbdd27ec9e30c25478cec55e9d447d52ac",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/misaki/skirt.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "ef2b0ce635f769fe8766ac0cc8449f82cc12e9fd2cb84e694dcdb1b3712b328f",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6b68f3588f02816e5aa8bc367b794e86a1ba537890ccd61cd29138a238e9495e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "e836f041e8c1e79bc13d7eedc7a05d5837bdbf2a99e31a56910298abb25b2740",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/beard.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "1cf83e722f611a4208f53fa31551da3c4b8f8089554ca7f5769971637637a018",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "053a324447fbe9cd4940e9c2964c28a90559a6ae8dcb5c4de91e9bd160c68ae3",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "683b8e1f0f26da45abb5a873d394880d2d9335d6a268e8afa59d8b2a79768ebe",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/ear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "9e0378bf8bd01d85d03260efe3966041b21704909b4686c8140de448f18c0910",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "aedd785df8a60ea506e495697d5cdc15b933610f5d089c095324ea663cd50a6a",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/glasses-side.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a51db20cdce7b178a75ed4540778e2414b113c894b861dec3568e9f611986659",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/glasses.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "8c8801405cd5518aae6d6d28da71237a106a3e31a087b3bd083ca24cc2338cd0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7dae3713db0d5c8a2ffa8ddeb4d522d6755f4733d59c71e549f404f645fd40fa",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "765eb1d278d538d1dfa629431150e74b7706af833599cd409a8a00e66562a4e8",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/nate/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "30a59ec1fb6f3b0226af4ea1e7deb4eb01d60532a35f763789e0a04b946e26bc",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "407b9a8cf60f4e181e3c524646a13d80dc73e8482465073feadd889afc44657b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "d397874cfaebf398341ca4a93109d4d471a4dbcc168c9b9b4c7090363853e0e8",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/beard.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "374cac66d5dfae1917d0e397c2a276153a4441a9d1dc79f8624f3d49c18e7765",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "98504e7bbe614c0da7d4d0696c2b4af71d4dcf56e1e45106d0cd7e7916bda8c0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/body-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "17586984dd8b832214c0655e5337037d40b03bf188b58f3f396efbaea4535a0d",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "11ffb8a01d81435d349a2446b365c1cb44c0f17ae331b2cb05974af670eeb7fb",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/ear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7dd050eb9318371f8b4bd438a5d3a1501a1423769189973fbf6a0fa1c189ac0d",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "341aa197ceb26e4976ea76690898221ba6b08da14c976b9275c06184fcadec4b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "04ad0bd962b53e45954971c07d3510ec5c0f9a8cdb9590e3589426b28ef318f7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "67fd52d398a34129859334a712467350d8021b7143fdf0f84b82338f764ff969",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/sinisa/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7e23a010166763060f6dadf52a137283427d939704411038212f4c0da13198d8",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "591318c40d105503283c0703be4fb7d82e0b7d12dbca6501cdc102607c08b0bd",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "969adab67e1a696aa09236d2d9fe88e2b814f207a548b47b8892c2680aa8b373",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/beard.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "04344a5578541da5b871ebc02af7cba8d565035b9e95601ec497de30f6a792db",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "532d83595138896b1cd398eed9a6b6b46fc3f9c93587ef3e57a97c89e63faa43",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7a5d099c194cd01aa5adfe96412ec9ee0c253032279de10969d72f7b402d053c",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/ear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a7c43dc3e11138ee2f9c6dc37485f721dd2453de006e539da2d83b4e11a40afc",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "8edca283380826597c22e9db7d46f944147c438331956d58942fed33a366efc8",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/glasses-side.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "0a0891bea15591aa7d2cbb7f2a566380169f71118e4b3e0915fd3d393d490faa",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/glasses.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "5d45fa2966cb90e9abdcfee69b5937b35de10f16d4da1d4edb3405a40f473d46",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/glove.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "e4af74ed86593304207c908cb574cbacbbdc099c8a31c047fe67c8501a663e22",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "461487f99cc5b1b88c047be7512a97ba322d3ec7e0b3612874ad424635afa4f7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "3b116e45e50160bb05f9e61d79283a5f15099424b21c979acfbe317f0c7350f2",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/soeren/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "0e0c9377f0d885a0873246643098a2b7e46a497a8a71ae2730466eac6f659a9e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/arm-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "3a211589f36b0d15846d05c3d2e77b185d40350cca0a056bdce81c8da88031e7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/arm-shoulder-decoration.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a968d31fbc2d41e55d9680bb4c288167b127095f57f2395c0c7fa26546c42782",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "7660014a2a9134bd65e1b6d3e6c68b363c58dab433a30de6fd9d26b835d5f9db",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/back-hair.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "aa7f0fd3895328637ccd57dd4f357c96e503d78f9a5c40dbbde25532bc48c203",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/blush.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "053a324447fbe9cd4940e9c2964c28a90559a6ae8dcb5c4de91e9bd160c68ae3",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "e1c7fcb68e7ba20fa22d39074d6e50e001b481f0f88137c1555395810f90375e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/ear.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a7c43dc3e11138ee2f9c6dc37485f721dd2453de006e539da2d83b4e11a40afc",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/eyebrow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "aedd785df8a60ea506e495697d5cdc15b933610f5d089c095324ea663cd50a6a",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/glasses-shadow.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "015686b2fceaca24c5b554953a0faee92a5963a3432dd11e3980ec2348d8199e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/glasses.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a4271a8a1530136691ed937bf0b0b3ceb161e98dac0f378e4c4f771fd51a7262",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/hair-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f773513a06508f5d171823faab863b2b11d16b5dae176d2b6f0229ddb1c79d0b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/head-base.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "3b116e45e50160bb05f9e61d79283a5f15099424b21c979acfbe317f0c7350f2",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/images/spineboy/leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "fdf24176b823b941db66bcfd885bc21e7e2b174ef3b5db986e9623ad82acf658",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/Chibi-Stickers-4.3/extracted/license.txt",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "66a6298677e45ef485f0aaa62944ef70255e1f0c01b57df7acf85a945998d234",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/REFERENCE_ONLY.md",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "951555b9c5113a6631bd0845bf9a2d9c39c724e94002359f9460a0a1b5b5172b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-original-template.atlas",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "bcb3f8d9c697de18a9bbfb38259983e2a34b7e67faf098f897691ebc8df912e0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-original-template.json",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "1e069d208ebaaa8c3eee459f26afe61d418ad03e604f2ab67fa710b8f0daa651",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "1-5",
+      "code_excerpt": "{\n  \"skeleton\": {\n    \"hash\": \"332sNAu1s4k\",\n    \"spine\": \"4.3.75-beta\",\n    \"x\": -179.99997,"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-arm-back.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "de004e6393a645c22c4268048f63e18330f4e29ca71e411d92f63e35e1481b9e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-arm.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "8a08e3cbccec6f5eb78b7ea7ee9d1cd23a9992ae1daf24bb3cc8b7f54d0c6955",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-blank.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6fa466e21df6bf014ed03517399a711777f572b1f0be6a561b947790cda9f634",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-body-back.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "bb40f6e12a72d46b6ab4cd593d7c49589b130911033bac141ac9a054b9117ce0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-body.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "d8db5b5be31f9f87d2438c197d744df6e8a003fdedd8a253430ef148e923b8ed",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-head-back.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "353db5afd85d59569309a668e1eba3da3fd1b1e0bcf03b86c12ecc0c96c15d90",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-head-front.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "88ed7a9574a1fa752fee69c68bec9b2aad2a6660ba06c0bfa2d58423e266ddab",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-leg-back.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "a9dcfc6da1c77c4e3e9fb8321b6bf304f624c13394f559a250dbe6c81c46aa00",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/ai-city-template-leg.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "181e575532fd8dda5f8b0a61a57052240ef5f72f278fc6c97243f4a12ea3c5e2",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "00eb71f6c6b005956cde903036e163a50ad6abe1292cdb5327f99838cb76b81b",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_10.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "97af1a8c3925e0bd3dc2a85b577287a269c260c6cc1d8058d2f15a8825b8588e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_11.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "c1cde5ab1f8922f50f3eef5be52d603b1a4cf93fb152337f2309a9483ae5f4b4",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_2.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "f1c9b4df76c384c2ea9c29e150a0272844731b88dcbe829973658a3349e1bfc5",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_3.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "c460e6c08093f5c83e3e527518b1fae8191b600d9064c08f7fc5c3248347eb96",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_4.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "61af121670355c66fd5fd3f7fa74cf1cb913236fe8e7a5903f2dde187de223a9",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_5.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "48a88eea4140bef9c187893618543b6e8bfdeb6af35744a21b646558eb45cd85",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_6.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "318456c4b2e358f06690c906b325124eec52ce3587b4944ed3c6c9dfe293f697",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_7.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "6c9bde7f04757e48d4ff8555bbc240c91e07ed747f97610899283912e8eeb199",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_8.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "2a02271ac51d44586c075a1169b12e20897a37f437c82a5fecc0152c8b9eaa30",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "references/spine/ai-city-spineboy-skin-v13/spine-export/chibi-stickers_9.png",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "5c257c82008b137252c55800de12ff7023fe7288fbc2b69121a4ce200737c890",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "REFERENCE_ONLY original source / pinned assets"
+    },
+    {
+      "path": "runtime/README.md",
+      "change_type": "MODIFY",
+      "before_sha256": "2c48f41258deab3f3f90c9b9390014e885fba48e42a823fb531ba37e4cb868d5",
+      "after_sha256": "1fe0916be5042ae63fd06ded414111f76032dad1cbc12d6e29ca46f596b68181",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "runtime/license-manifest.json",
+      "change_type": "MODIFY",
+      "before_sha256": "fae1a81cea22b06000cf06f51c7ec8c458e0810febf3be5e6814e999e757c62b",
+      "after_sha256": "5ba670e8667b3b6e2fe68ee0c88982d703ccf78db71358e6d8673de24db62200",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "3-7",
+      "code_excerpt": "  \"assets\": [\n    {\n      \"name\": \"Chibi Stickers 4.3 original reference and fixed runtime template\",\n      \"path\": \"references/spine\",\n      \"manifest\": \"references/spine/ASSET_MANIFEST.json\","
+    },
+    {
+      "path": "scripts/configure_subscription.py",
+      "change_type": "MODIFY",
+      "before_sha256": "f526f01a343e21c5b76eb63ba13c7d48a14308af54df7af24b9116b3f97b8173",
+      "after_sha256": "8edc6df67bfe5173ba6fbb02ec7d56441d0be1908c96672d96e7251c8a782e7d",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "7-11",
+      "code_excerpt": "def configure(root,enable=False,calls=24,preserve_existing_limits=False):\n    root=Path(root).resolve();folder=root/'runtime/secrets'\n    if folder.is_symlink() or not folder.resolve().is_relative_to(root):raise ValueError('CONFIG_PATH')\n    folder.mkdir(parents=True,exist_ok=True)\n    for name in ('providers','design','review'):"
+    },
+    {
+      "path": "scripts/launch.py",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "02c375cc6418bb9d6ed0e9d7d61432d83940f0b46570114ee6ded0c0c9cc48b7",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "1-5",
+      "code_excerpt": "\"\"\"Launch the bundled-reference tool, reusing each operator's own CLI login.\"\"\"\nimport argparse,importlib.util,json,os,subprocess,sys,threading,time,urllib.request,webbrowser\nfrom pathlib import Path\nROOT=Path(__file__).resolve().parents[1];sys.dont_write_bytecode=True;sys.path.insert(0,str(ROOT/'src'))\n"
+    },
+    {
+      "path": "scripts/maintenance.py",
+      "change_type": "MODIFY",
+      "before_sha256": "cc185960888fb6df5293e9387ab71dbb5f31f1e826a4dfff2c0c97d3fed3c577",
+      "after_sha256": "c5e33abdc216d3d1263d694fb7fdf7bf0b8599fd42ab2aad8e903ff267a6987d",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "65-69",
+      "code_excerpt": "                m=verify_archive(ROOT/args.output);seal(ROOT,'source_package',{'status':'PASS','message_ja':'個人写真・鍵・依存物を含まない開発用ZIPを検証しました。同梱の原参考素材は付属ライセンスに従う参照専用・非商用です。実行環境同梱インストーラーではありません。','facts':value,'artifacts':[artifact(ROOT,ROOT/args.output)]})\n        elif args.action=='verify':\n            m=verify_archive(ROOT/args.archive);value={'status':'PASS','kind':m['kind'],'files':len(m['files'])"
+    },
+    {
+      "path": "src/spine_skin_tool/distribution.py",
+      "change_type": "MODIFY",
+      "before_sha256": "f8440d1c31ded507f23de614fcf68f9b7e6422d2b4fc957bead175f3987219ef",
+      "after_sha256": "a0726642ad0cd0e3753947bdc67f7851d5f539cbc8715978e8e6c86dbe69e9e1",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "23-27",
+      "code_excerpt": "    reference_files={};reference_folder=p.get('reference_directory')\n    if reference_folder:\n        require(reference_folder=='references/spine','RELEASE_REFERENCE_PATH')\n        from .reference_assets import verify_bundled\n        reference_files=verify_bundled(root)['files']"
+    },
+    {
+      "path": "src/spine_skin_tool/environment.py",
+      "change_type": "MODIFY",
+      "before_sha256": "26b9ff6480b41ba0c6ac746e5c00737f6352702964b213135771a9d5d6e58a33",
+      "after_sha256": "32425e9b4fe791c30f2ddfd186cf2904c3c356482de2d65cfda69248b4dcc997",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "77-81",
+      "code_excerpt": "    if (root/'references/spine').exists():\n        from .reference_assets import inspect\n        try:\n            inspect(root);checks.append({'code':'BUNDLED_REFERENCE_ASSETS','ok':True})\n            limitations[3]='REFERENCE_ART_COMMERCIAL_USE_NOT_AUTHORIZED'"
+    },
+    {
+      "path": "src/spine_skin_tool/maintenance.py",
+      "change_type": "MODIFY",
+      "before_sha256": "52197a86b7feaf3d2a2392fc375af57e83d5b28f2722c5b6518ec99f27437550",
+      "after_sha256": "d7df65b45ba73683e8a270cddbdc9a39fd455d66d316bc8fb41f0f5d8aec83d0",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "107-111",
+      "code_excerpt": "                  'files':before,'bytes':total,'privacy':'PRIVATE_PHOTOS_AND_TASKS_DO_NOT_SHARE' if kind=='PRIVATE_BACKUP' else 'SOURCE_WITH_LICENSED_NONCOMMERCIAL_REFERENCES_NO_PRIVATE_PHOTOS_KEYS_OR_DEPENDENCIES' if any(n.startswith('references/spine/') for n in before) else 'SOURCE_ONLY_NO_PHOTOS_KEYS_DEPENDENCIES_OR_REFERENCE_ART'}\n        destination.parent.mkdir(parents=True,exist_ok=True);t"
+    },
+    {
+      "path": "src/spine_skin_tool/reference_assets.py",
+      "change_type": "MODIFY",
+      "before_sha256": "ae370d0c5b032c021cef58e4485ed0830e30ebdca3da7f68a5bc4e0ca47ec709",
+      "after_sha256": "0545ede11f7703973b2a2f8d0cb4c71e1963538f1b13caa0e5be45d66a30c352",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "1-5",
+      "code_excerpt": "\"\"\"Repository reference library, with explicit original license and pinned bytes.\"\"\"\nimport json, shutil, uuid\nfrom pathlib import Path\nfrom .design import require, digest\n"
+    },
+    {
+      "path": "tests/test_distribution.py",
+      "change_type": "MODIFY",
+      "before_sha256": "f686f0659aa79f7a116afe89fb38c5a9e3e2d673086bddb38c777e05dc656093",
+      "after_sha256": "21e279ac80c5d9d4afcc86f1a4f3c831ed7486b42ead5fc39b7b9a4cdcb8781f",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "6-10",
+      "code_excerpt": "from spine_skin_tool.reference_assets import library_root,import_library,verify_bundled\nROOT=Path(__file__).resolve().parents[1]\n\nclass DistributionTests(unittest.TestCase):\n def setUp(self):"
+    },
+    {
+      "path": "ui/pipeline.html",
+      "change_type": "MODIFY",
+      "before_sha256": "1c3d61a17c77c1e17b7203fe6a8c427031b857ce91a997ede020078fe76ba7a1",
+      "after_sha256": "f8e2b6045dc3dedcce7cd148f6a2a3cceda95df88dbc3aec17f1653c87c99e4e",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "4-8",
+      "code_excerpt": "<p>元写真から設計・全部位・全身構築・動作レビュー・有限返修を順番に実行します。頭・表情は原素材、耳は原写真に応じて標準の小耳を追加し、原耳は常に非表示です。腕は標準形状の配色です。判断が不確かな候補は「確認待ち」として保存します。</p>\n<p><a href=\"/reviews\">レビュー</a> ／ <a href=\"/repairs\">返修作業</a> ／ <a href=\"/trials\">詳細な素材試験</a></p>\n<fieldset id=\"settings\"><legend>新しい制作</legend>\n<label>方式<select id=\"mode\"><option value=\"GENERATE\">元写真から新規制作</option><option value=\"HAIR_REFRESH\">保存キャラクターの髪・小耳だけ再制作</option><option "
+    },
+    {
+      "path": "ui/pipeline.js",
+      "change_type": "MODIFY",
+      "before_sha256": "130404d955514969e20c2d4ec7b6320a78edbd7cc94b03705cecceedf11a076f",
+      "after_sha256": "046951aaf7758c807676131f5f4ea2bedb980cf1558540a0c053f9d367e0e012",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "symbol": "bundled reference / explicit subscription launch / distribution",
+      "line_range": "2-6",
+      "code_excerpt": " const $=id=>document.getElementById(id),names={PLANNED:'計画保存済み',RUNNING:'制作中',INTERRUPTED:'中断・復旧可能（外部要求は再送しません）',DESIGN_READY:'設計の確認が必要です',CONFIGURATION_BLOCKED:'利用設定・残り試験上限を確認してください',WAIT_RESULT:'送信済みの結果を確認中・自動再送なし',ERROR_OR_RESULT_UNKNOWN:'エラー・結果未確認',OUTPUT_BLOCKED:'サービスが処理を拒否しました・自動再試行なし',STALE:'元資料または仕様が変更されました',CANCELLED:'後続処理を停止しました',REQUIRES_REVIEW:'美術・不確かな項目の確認待ち',READY_FOR_REVIEWED_EXPOR"
+    },
+    {
+      "path": "使用说明.md",
+      "change_type": "MODIFY",
+      "before_sha256": "07526b4f8b2e52c63d6582ce0b6112c2992daaab008a76dfce7b2a77fcf16c17",
+      "after_sha256": "7f1c9f4b4c0469269a6fcf0aa389900738c929d2ea5167f7697b6a5718203f2d",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "启动工具.cmd",
+      "change_type": "ADD",
+      "before_sha256": null,
+      "after_sha256": "d5f37363e5cc195c6149d24b92c97ea5146e4cb716cb0bffd56d91730ca39d68",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "文件分类与发布说明.md",
+      "change_type": "MODIFY",
+      "before_sha256": "b9abc1241810a0f9342c0b1ace2dbcf0417a5ec08aedcd78cceab86050890b20",
+      "after_sha256": "e3195ac5bb86067aa5232fc5dd505300158f41e454120d83f3955df681319571",
+      "reason": "同仓原Spine/贴图与实际参考路径对齐；用户确认保留启动器、本人登录配置与界面，并要求完整说明范围。",
+      "section": "operator instructions / launcher"
+    },
+    {
+      "path": "releases/spine-skin-tool-0.1.0-20261104.zip",
+      "change_type": "MODIFY",
+      "before_sha256": "c0c8e3ff72234c1675550cc693cede263f6dd3dabd8776f05621d8e9c1c9bf89",
+      "after_sha256": "8f6f3c82198ed27d7c9583443de89ca5c0ac106b52bd33d02cf736e93f05b2e2",
+      "reason": "同步现有下载路径为含原参考的当前ZIP，不携带私人数据。",
+      "section": "429-file bundle and embedded SHA manifest"
+    }
+  ],
+  "tests": [
+    {
+      "command": "unittest test_distribution test_maintenance test_current_pipeline014 test_character_session",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "44 targeted tests /48.816 seconds before final labels/UI reset consistency fixes; superseded by final full regression."
+    },
+    {
+      "command": "python private parallel_regression.py (final frozen source)",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "344 discovered tests, 324.656s, exact IDs/no skips/unchanged source fingerprint 9e9134e3cf2c348cb6d238ed92630672af5a138538a21ccd8e2b69ffaad2151e. Earlier superseded runs were interrupted and not claimed PASS."
+    },
+    {
+      "command": "new same-host directory locked dependency setup + root launcher --check-only",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "No parent library or private reference import. Repository references selected; native .cmd check returned READY with own CLI ChatGPT login and0 model calls. Not a fresh Windows-machine or real paid generation test."
+    },
+    {
+      "command": "node scripts/check_preview.cjs http://127.0.0.1:8784",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "Independent actual Runtime:24 motion samples,11 original skins,0 browser errors."
+    },
+    {
+      "command": "headless UI configured subscription/new character/synthetic import/plan/cancel request",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "Subscription checked initially and for new character; synthetic PNG import, off-line plan and CANCEL_REQUESTED recorded; all reservation counters0, no advance/model request, no final page/HTTP errors. Cancel request is not a completed CANCELLED phase."
+    },
+    {
+      "command": "initial private browser assertions",
+      "result": "FAIL",
+      "exit_code": 1,
+      "evidence": "QA script first tried hidden collapsed control, then read hidden pre with innerText, then incorrectly expected cancellation status projection. Script corrected to use visible controls/textContent and real cancellation response/marker; no application pass inferred from failed checks."
+    },
+    {
+      "command": "original archive comparison / license /39 runtime assets /429-member release SHA checks",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "All199 original archive files copied unchanged;221 reference/template files pinned, license retained. All429 package members verified, credentials/photos/generated characters/session data excluded. Image license permits accompanied noncommercial redistribution; project file public domain as stated in original license. Editor itself not installed/tested."
+    },
+    {
+      "command": "parent/model-reservation/user-material boundaries",
+      "result": "PASS",
+      "exit_code": 0,
+      "evidence": "5 parent files,299 existing reservations,four characters original raw parts/base manifests unchanged.0 new model calls."
+    }
+  ],
+  "risks": [
+    "M08既有用户验收COMPLETE保持；本次没有新增真实生图或Editor打开测试。",
+    "贴图只按原许可证参考/非商用；不宣称商用许可。",
+    "环境仍需一次准备，必须本人账号具备CLI/ImageGen权限；启动不等于无限订阅或任意照片必成功。",
+    "照片、生成角色、API配置、订阅凭证/会话不提交，旧预算/预留不清零。"
+  ],
+  "next_task": "仅提交上述已说明版本；按现有工具制作，后续功能另外沟通。",
+  "validation_facts": {
+    "source_fingerprint": "9e9134e3cf2c348cb6d238ed92630672af5a138538a21ccd8e2b69ffaad2151e",
+    "source_archive_sha256": "8f6f3c82198ed27d7c9583443de89ca5c0ac106b52bd33d02cf736e93f05b2e2",
+    "original_reference_files": 221,
+    "source_files": 429,
+    "new_model_calls": 0
+  }
+}

@@ -6,7 +6,6 @@ import {
   createDevelopmentClient,
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
-import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useReliableFocus } from "./use-reliable-focus";
 
@@ -424,7 +423,7 @@ export function ParticipationFlow({
                   {focusRequest.message && <p role="status">{focusRequest.message}</p>}
                 </>
               ) : (
-                <Link href="/city?mode=participants">街で確認</Link>
+                <span>展示タブレットの街で確認できます。</span>
               )}
               <button
                 type="button"

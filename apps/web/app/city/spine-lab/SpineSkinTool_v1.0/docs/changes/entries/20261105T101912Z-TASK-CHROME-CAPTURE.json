@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0.0",
+  "batch_id": "20261105T101912Z-TASK-CHROME-CAPTURE",
+  "task_id": "TASK-CHROME-CAPTURE",
+  "timestamp_local": "2026-11-05T19:19:12+09:00",
+  "timestamp_utc": "2026-11-05T10:19:12+00:00",
+  "status": "COMPLETE",
+  "goal": "支持使用本机 Chrome 执行既有 Spine 动作图证，保留 Edge 默认值并拒绝未知浏览器。",
+  "files": [
+    {
+      "path": "scripts/capture_review.cjs",
+      "change_type": "MODIFY",
+      "reason": "动作图证允许明确选择 Chrome，同时验证浏览器白名单。",
+      "before_sha256": "d4f3a2d3df308881a4fadf38c4e64663ce4eddd47b5aa6dfd05896c579be8292",
+      "after_sha256": "a2083afb16f9adbf59db80e1de30f332d19dabf61deee040ad31c79b93ab146a",
+      "section": "TODO: locate changed document heading or asset identifier",
+      "symbol": "main",
+      "line_range": "13-14",
+      "code_excerpt": " const channel=process.env.AI_CITY_SPINE_BROWSER||'msedge';assert(['msedge','chrome'].includes(channel),'UNSUPPORTED_BROWSER_CHANNEL');"
+    },
+    {
+      "path": "scripts/check_preview.cjs",
+      "change_type": "MODIFY",
+      "reason": "预览回归使用同一浏览器选项并拒绝未知值。",
+      "before_sha256": "37d14dcfdb8988e22aa9365b88066c23fd442d5fd89b1af83ad9c3e84e36eb23",
+      "after_sha256": "9c61b153db67e8ac5d5a895f6bd526ec4f7ec70aecfcd8c98c9ba0fccaaae735",
+      "section": "TODO: locate changed document heading or asset identifier",
+      "symbol": "main",
+      "line_range": "8-9",
+      "code_excerpt": " const channel=process.env.AI_CITY_SPINE_BROWSER||'msedge';if(!['msedge','chrome'].includes(channel))throw Error('UNSUPPORTED_BROWSER_CHANNEL');"
+    },
+    {
+      "path": "使用说明.md",
+      "change_type": "MODIFY",
+      "reason": "说明本机 Chrome 选项与默认 Edge 行为。",
+      "before_sha256": "7f1c9f4b4c0469269a6fcf0aa389900738c929d2ea5167f7697b6a5718203f2d",
+      "after_sha256": "051f938b2b6416835d30d0f41b1fee39b36bbc92ac0b84aef94bdff4cda475c5",
+      "section": "1. 新环境准备"
+    }
+  ],
+  "tests": [
+    {
+      "command": "AI_CITY_SPINE_BROWSER=chrome node scripts/check_preview.cjs http://127.0.0.1:18784",
+      "exit_code": 0,
+      "result": "PASS",
+      "evidence": "Chrome 157: 24 samples, 11 skins, zero browser errors; official reference, no model calls."
+    },
+    {
+      "command": "AI_CITY_SPINE_BROWSER=chrome node scripts/capture_review.cjs <synthetic-config>",
+      "exit_code": 0,
+      "result": "PASS",
+      "evidence": "Official reference bundle, same bundle at three view scales: 246 frames, zero errors; no model calls."
+    },
+    {
+      "command": "PowerShell assertion: unsupported AI_CITY_SPINE_BROWSER is rejected",
+      "exit_code": 0,
+      "result": "PASS",
+      "evidence": "Assertion succeeded: child exited 1 and emitted UNSUPPORTED_BROWSER_CHANNEL before launch."
+    }
+  ],
+  "risks": [
+    "Default Edge unavailable on this machine; default Edge path not tested. Three-scale test reused one reference bundle and does not validate production texture sizes.",
+    "Actual photo candidate remains hard-failed and is not quality approved."
+  ],
+  "next_task": "Integrate the isolated tool task with a durable, consent-bound worker and verified output."
+}

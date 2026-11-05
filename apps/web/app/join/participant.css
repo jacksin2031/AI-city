@@ -413,3 +413,16 @@
     animation: none;
   }
 }
+.pf-feedback {
+  position: fixed;
+  z-index: 20;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 32px));
+  padding: 20px;
+  border: 1px solid #c9ded6;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 12px 36px #183c3033;
+}

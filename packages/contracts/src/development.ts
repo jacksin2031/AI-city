@@ -75,7 +75,7 @@ export const DevelopmentJobSchema = GenerationJobSchema.superRefine((job, contex
 });
 export const DevelopmentAvatarSchema = z.strictObject({
   manifest: AvatarManifestSchema,
-  assetStatus: z.literal("REFERENCE_ONLY"),
+  assetStatus: z.enum(["REFERENCE_ONLY", "VERIFIED_SPINE"]),
 });
 const PreviewSchema = PublicResidentSchema.pick({
   nickname: true,
@@ -96,12 +96,12 @@ export const ParticipationViewSchema = z.strictObject({
 export const CitySnapshotSchema = z
   .strictObject({
     schemaVersion: z.literal(1),
-    mode: z.literal("MOCK"),
+    mode: z.enum(["MOCK", "LOCAL_PRIVATE_TEST"]),
     eventId: z.literal(developmentEventId),
     streamId: Id,
     eventSeq: z.number().int().nonnegative(),
     residents: z.array(PublicResidentSchema).max(200),
-    avatars: z.array(DevelopmentAvatarSchema).max(2),
+    avatars: z.array(DevelopmentAvatarSchema).max(200),
   })
   .superRefine((snapshot, context) => {
     const versions = snapshot.avatars.map((avatar) => avatar.manifest.avatarVersion);
@@ -114,6 +114,11 @@ export const CitySnapshotSchema = z
           resident.eventId !== snapshot.eventId ||
           resident.publicState !== "VISIBLE" ||
           !versions.includes(resident.avatarVersion),
+      ) ||
+      snapshot.avatars.some(
+        (avatar) =>
+          avatar.assetStatus === "VERIFIED_SPINE" &&
+          (snapshot.mode !== "LOCAL_PRIVATE_TEST" || !avatar.manifest.spine),
       )
     ) {
       context.addIssue({

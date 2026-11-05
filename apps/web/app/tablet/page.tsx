@@ -9,6 +9,11 @@ export default function Tablet() {
   const [busy, setBusy] = useState(false);
   const [fullscreenError, setFullscreenError] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
+  // Operator aids (fullscreen, pickers, status lines) stay off the public screen unless asked for.
+  const [tools, setTools] = useState(false);
+  useEffect(() => {
+    setTools(new URLSearchParams(location.search).get("tools") === "1");
+  }, []);
   const [focus, setFocus] = useState<{ id: string; residentId: string; expiresAt: number } | null>(
     null,
   );
@@ -148,23 +153,25 @@ export default function Tablet() {
   const control = state.control;
   return (
     <main className="tablet-display">
-      <div className="tablet-controls">
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              if (document.fullscreenElement) await document.exitFullscreen();
-              else await document.documentElement.requestFullscreen();
-              setFullscreenError("");
-            } catch {
-              setFullscreenError("この端末では全画面に切り替えられません。");
-            }
-          }}
-        >
-          {fullscreen ? "全画面を終了" : "全画面"}
-        </button>
-        {fullscreenError && <p role="status">{fullscreenError}</p>}
-      </div>
+      {tools && (
+        <div className="tablet-controls">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                if (document.fullscreenElement) await document.exitFullscreen();
+                else await document.documentElement.requestFullscreen();
+                setFullscreenError("");
+              } catch {
+                setFullscreenError("この端末では全画面に切り替えられません。");
+              }
+            }}
+          >
+            {fullscreen ? "全画面を終了" : "全画面"}
+          </button>
+          {fullscreenError && <p role="status">{fullscreenError}</p>}
+        </div>
+      )}
       {control.displayMode === "MAINTENANCE" ? (
         <section className="tablet-maintenance">
           <h2>ただいま準備中です</h2>
@@ -181,9 +188,16 @@ export default function Tablet() {
               focus={focus}
               reliableFocus={queuedFocus}
               onFocusApplied={acknowledgeFocus}
+              totalParticipants={state.totalParticipants}
+              tools={tools}
             />
-            <p className="tablet-disclaimer">
-              {control.displayMode === "DEMO" ? "架空の住民" : "仮のイラスト"}・会話と交通は見本
+            <p className={tools ? "tablet-disclaimer" : "visually-hidden"}>
+              {control.displayMode === "DEMO"
+                ? "架空の住民"
+                : state.snapshot.mode === "LOCAL_PRIVATE_TEST"
+                  ? "キャラクターは本機テスト"
+                  : "仮のイラスト"}
+              ・交通は見本
               {!control.motionEnabled && "・動きは停止中"}
             </p>
           </>

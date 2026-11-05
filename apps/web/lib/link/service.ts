@@ -159,14 +159,19 @@ export class DeviceLinkService {
   }
   display(token: string | undefined) {
     this.require(token, "DISPLAY");
+    const snapshot =
+      this.control.displayMode === "MAINTENANCE"
+        ? null
+        : this.control.displayMode === "DEMO"
+          ? this.withPresets(developmentCitySnapshot, "DEMO")
+          : this.withPresets(this.participation.snapshot(), "LIVE");
     return DeviceDisplaySchema.parse({
       control: this.control,
-      snapshot:
-        this.control.displayMode === "MAINTENANCE"
-          ? null
-          : this.control.displayMode === "DEMO"
-            ? this.withPresets(developmentCitySnapshot, "DEMO")
-            : this.withPresets(this.participation.snapshot(), "LIVE"),
+      snapshot,
+      totalParticipants:
+        this.control.displayMode === "LIVE"
+          ? this.participation.joinedTotal()
+          : snapshot?.residents.length,
     });
   }
   /** The display has its own monotonic stream because presets are not participant events. */

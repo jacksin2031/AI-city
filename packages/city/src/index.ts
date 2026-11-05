@@ -29,7 +29,10 @@ export function getDevelopmentResidents(): PublicResident[] {
   );
 }
 
+export type { AnimatedCharacter } from "./animated-character";
+export { loadChibiDemo } from "./chibi-demo";
 export { type ScenePresentationFrame, speechBounds } from "./focus";
+export { LANDMARKS, type Landmark } from "./landmarks";
 export {
   closePresentation,
   openProfile,
@@ -37,6 +40,12 @@ export {
   updatePresentation,
 } from "./presentation";
 export { createDevelopmentCity, type IllustratedCity } from "./renderer";
-export { type CityRoster, reconcileRoster } from "./roster";
+export {
+  type CityRoster,
+  reconcileRoster,
+  SCENE_RESIDENT_LIMIT,
+  sceneResidentCount,
+} from "./roster";
 export type { CityAction, Direction } from "./simulation";
+export { fetchSpineBundle, prepareSpineBundle } from "./spine-bundle";
 export { clampSpeechToViewport } from "./viewport";

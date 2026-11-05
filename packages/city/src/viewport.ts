@@ -14,6 +14,42 @@ export function cityViewport(width: number, height: number, cover: boolean) {
   };
 }
 
+/** Check the visible crop rather than the full canvas, leaving a small edge margin. */
+export function pointInVisibleCity(
+  point: { x: number; y: number },
+  width: number,
+  height: number,
+  cover: boolean,
+): boolean {
+  if (width <= 0 || height <= 0) return false;
+  const layout = cityViewport(width, height, cover);
+  const left = Math.max(0, -layout.left / layout.scale);
+  const top = Math.max(0, -layout.top / layout.scale);
+  const right = Math.min(SCREEN.width, (width - layout.left) / layout.scale);
+  const bottom = Math.min(SCREEN.height, (height - layout.top) / layout.scale);
+  const marginX = (right - left) * 0.1;
+  const marginY = (bottom - top) * 0.1;
+  return (
+    point.x >= left + marginX &&
+    point.x <= right - marginX &&
+    point.y >= top + marginY &&
+    point.y <= bottom - marginY
+  );
+}
+
+/** Select the next tour stop containing a resident; null means follow a resident instead. */
+export function nextVisibleTourIndex(
+  current: number,
+  count: number,
+  hasResident: (index: number) => boolean,
+): number | null {
+  for (let offset = 1; offset <= count; offset++) {
+    const index = (current + offset) % count;
+    if (hasResident(index)) return index;
+  }
+  return null;
+}
+
 /** Keep the profile card in the visible part of a cropped scene. */
 export function clampSpeechToViewport(
   bounds: { x: number; y: number; width: number; height: number },

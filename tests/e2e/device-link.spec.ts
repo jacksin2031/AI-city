@@ -43,14 +43,14 @@ test("mobile manager pairs an isolated tablet, controls it and revokes its read-
   await phone.getByLabel("管理キー", { exact: true }).fill(key);
   await phone.getByRole("button", { name: "管理画面に接続", exact: true }).click();
   await expect(phone.getByRole("heading", { name: "スマホで街を管理" })).toBeVisible();
-  await tablet.goto("/tablet");
+  await tablet.goto("/tablet?tools=1");
   await expect(tablet.getByRole("heading", { name: "タブレットを接続" })).toBeVisible();
   await phone.getByRole("button", { name: "タブレットの接続コードを発行" }).click();
   const code = await phone.getByTestId("pair-code").innerText();
   await tablet.getByLabel("8桁の接続コード").fill(code);
   await tablet.getByRole("button", { name: "街に接続" }).click();
   await expect(tablet.locator("section.tablet-city canvas")).toHaveCount(1);
-  await expect(tablet.getByText("架空の住民・会話と交通は見本", { exact: true })).toBeVisible();
+  await expect(tablet.getByText("架空の住民：AI会話は未設定", { exact: true })).toBeVisible();
   expect(
     (
       await tabletContext.request.post("/api/link/control", {
@@ -60,7 +60,7 @@ test("mobile manager pairs an isolated tablet, controls it and revokes its read-
     ).status(),
   ).toBe(403);
   await phone.getByRole("button", { name: "参加者の街", exact: true }).click();
-  await expect(tablet.getByText("仮のイラスト・会話と交通は見本", { exact: true })).toBeVisible();
+  await expect(tablet.getByText("架空の住民：AI会話は未設定", { exact: true })).toBeVisible();
   const visitorContext = await browser.newContext();
   const visitor = await visitorContext.newPage();
   const nickname = `管理撤回${Date.now()}`;

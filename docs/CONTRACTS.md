@@ -1,19 +1,20 @@
 # 共享 Contracts
 
-当前为 `packages/contracts` v0.7.0（含设备联动、持久访客传输、聚焦确认及虚构预设住民控制），Zod schema 为字段来源，变更记录见 `packages/contracts/CHANGELOG.md`。全部 fixture 都是虚构信息。它不是完整生产协议或后端授权实现。原 v0.2 导出保持兼容；`development` 子路径提供本地接入专用严格 DTO，要求有效 READY 结果及时间字段。
+当前为 `packages/contracts` v0.12.0（含设备联动、持久访客传输、聚焦确认及虚构预设住民控制），Zod schema 为字段来源，变更记录见 `packages/contracts/CHANGELOG.md`。全部 fixture 都是虚构信息。它不是完整生产协议或后端授权实现。原 v0.2 导出保持兼容；`development` 子路径提供本地接入专用严格 DTO，要求有效 READY 结果及时间字段。
 
 本地接入入口：`@ai-city/contracts/development`（schema、类型、fixtures）和 `@ai-city/contracts/development-client`（型别化 HTTP client）。权威名单为 `CitySnapshot`，变化为连续序号的 `CityEventPage`；重启由 `streamId` 变化识别。素材为 `REFERENCE_ONLY`，不是已存在的图片。完整接入及限制见 [A/B 本地接入基础](A_B_LOCAL_INTEGRATION.md)。
 
 - `AvatarSpec`：模板 ID、可见外观颜色、色盘、配件与不对称标记；不包含照片或敏感推断。
 - `AvatarManifest`：同一素材版本的四方向、Rig 与动画版本、透明帧尺寸、锚点（相对帧 0–1）、atlas 和 fallback 标记；公开引用只接受 `/avatars/` 范围内 PNG/WebP（atlas 数据为 JSON）路径，不接收私有签名 URL 或任意外部网址。由 A 实现授权资产传输；签名 URL 属于独立内部传输接口。
+- `AvatarManifest.spine`：可选 Spine 4.3 运行包路径及 build-manifest SHA-256，同一角色版本目录内提供 skeleton、atlas、最多 32 个 PNG 页面和方向守卫策略。头像必须具有四方向图或 Spine 包；仅含 Spine 的清单不提供方向图。schema 不核验文件内容或授权，生产者须校验全部哈希；旧客户端不接受仅 Spine 清单或超过 16 页，须先升级消费者。平板支持校验后播放；真实生产发布仍未接通。
+- 城市快照中 `LOCAL_PRIVATE_TEST` 和 `VERIFIED_SPINE` 表示经本机测试路径校验的素材，不代表实际生产许可或质量批准。原 `MOCK` 快照和样例含义保持不变。
+- `@ai-city/contracts/spine` 定义本机照片任务的版本 2 同意和公开状态；照片处理、外部 AI 上传、角色自动发布必须分别明确同意。`PREPARED` 仅表示真实工具已准备且尚未生图；`UNKNOWN` 不触发盲目重试。撤回返回本机清理状态，工具副本未核实清除时保持 `PENDING`。
 - `GenerationJob`：QUEUED / RUNNING / READY / FAILED / CANCELLED，含 deadline、更新时间、取消标记、READY 才有的结果（版本、FAST/ENHANCED 模式、回退）和 FAILED 才有的错误码。READY 不等于已公开。后续由 A 增加租约及重试语义与标准错误码表。
 - `PublicResident`：只允许授权公开的字段，拒绝原始照片、问卷、token 等额外数据；`publicState` 区分显示与隐藏。`publicConsent: true` 只校验结构，真正发布仍需服务端验证同意记录和会话。
 - `CityEvent`：居民加入、更新、隐藏、删除事件；`CityModeEvent` 为 LIVE / DEMO / MAINTENANCE 切换；`CityStreamEvent` 是两者联合。`id` 是事件 ID，`eventId` 是所属活动 ID。消费者仍需实现重复、乱序、删除和重连对账。
-- `DialogueRequest` / `DialogueResult`：请求只带两个不同居民 ID，公开上下文由服务端查找，不传私人答案；结果必须标明 LIVE 或 PRESET 来源及安全结果，BLOCKED 不带台词。
+- `DialogueRequest` / `DialogueResult`：请求带两个不同居民 ID 与可选固定地点代号，公开上下文由服务端查找，不传坐标或私人答案；结果必须标明 LIVE 或 PRESET 来源及安全结果，BLOCKED 不带台词。旧服务不接受新字段，平板与服务须一起更新。
 
 设备管理 `presetIds` 是固定虚构目录的选择，不进入参与者名册；平板公开快照按展示流版本合并。管理端和服务端需一起更新，重新启动会丢失选择。
-
-`focus-link` 使用访客请求 ID 排队，平板在角色画面渲染后确认；服务端验证本人会话及已公开住民，不接受客户端指定住民。请求 60 秒过期，状态记录在 5 分钟后可于后续新请求时清理，队列最多 128 条；满载时拒绝新请求。断线或确认响应丢失时可能重复投递，不能保证恰好显示一次。旧聚焦接口保留以兼容旧客户端；新客户端需新服务端。设备配对仍为进程内状态，进程重启后须重新配对，多实例及真实平板验收尚未完成。
 
 Fixtures（`@ai-city/contracts/fixtures`）提供居民、素材清单、五种任务状态、居民与模式事件和预设对话，供 A/B 并行开发；素材路径只是引用，尚无实际图片。
 

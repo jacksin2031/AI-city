@@ -50,3 +50,12 @@ describe("illustrated city's public roster", () => {
     ).toThrow();
   });
 });
+
+describe("sceneResidentCount", () => {
+  it("caps the drawn residents and never goes negative", async () => {
+    const { SCENE_RESIDENT_LIMIT, sceneResidentCount } = await import("./roster");
+    expect(sceneResidentCount(3)).toBe(3);
+    expect(sceneResidentCount(500)).toBe(SCENE_RESIDENT_LIMIT);
+    expect(sceneResidentCount(-4)).toBe(0);
+  });
+});
