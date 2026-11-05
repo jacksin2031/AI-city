@@ -16,6 +16,7 @@ import {
 } from "@ai-city/contracts/development";
 import { z } from "zod";
 import { DevelopmentServiceError } from "../development/service";
+import { makeSpineJob, withdrawSpineJobRecord } from "../spine/jobs";
 import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -431,6 +432,165 @@ export class VisitorService {
     private readonly store: VisitorStore,
     private readonly now: () => number = Date.now,
   ) {}
+
+  /** Atomically bind an already privately stored photo and explicit consent to this live session. */
+  async createSpineJob(
+    token: string,
+    task: string,
+    photoSha256: string,
+    consent: { processing: boolean; automaticPublication: boolean; version: number },
+  ): Promise<{ task: string; state: "QUEUED" }> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    if (!/^[A-Za-z0-9_-]{1,96}$/.test(task) || !/^[a-f0-9]{64}$/.test(photoSha256))
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const now = this.now();
+    // Validate consent before entering the transaction; the server supplies its timestamp.
+    const recordedConsent = { ...consent, recordedAt: new Date(now).toISOString() };
+    makeSpineJob(owner, photoSha256, recordedConsent);
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const existing = await tx.get(`requests/spine-owner-${owner}`);
+      const target = await tx.get(`jobs/spine-${task}`);
+      const previousTask = existing?.task;
+      const previous =
+        typeof previousTask === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(previousTask)
+          ? await tx.get(`jobs/spine-${previousTask}`)
+          : null;
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (target) throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      if (
+        existing &&
+        (!previous ||
+          previous.owner !== owner ||
+          previous.state !== "WITHDRAWN" ||
+          previous.cleanupPending !== false)
+      )
+        throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      const acknowledged = acknowledgeSession(state, owner);
+      if (acknowledged.changed) setDocument(tx, "meta/state", acknowledged.state);
+      tx.set(
+        `jobs/spine-${task}`,
+        makeSpineJob(owner, photoSha256, recordedConsent, session.expiresAt),
+      );
+      tx.set(`requests/spine-owner-${owner}`, { task });
+      return { task, state: "QUEUED" as const };
+    });
+  }
+
+  async withdrawSpineJob(token: string, task: string): Promise<{ toolCleanupPending: boolean }> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    if (!/^[A-Za-z0-9_-]{1,96}$/.test(task))
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const raw = await tx.get(`jobs/spine-${task}`);
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (!raw || raw.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      const withdrawn = withdrawSpineJobRecord(raw, owner);
+      tx.set(`jobs/spine-${task}`, withdrawn);
+      return { toolCleanupPending: withdrawn.toolCleanupPending };
+    });
+  }
+
+  async completeSpinePhotoCleanup(token: string, task: string): Promise<boolean> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    if (!/^[A-Za-z0-9_-]{1,96}$/.test(task))
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const raw = await tx.get(`jobs/spine-${task}`);
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (!raw || raw.owner !== owner || raw.state !== "WITHDRAWN")
+        throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (raw.toolCleanupPending) return false;
+      tx.set(`jobs/spine-${task}`, { ...raw, cleanupPending: false });
+      return true;
+    });
+  }
+
+  async spineJobStatus(token: string, task: string): Promise<{ task: string; state: string }> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    if (!/^[A-Za-z0-9_-]{1,96}$/.test(task))
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const raw = await tx.get(`jobs/spine-${task}`);
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (!raw || raw.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      const status = z
+        .enum([
+          "QUEUED",
+          "RUNNING",
+          "UNKNOWN",
+          "REQUIRES_REVIEW",
+          "FAILED",
+          "PUBLISHED",
+          "WITHDRAWN",
+        ])
+        .parse(raw.state);
+      return {
+        task,
+        state: status,
+        ...(status === "WITHDRAWN"
+          ? { photoCleanup: raw.cleanupPending ? "PENDING" : "COMPLETE" }
+          : {}),
+      };
+    });
+  }
+
+  async currentSpineJob(token: string): Promise<{ task: string; state: string } | null> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const index = await tx.get(`requests/spine-owner-${owner}`);
+      const task = index?.task;
+      const job =
+        typeof task === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(task)
+          ? await tx.get(`jobs/spine-${task}`)
+          : null;
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (!index) return null;
+      if (typeof task !== "string" || !job || job.owner !== owner)
+        throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      const status = z
+        .enum([
+          "QUEUED",
+          "RUNNING",
+          "UNKNOWN",
+          "REQUIRES_REVIEW",
+          "FAILED",
+          "PUBLISHED",
+          "WITHDRAWN",
+        ])
+        .parse(job.state);
+      return {
+        task,
+        state: status,
+        ...(status === "WITHDRAWN"
+          ? { photoCleanup: job.cleanupPending ? "PENDING" : "COMPLETE" }
+          : {}),
+      };
+    });
+  }
 
   async createInvitation(): Promise<{ code: string; expiresAt: number }> {
     const now = this.now();
