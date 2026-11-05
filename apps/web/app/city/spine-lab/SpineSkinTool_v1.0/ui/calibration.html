@@ -1,0 +1,8 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>品質レビューの校正</title>
+<style>body{background:#18232d;color:#eef;font:15px system-ui;margin:24px}a{color:#9de}button,select{padding:9px;margin:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}table{border-collapse:collapse}td,th{padding:10px;border:1px solid #627482}article{padding:14px;margin:15px 0;border:1px solid #627482}article img{max-width:100%;width:850px}.bad{color:#ffb9a5}</style>
+<h1>既存仕様によるレビュー校正</h1><p>Harri の部品構造と Davide / Spineboy の描画規則を判定基準にしています。既定の仕様を再承認する必要はありません。</p>
+<p>対照画像は私有のテスト用コピーです。元のキャラクターは変更されません。各「基準内」は指定した一項目だけを指し、全身の品質合格ではありません。自動美術合格は無効です。</p>
+<p><a href="/reviews">レビューへ戻る</a></p><select id="benchmarks"></select><button id="load">保存した結果を表示</button><pre id="status" role="status">読み込み中…</pre>
+<table><thead><tr><th>集合</th><th>検査</th><th>件数</th><th>違反検出</th><th>正常判定</th><th>誤検出</th><th>見逃し</th><th>未確認・低確信</th></tr></thead><tbody id="summary"></tbody></table>
+<p>確信度0.9以上の判定を集計します。未実行・不明・低確信を正解に数えません。生の判定集計と開発集合の閾値比較も詳細に保存します。留出集合の回答は指示の調整に使用しません。</p>
+<details><summary>詳細な構造化結果</summary><pre id="report"></pre></details><h2>条項ごとの対照と結果</h2><main id="cases"></main><script src="/calibration.js"></script></html>

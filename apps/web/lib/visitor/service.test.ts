@@ -291,6 +291,23 @@ describe("persistent anonymous visitors", () => {
     );
   });
 
+  it("keeps a running join total that survives withdrawal and ignores repeated confirmation", async () => {
+    expect(await service.joinedTotal()).toBe(0);
+    const first = await newSession();
+    const job = await ready(first.token);
+    const published = await Promise.all([
+      service.confirm(first.token, job.job.jobId, consent),
+      service.confirm(first.token, job.job.jobId, consent),
+    ]);
+    const second = await newSession();
+    const other = await ready(second.token, { ...input, requestId: "request-2" });
+    await service.confirm(second.token, other.job.jobId, consent);
+    expect(await service.joinedTotal()).toBe(2);
+    await service.removeResident(published[0].resident?.residentId as string);
+    expect((await service.snapshot()).residents).toHaveLength(1);
+    expect(await service.joinedTotal()).toBe(2);
+  });
+
   it("rejects a late confirmation after cancellation or withdrawal", async () => {
     const session = await newSession();
     const cancelled = await service.createJob(session.token, input);

@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0.0",
+  "character_id": "synthetic-fixture",
+  "photo": {
+    "file": "character-reference.png",
+    "sha256": "07eb2275e52cd6d97e2b93101c2d330465d40a57f25959fbfc1574dbc46a772b"
+  },
+  "observed": {
+    "hair": "",
+    "upper": "",
+    "lower": ""
+  },
+  "appearance": {
+    "hair": {
+      "description": "Short simplified hair; edit this example to match the original photo.",
+      "color": "#25252D",
+      "basis": "FREE_DESIGN"
+    },
+    "torso": {
+      "description": "Plain compact shirt panel.",
+      "color": "#F4F0E8",
+      "basis": "FREE_DESIGN"
+    },
+    "lower": {
+      "description": "Chosen simple trousers; not observed in the photo.",
+      "color": "#35333D",
+      "basis": "FREE_DESIGN",
+      "kind": "pants"
+    },
+    "sleeve": {
+      "description": "Short sleeve cap.",
+      "color": "#F4F0E8",
+      "basis": "FREE_DESIGN",
+      "fraction": 0.20670391061452514
+    },
+    "leg": {
+      "description": "One broad tubular trouser leg.",
+      "color": "#35333D",
+      "basis": "FREE_DESIGN"
+    },
+    "shoe": {
+      "description": "Simple rounded shoe.",
+      "color": "#E9E4DC",
+      "basis": "FREE_DESIGN"
+    }
+  },
+  "skin_color": "#FFD3BF",
+  "outline_policy": "MATERIAL_RELATIVE",
+  "style": {
+    "construction": "harri",
+    "render": [
+      "davide",
+      "spineboy"
+    ]
+  },
+  "layout": {
+    "front_width": 338,
+    "back_width": 340,
+    "top": 313
+  },
+  "production_approved": false
+}

@@ -1,0 +1,22 @@
+{
+  "status": "EXPERIMENTAL_NOT_PRODUCTION_APPROVED",
+  "workflow_revision_source": "runtime/versions.toml [workflow]",
+  "units": "Spine units; calibrated on three chat trials, not centimeters",
+  "layouts": {
+    "short": {
+      "front_width": 338,
+      "back_width": 340,
+      "top": 313
+    },
+    "bob": {
+      "front_width": 410,
+      "back_width": 410,
+      "top": 313
+    },
+    "updo": {
+      "front_width": 382,
+      "back_width": 356,
+      "top": 313
+    }
+  }
+}

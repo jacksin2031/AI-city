@@ -1,12 +1,18 @@
 import { createHash } from "node:crypto";
 import { Firestore } from "@google-cloud/firestore";
+import { SpineJobs } from "../spine/jobs";
 import { visitorConfig } from "./config";
 import { createVisitorBoundary, type VisitorBoundary } from "./credentials";
 import { FirestoreVisitorStore } from "./firestore";
 import { VisitorService } from "./service";
 
 const state = globalThis as typeof globalThis & {
-  aiCityVisitors?: { key: string; service: VisitorService; security: VisitorBoundary };
+  aiCityVisitors?: {
+    key: string;
+    service: VisitorService;
+    security: VisitorBoundary;
+    store: FirestoreVisitorStore;
+  };
 };
 export const visitorsEnabled = process.env.AI_CITY_ENABLE_VISITORS === "1";
 export function getVisitorService(): VisitorService | null {
@@ -19,16 +25,23 @@ export function getVisitorService(): VisitorService | null {
     process.env.FIRESTORE_EMULATOR_HOST,
     createHash("sha256").update(config.hmacKey).digest("hex"),
   ]);
-  if (!state.aiCityVisitors || state.aiCityVisitors.key !== key) {
+  if (!state.aiCityVisitors || state.aiCityVisitors.key !== key || !state.aiCityVisitors.store) {
     // The emulator uses unauthenticated insecure gRPC. REST fallback still discovers ADC.
     const db = new Firestore({ projectId: config.projectId, preferRest: !config.emulator });
+    const store = new FirestoreVisitorStore(db, config.namespace);
     state.aiCityVisitors = {
       key,
-      service: new VisitorService(new FirestoreVisitorStore(db, config.namespace)),
+      store,
+      service: new VisitorService(store),
       security: createVisitorBoundary(config.hmacKey, config.namespace),
     };
   }
   return state.aiCityVisitors.service;
+}
+
+export function getSpineJobs(): SpineJobs | null {
+  if (!getVisitorService()) return null;
+  return state.aiCityVisitors?.store ? new SpineJobs(state.aiCityVisitors.store) : null;
 }
 export function getVisitorBoundary(): VisitorBoundary | null {
   getVisitorService();

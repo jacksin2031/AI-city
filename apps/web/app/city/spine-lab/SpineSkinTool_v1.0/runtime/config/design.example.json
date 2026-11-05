@@ -1,0 +1,6 @@
+{
+  "live_enabled": false,
+  "upload_consent": false,
+  "max_live_calls": 1,
+  "timeout_seconds": 600
+}

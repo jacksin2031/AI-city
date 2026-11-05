@@ -9,6 +9,7 @@
     "pnpm": "11.9.0"
   },
   "scripts": {
+    "spine:preflight-worker": "node scripts/run-spine-preflight.mjs",
     "dev": "pnpm --filter @ai-city/web dev",
     "build": "pnpm --filter @ai-city/web build",
     "start": "pnpm --filter @ai-city/web start",
@@ -27,13 +28,14 @@
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.3",
+    "@biomejs/biome": "2.6.4",
     "@firebase/rules-unit-testing": "6.0.0",
     "@google-cloud/firestore": "9.4.0",
     "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
     "firebase": "13.1.0",
-    "firebase-tools": "15.34.1",
+    "firebase-tools": "15.34.2",
+    "tsx": "4.20.5",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
   }

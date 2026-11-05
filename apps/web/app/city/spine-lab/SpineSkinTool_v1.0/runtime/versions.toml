@@ -1,0 +1,55 @@
+[product]
+version = "0.1.0"
+api_schema = "1.0.0"
+job_schema = "1.0.0"
+asset_schema = "1.0.0"
+design_schema = "1.0.0"
+provider_config_schema = "2.0.0"
+quality_policy = "quality-mvp-004"
+review_schema = "1.0.0"
+repair_schema = "1.0.0"
+pipeline_schema = "1.0.0"
+
+[toolchain]
+python = "3.12.10"
+uv = "0.9.18"
+node = "22.17.1"
+pnpm = "11.9.0"
+
+[spine]
+runtime_package = "@esotericsoftware/spine-canvas"
+runtime_package_version = "4.3.13"
+
+editor_export = "4.3.75-beta"
+runtime_major_minor = "4.3"
+runtime_commit = "PIN_AFTER_VERIFICATION"
+template_id = "chibi-4.3-beta"
+template_revision = "reference-hair-pants-8part-v3"
+
+[models]
+image_provider = "codex"
+image_model = "CODEX_BUILTIN_IMAGEGEN"
+character_session_model = "gpt-6-luna"
+grok_image_model = "grok-imagine-image-2.0"
+image_prompt_revision = "image-prompt-014"
+review_provider = "codex"
+review_model = "CODEX_CLI_DEFAULT_UNVERIFIED"
+review_prompt_revision = "review-prompt-011"
+calibration_prompt_revision = "calibration-prompt-001"
+review_criteria_revision = "review-criteria-006"
+design_prompt_revision = "photo-design-009"
+
+[workflow]
+revision = "photo-to-skin-shared-014"
+orientation_revision = "direction-hair-ears-004"
+status = "EXPERIMENTAL_SHARED_FLOW_REPAIR"
+repair_revision = "bounded-repair-005"
+pipeline_revision = "photo-character-pipeline-001"
+hair_fit_revision = "head-alpha-fit-007"
+arm_revision = "standard-arm-hand-002"
+standard_ear_revision = "standard-ear-001"
+texture_edit_revision = "texture-pattern-edit-001"
+
+[execution]
+# Lifetime reservation-index capacity, not a default budget or automatic retry limit.
+global_reservation_capacity = 1000000

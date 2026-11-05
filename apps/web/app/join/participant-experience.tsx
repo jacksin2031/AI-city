@@ -59,13 +59,15 @@ type Stage =
   | "published"
   | "removed";
 
-export function ParticipantExperience() {
+export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boolean }) {
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
   const [stage, setStage] = useState<Stage>("name");
   const [initializing, setInitializing] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackShown, setFeedbackShown] = useState(false);
   const [nickname, setNickname] = useState("");
   const [sample, setSample] = useState<"sora" | "haru">("sora");
   const [color, setColor] = useState<(typeof colors)[number]>(colors[0]);
@@ -169,6 +171,15 @@ export function ParticipantExperience() {
       window.clearTimeout(timer);
     };
   }, [stage, view, client]);
+
+  useEffect(() => {
+    if (stage !== "published" || feedbackShown) return;
+    const timer = window.setTimeout(() => {
+      setFeedbackVisible(true);
+      setFeedbackShown(true);
+    }, 20_000);
+    return () => window.clearTimeout(timer);
+  }, [stage, feedbackShown]);
 
   function computeStyle(values: (number | null)[]): AiStyle {
     const score = (indices: number[]) =>
@@ -277,6 +288,21 @@ export function ParticipantExperience() {
       setBusy(false);
     }
   }
+  async function restart() {
+    if (
+      !window.confirm("最初からやり直しますか？街に公開したキャラクターと参加情報が削除されます。")
+    )
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      await client.closeSession();
+      window.location.assign("/join");
+    } catch {
+      setError("削除できませんでした。通信を確認してもう一度お試しください。");
+      setBusy(false);
+    }
+  }
   const dashboard = stage === "published";
   return (
     <main className={`pf-page${dashboard ? " pf-page-dashboard" : ""}`}>
@@ -297,6 +323,11 @@ export function ParticipantExperience() {
         </div>
       )}
       <div className="pf-sheet">
+        {spineLocal && (
+          <p>
+            <Link href="/join/spine">写真からキャラクターを作る（本機テスト）</Link>
+          </p>
+        )}
         {error && (
           <div role="alert" className="pf-error">
             {error}
@@ -670,7 +701,35 @@ export function ParticipantExperience() {
                   <button className="pf-back" type="button" disabled={busy} onClick={leave}>
                     参加情報を削除して終了
                   </button>
+                  <button className="pf-back" type="button" disabled={busy} onClick={restart}>
+                    やり直す
+                  </button>
                 </div>
+                {feedbackVisible && (
+                  <section
+                    className="pf-feedback"
+                    role="dialog"
+                    aria-labelledby="pf-feedback-title"
+                  >
+                    <h2 id="pf-feedback-title">アンケートのお願い</h2>
+                    <p>体験はいかがでしたか？ よろしければ、ご感想をお聞かせください。</p>
+                    <a
+                      className="pf-primary"
+                      href="https://docs.google.com/forms/d/1_opxScrEFCfXhS0GZhj3jQoX8zle24X-SW602ZHFPNY/viewform"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      アンケートに回答する
+                    </a>
+                    <button
+                      className="pf-back"
+                      type="button"
+                      onClick={() => setFeedbackVisible(false)}
+                    >
+                      あとで
+                    </button>
+                  </section>
+                )}
               </>
             )}
             {stage === "removed" && (

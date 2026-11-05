@@ -143,6 +143,83 @@ canvas {
   margin: 12px 0;
   font-size: 1.55rem;
 }
+.landmark-card {
+  position: relative;
+  overflow-wrap: anywhere;
+}
+.landmark-card h2 {
+  margin: 10px 35px 12px 0;
+  font-size: 1.35rem;
+}
+.landmark-card p {
+  line-height: 1.6;
+}
+.landmark-photo {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  background: #e6ebdf;
+  border-radius: 10px;
+}
+.landmark-credit {
+  font-size: 0.75rem;
+}
+.landmark-card a {
+  color: #244d3c;
+}
+.landmark-list {
+  margin: 12px 0;
+}
+.landmark-list > div,
+.tablet-landmark-list > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tablet-landmark-list {
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  top: 92px;
+  max-width: min(360px, 70vw);
+  max-height: 60vh;
+  overflow: auto;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgb(255 253 246 / 92%);
+}
+.tablet-landmark-list summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.tablet-landmark-list button {
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid #829c88;
+  border-radius: 9px;
+  background: #fffdf6;
+  color: #244d3c;
+  font: inherit;
+}
+.landmark-card button.landmark-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px;
+  border: 1px solid #829c88;
+  border-radius: 50%;
+  background: #fffdf6;
+  color: #244d3c;
+  font: inherit;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
 .city-eyebrow {
   color: #52675b;
   font-size: 0.8rem;
@@ -567,6 +644,38 @@ canvas {
   background: #cfe3c1;
   overflow: hidden;
 }
+.tablet-dialogue-status {
+  position: absolute;
+  z-index: 2;
+  left: 12px;
+  bottom: 32px;
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgb(255 253 246 / 82%);
+  color: #52675b;
+  font-size: 0.7rem;
+  pointer-events: none;
+}
+.tablet-landmark {
+  position: absolute;
+  z-index: 2;
+  top: max(72px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  width: min(340px, 42vw);
+  max-height: calc(100% - 100px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid #d7dccb;
+  border-radius: 18px;
+  background: #fffdf6;
+  box-shadow: 0 8px 30px #20342c33;
+}
+@media (max-width: 600px) {
+  .tablet-landmark {
+    width: min(310px, 75vw);
+  }
+}
 .tablet-city canvas {
   display: block;
   max-width: none;
@@ -816,4 +925,173 @@ details.tablet-resident-list > summary {
   margin-block: 1rem;
   overflow-wrap: anywhere;
   font-size: 1.1rem;
+}
+
+/* Autumn grade, logo and counts over the tablet scene. */
+.autumn-filter {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 55%, rgb(122 52 14 / 30%) 100%),
+    linear-gradient(180deg, rgb(255 176 72 / 24%), rgb(214 98 32 / 18%));
+  mix-blend-mode: multiply;
+}
+.autumn-leaves {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.autumn-leaf {
+  position: absolute;
+  top: -8%;
+  height: auto;
+  color: #c4571e;
+  opacity: 0.8;
+  animation: autumn-fall linear infinite;
+}
+.autumn-leaf:nth-child(3n) {
+  color: #d9902a;
+}
+.autumn-leaf:nth-child(3n + 1) {
+  color: #a63a1c;
+}
+@keyframes autumn-fall {
+  from {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(36px, 55vh, 0) rotate(180deg);
+  }
+  to {
+    transform: translate3d(-12px, 112vh, 0) rotate(360deg);
+  }
+}
+.scene-logo {
+  position: absolute;
+  z-index: 3;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  max-width: 55vw;
+  padding: 4px 8px;
+  /* No plate: a white halo keeps the text legible over the busy 3D scene. */
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #fff)
+    drop-shadow(0 0 10px rgb(255 255 255 / 90%));
+  pointer-events: none;
+}
+.scene-logo-title,
+.scene-logo-sub {
+  margin: 0;
+  white-space: nowrap;
+}
+.scene-logo-title {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-family:
+    "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", "Noto Serif CJK JP",
+    "MS PMincho", serif;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.scene-logo-pre,
+.scene-logo-main {
+  background: linear-gradient(180deg, #b23a14 0%, #7a2a10 62%, #4f1c0a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.scene-logo-pre {
+  font-size: 1.08rem;
+  letter-spacing: 0.04em;
+}
+.scene-logo-main {
+  font-size: 1.86rem;
+  letter-spacing: 0.1em;
+}
+.scene-logo-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  color: #8a5426;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  line-height: 1.4;
+}
+.scene-logo-sub::before {
+  content: "";
+  flex: none;
+  width: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, #c2471d, #d9952f);
+}
+.scene-counts {
+  position: absolute;
+  z-index: 3;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  pointer-events: none;
+}
+.scene-counts > div {
+  min-width: 96px;
+  padding: 8px 14px;
+  border: 1px solid rgb(188 120 38 / 25%);
+  border-radius: 12px;
+  background: rgb(255 250 238 / 55%);
+  box-shadow: 0 4px 14px #5a2a0e1a;
+}
+.scene-counts dt {
+  color: #8a5a2c;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.scene-counts dd {
+  margin: 0;
+  color: #7a2e12;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.scene-counts small {
+  margin-left: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .scene-logo {
+    padding: 7px 14px 8px 12px;
+  }
+  .scene-logo-pre {
+    font-size: 0.82rem;
+  }
+  .scene-logo-main {
+    font-size: 1.3rem;
+  }
+  .scene-logo-sub {
+    gap: 6px;
+    font-size: 0.6rem;
+    letter-spacing: 0.22em;
+  }
+  .scene-logo-sub::before {
+    width: 14px;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

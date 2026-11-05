@@ -13,6 +13,10 @@ export function mergeDeviceState<T extends DeviceAdmin | DeviceDisplay>(
     next.snapshot.streamId === previous.snapshot.streamId &&
     next.snapshot.eventSeq < previous.snapshot.eventSeq
   )
-    return { ...next, snapshot: previous.snapshot };
+    return {
+      ...next,
+      snapshot: previous.snapshot,
+      ...("totalParticipants" in previous && { totalParticipants: previous.totalParticipants }),
+    };
   return next;
 }

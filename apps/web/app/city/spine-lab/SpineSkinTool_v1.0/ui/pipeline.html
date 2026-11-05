@@ -1,0 +1,18 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><link rel="icon" href="data:,"><title>写真からキャラクター制作</title>
+<style>body{font:15px system-ui;background:#18232d;color:#eef;margin:24px}a{color:#9de}input,select,button,textarea{padding:8px;margin:6px}textarea{display:block;width:min(96%,950px);background:#223442;color:#eef}pre{white-space:pre-wrap;overflow-wrap:anywhere}iframe{width:590px;height:1000px;border:1px solid #789;max-width:95%}#previews{display:flex;gap:16px;flex-wrap:wrap}fieldset{margin:15px 0}table{border-collapse:collapse}td,th{padding:8px;border:1px solid #789}</style>
+<h1>写真からキャラクター制作</h1>
+<p>元写真から設計・全部位・全身構築・動作レビュー・有限返修を順番に実行します。頭・表情は原素材、耳は原写真に応じて標準の小耳を追加し、原耳は常に非表示です。腕は標準形状の配色です。判断が不確かな候補は「確認待ち」として保存します。</p>
+<p><a href="/reviews">レビュー</a> ／ <a href="/repairs">返修作業</a> ／ <a href="/trials">詳細な素材試験</a></p>
+<fieldset id="settings"><legend>新しい制作</legend>
+<label>方式<select id="mode"><option value="GENERATE">元写真から新規制作</option><option value="HAIR_REFRESH">保存キャラクターの髪・小耳だけ再制作</option><option value="REPLAY">保存素材を再構築（画像生成なし）</option></select></label>
+<div id="photo-fields"><label>元写真<select id="photo"></select></label><label>写真を追加<input id="photo-upload" type="file" accept="image/png,image/jpeg,image/webp"></label><p>選択した写真は本機の非公開作業領域へ保存します。24MB・約1600万画素まで。この操作ではモデルへ送信しません。</p><label>管理名<input id="character-id" value="my-character" pattern="[a-zA-Z0-9_-]+"></label><label>衣装の希望（任意）<textarea id="constraints" rows="2" maxlength="1400"></textarea></label><label><input id="pause-design" type="checkbox">生成前に設計を確認・編集する</label></div>
+<div id="replay-fields" hidden><label>保存済み全身素材<select id="source"></select></label><label><input id="replay-fit" type="checkbox">元の位置を保持せず、新しい自動幾何試配を検証する</label><p>元の位置を保持した再構築は固定素材の互換性確認です。新しい写真を生成したことにはなりません。</p></div>
+<details><summary>利用枠と実行設定</summary><label><input id="live" type="checkbox">購読枠で設計・素材生成・補助レビューを実行する</label><p>初期状態は無効です。下の利用枠はローカル試験上限であり、購読の残高表示ではありません。既存の送信記録は消しません。</p>
+<label>画像総上限<input id="images" type="number" min="1" max="18" value="12"></label><label>補助レビュー上限<input id="visions" type="number" min="1" max="7" value="3"></label><label>返修サイクル（髪再制作は部位ごとの上限）<input id="cycles" type="number" min="0" max="3" value="2"></label><pre id="budgets"></pre></details>
+<button id="start">制作を開始</button><button id="plan">計画だけ保存（送信なし）</button></fieldset>
+<p><select id="tasks"></select><button id="load">保存作業を表示</button><button id="new">新しい制作</button><button id="resume" disabled>続行・復旧</button><button id="retry" disabled>停止した部位を新規作業で再試行（旧予約は保持）</button><button id="cancel" disabled>後続処理を停止</button></p>
+<pre id="status" role="status">読み込み中…</pre>
+<details id="design-panel"><summary>設計書（生成前のみ編集可能）</summary><textarea id="design" rows="19" disabled></textarea><button id="save-design" disabled>編集した設計を固定して続行</button><p>見えない下装は衣装に合う形を自由設計します。固定後に変える場合は、新しい制作を作成してください。</p></details>
+<p><a id="hair-trials" hidden>髪の全試行と不合格理由を見る</a></p><h2>初回部位と出所</h2><p>返修後の更新部位は各候補のレビュー・返修作業で確認できます。未承認の返修候補を先に表示し、不採用の候補と保持中の基準候補を区別します。</p><table><thead><tr><th>部位</th><th>方法</th><th>進捗・作業</th></tr></thead><tbody id="parts"></tbody></table>
+<h2>全身候補・比較とダウンロード</h2><p>プレビュー内で方向別の待機・走行・表情・手振りを選べます。ダウンロードは検証用のJSON/atlas/PNG一式です。Spine Editorの.spineファイルではありません。</p><div id="previews"></div>
+<details><summary>保存状態・出所・版・エラー</summary><pre id="report"></pre></details><section id="production-timing"></section><script src="/timing.js"></script><script src="/pipeline.js"></script></html>
