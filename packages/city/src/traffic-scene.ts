@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { AudioFrame } from "./audio-mix";
 import {
   advanceVehicle,
   type PedestrianSignal,
@@ -39,6 +40,7 @@ type RunningVehicle = {
   stops: TrafficStop[];
   speed: number;
   train: boolean;
+  moving: boolean;
   parts: { object: THREE.Object3D; offset: number; halfSpan: number }[];
 };
 
@@ -97,6 +99,7 @@ export function createTraffic(
       stops,
       speed: train ? 10 : 8.33,
       train,
+      moving: false,
       parts,
     });
   }
@@ -197,6 +200,7 @@ export function createTraffic(
               next.distance = Math.max(previous, Math.min(next.distance, other.state.distance - 7));
             }
           }
+          v.moving = next.distance !== previous && next.dwell === 0;
           v.state = next;
         }
         time += dt;
@@ -204,6 +208,25 @@ export function createTraffic(
       }
       for (const v of running) setPose(v);
       setLamps();
+    },
+    /** Where the street sounds come from: signals, cars and trains, with the traffic clock. */
+    soundSources(): Pick<AudioFrame, "time" | "signals" | "vehicles"> {
+      return {
+        time,
+        signals: data.pedestrianSignals,
+        vehicles: running.map((v, id) => {
+          const [x, y] = samplePath(v.route.pts, v.state.distance).position;
+          return {
+            id,
+            x,
+            y,
+            train: v.train,
+            moving: v.moving,
+            distance: v.state.distance,
+            dwelling: v.state.dwell > 0,
+          };
+        }),
+      };
     },
   };
 }

@@ -2,6 +2,7 @@ import type { DialoguePlace, DialogueResult, PublicResident } from "@ai-city/con
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { type AnimatedCharacter, animationFor, characterAspect } from "./animated-character";
+import { createCityAudio } from "./audio";
 import { autumnLighting } from "./autumn";
 import { encounterPlace, findEncounter } from "./encounter";
 import {
@@ -43,6 +44,9 @@ export type IllustratedCity = {
   selectLandmark(id: number | null): void;
   act(id: string, action: CityAction): void;
   present(presentation: ScenePresentation | null): void;
+  /** Street sounds and music; start from a tap, as browsers block sound until then. */
+  setSoundEnabled(enabled: boolean): Promise<void>;
+  setSoundVolume(volume: number): void;
   destroy(): void;
 };
 type Label = { sprite: THREE.Sprite; set(text: string): void; aspect: number };
@@ -332,6 +336,8 @@ function startCity(
   });
   scene.add(vehicles);
   const traffic = createTraffic(trafficData, vehicles, city, metroRailHeightOffset);
+  const audio = createCityAudio();
+  let audioClock = 0;
 
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 4000);
   const residentLayer = new THREE.Group();
@@ -748,6 +754,17 @@ function startCity(
     updateBuildingFade(buildingFade, shown.centerX, shown.centerY, shown.zoom);
     buildingFade.pulse.value = moving ? 0.3 + 0.25 * (1 + Math.sin(now * 4)) : 0.45;
     parent.dataset.cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
+    audioClock += seconds;
+    if (audioClock >= 0.1 && audio.isPlaying()) {
+      audioClock = 0;
+      // With motion off nothing moves, so the street goes quiet and only the music plays.
+      const sources = moving ? traffic.soundSources() : { time: clock, signals: [], vehicles: [] };
+      audio.update({
+        ...sources,
+        listener: { x: shown.centerX, y: shown.centerY },
+        zoomRatio: shown.zoom / DEFAULT_ZOOM,
+      });
+    }
     const screenUnit = 1 / shown.zoom;
     const lineIndex = exchange ? Math.floor((now - exchange.startedAt) / 3.5) : -1;
     if (
@@ -1031,6 +1048,14 @@ function startCity(
     setMotionEnabled(enabled) {
       moving = enabled;
     },
+    async setSoundEnabled(enabled) {
+      if (destroyed) return;
+      if (enabled) await audio.start();
+      else audio.stop();
+    },
+    setSoundVolume(volume) {
+      audio.setVolume(volume);
+    },
     select(id) {
       selectedId = id;
     },
@@ -1063,6 +1088,7 @@ function startCity(
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      audio.destroy();
       cancelAnimationFrame(raf);
       resizer.disconnect();
       canvas.removeEventListener("pointerdown", onPointerDown);

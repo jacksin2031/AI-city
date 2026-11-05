@@ -1095,3 +1095,36 @@ details.tablet-resident-list > summary {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.sound-toggle {
+  position: absolute;
+  z-index: 3;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 16px;
+  border: 1px solid rgb(188 120 38 / 35%);
+  border-radius: 999px;
+  background: rgb(255 250 238 / 85%);
+  box-shadow: 0 4px 14px #5a2a0e1a;
+  color: #7a2e12;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sound-toggle[aria-pressed="true"] {
+  background: #7a2e12;
+  color: #fff8ea;
+}
+.sound-toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.sound-toggle:focus-visible {
+  outline: 3px solid #244d3c;
+  outline-offset: 2px;
+}
