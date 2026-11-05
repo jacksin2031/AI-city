@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DeviceDisplaySchema } from "@ai-city/contracts/device-link";
@@ -166,6 +166,55 @@ describe("local task dispatch with isolated synthetic data", () => {
     expect(await f.storage.read(f.task, "photo.png", 10000)).toBeNull();
     expect(await f.jobs.publishedBundle(f.task)).toBeNull();
     expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("NOT_REQUIRED");
+  });
+  it("cleans an isolated completed preflight after withdrawal without affecting other tasks", async () => {
+    const f = await fixture();
+    const other = await fixture();
+    const workspace = join(f.root, f.task, "tool-workspace");
+    await mkdir(join(workspace, "runtime", "work"), { recursive: true });
+    await writeFile(join(workspace, "runtime", "work", "photo-copy.png"), "synthetic");
+    const photo = await f.storage.read(f.task, "photo.png", 1024 * 1024);
+    if (!photo) throw new Error("PHOTO_MISSING");
+    await f.jobs.claim(f.task, "preflight");
+    await f.jobs.bindToolFlow(
+      f.task,
+      "preflight",
+      `flow-${"a".repeat(32)}`,
+      createHash("sha256").update(photo).digest("hex"),
+    );
+    await f.jobs.markPrepared(f.task, "preflight");
+    expect((await withdrawSpinePhoto(f.service, f.storage, f.token, f.task)).photoCleanup).toBe(
+      "PENDING",
+    );
+    expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("COMPLETE");
+    await expect(
+      readFile(join(workspace, "runtime", "work", "photo-copy.png")),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect(await f.storage.read(f.task, "photo.png", 1024 * 1024)).toBeNull();
+    expect(await other.storage.read(other.task, "photo.png", 1024 * 1024)).not.toBeNull();
+  });
+  it("keeps tool cleanup pending when a live attempt has an unknown result", async () => {
+    const f = await fixture();
+    const workspace = join(f.root, f.task, "tool-workspace");
+    await mkdir(workspace);
+    await writeFile(join(workspace, "in-flight.txt"), "synthetic");
+    const photo = await f.storage.read(f.task, "photo.png", 1024 * 1024);
+    if (!photo) throw new Error("PHOTO_MISSING");
+    await f.jobs.claim(f.task, "preflight");
+    await f.jobs.bindToolFlow(
+      f.task,
+      "preflight",
+      `flow-${"a".repeat(32)}`,
+      createHash("sha256").update(photo).digest("hex"),
+    );
+    await f.jobs.markPrepared(f.task, "preflight");
+    await f.jobs.claimPreparedLive(f.task, "live", 1);
+    await f.jobs.markUnknown(f.task, "live");
+    await withdrawSpinePhoto(f.service, f.storage, f.token, f.task);
+    expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("PENDING");
+    expect(await readFile(join(workspace, "in-flight.txt"), "utf8")).toBe("synthetic");
   });
   it("removes a published resident when the visitor session closes", async () => {
     const f = await fixture();

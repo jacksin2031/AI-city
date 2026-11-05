@@ -29,6 +29,7 @@ const recordSchema = z
     sessionExpiresAt: z.number().int().nonnegative().optional(),
     cleanupPending: z.boolean().optional(),
     toolCleanupPending: z.boolean().optional(),
+    toolCleanupSafe: z.boolean().optional(),
     toolFlow: z
       .string()
       .regex(/^flow-[a-f0-9]{32}$/)
@@ -81,6 +82,7 @@ export function makeSpineJob(
     bundle: null,
     cleanupPending: false,
     toolCleanupPending: false,
+    toolCleanupSafe: false,
     toolFlow: null,
     liveIntent: false,
     ...(sessionExpiresAt === undefined ? {} : { sessionExpiresAt }),
@@ -101,6 +103,10 @@ export function withdrawSpineJobRecord(value: unknown, owner: string) {
     cleanupPending: true,
     toolCleanupPending: Boolean(
       record.toolCleanupPending || (record.state !== "QUEUED" && record.state !== "WITHDRAWN"),
+    ),
+    // A completed, model-disabled preflight has no running tool process or external output.
+    toolCleanupSafe: Boolean(
+      record.toolCleanupSafe || (record.state === "PREPARED" && !record.liveIntent),
     ),
   };
 }
@@ -309,7 +315,8 @@ export class SpineJobs {
     id.parse(worker);
     return this.store.run(async (tx) => {
       const record = recordSchema.parse(await tx.get(path));
-      if (record.worker !== worker || !record.toolFlow) throw new Error("TOOL_FLOW_MISMATCH");
+      if (record.worker !== worker || !record.toolFlow || record.liveIntent)
+        throw new Error("TOOL_FLOW_MISMATCH");
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
       const next = { ...record, ...transitionProductionJob(record, { type: "PREPARE" }) };
       tx.set(path, next);
@@ -396,6 +403,7 @@ export class SpineJobs {
       return {
         pending: record.cleanupPending === true,
         toolCleanupPending: record.toolCleanupPending === true,
+        toolCleanupSafe: record.toolCleanupSafe === true,
       };
     });
   }
@@ -406,6 +414,17 @@ export class SpineJobs {
       if (!parsed.success || parsed.data.state !== "WITHDRAWN" || parsed.data.toolCleanupPending)
         return false;
       tx.set(path, { ...parsed.data, cleanupPending: false });
+      return true;
+    });
+  }
+  /** A worker has removed the isolated workspace of a verified preflight-only task. */
+  async finishToolCleanup(task: string) {
+    return this.store.run(async (tx) => {
+      const path = this.path(task);
+      const parsed = recordSchema.safeParse(await tx.get(path));
+      if (!parsed.success || parsed.data.state !== "WITHDRAWN" || !parsed.data.toolCleanupSafe)
+        return false;
+      tx.set(path, { ...parsed.data, toolCleanupPending: false, toolCleanupSafe: false });
       return true;
     });
   }

@@ -8,9 +8,10 @@ import { describe, expect, it } from "vitest";
 import { VisitorService } from "../visitor/service";
 import { MemoryVisitorStore } from "../visitor/test-store";
 import { SpineJobs } from "./jobs";
+import { cleanupLocalTask } from "./local-cleanup";
 import { pollLocalSpineTasks } from "./local-poller";
 import { LocalSpineStorage } from "./local-storage";
-import { submitSpinePhoto } from "./photo-intake";
+import { submitSpinePhoto, withdrawSpinePhoto } from "./photo-intake";
 import { inspectToolTask } from "./tool-inspect";
 import { createToolPreflightExecutor } from "./tool-preflight";
 import { prepareToolTask } from "./tool-prepare";
@@ -101,6 +102,13 @@ describe("real Spine tool task preparation", () => {
             photo,
           ),
         ).rejects.toThrow("TOOL_PREPARATION_FAILED");
+        receipt.photo_sha256 = createHash("sha256").update(photo).digest("hex");
+        await writeFile(receiptPath, JSON.stringify(receipt));
+        expect((await recoverToolPreflight(recovery, jobs, storage, task))?.state).toBe("PREPARED");
+        await withdrawSpinePhoto(service, storage, token, task);
+        expect(await cleanupLocalTask(jobs, storage, task)).toBe("COMPLETE");
+        await expect(readFile(receiptPath)).rejects.toMatchObject({ code: "ENOENT" });
+        expect(await storage.read(task, "photo.png", 1024 * 1024)).toBeNull();
       } finally {
         await rm(root, { recursive: true, force: true });
       }

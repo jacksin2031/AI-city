@@ -28,6 +28,7 @@ describe("live tool attempt reservation", () => {
     const first = await prepared(service, jobs, "task1");
     await prepared(service, jobs, "task2");
     expect((await jobs.claimPreparedLive("task1", "live1", 1)).liveIntent).toBe(true);
+    await expect(jobs.markPrepared("task1", "live1")).rejects.toThrow("TOOL_FLOW_MISMATCH");
     await jobs.markUnknown("task1", "live1");
     expect(await jobs.preflightRecoveryContext("task1")).toBeNull();
     await expect(jobs.recoverPrepared("task1", first.owner, flow, "b".repeat(64))).rejects.toThrow(

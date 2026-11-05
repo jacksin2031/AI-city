@@ -1,5 +1,5 @@
 import { constants } from "node:fs";
-import { lstat, mkdir, open, readdir, realpath, unlink } from "node:fs/promises";
+import { lstat, mkdir, open, readdir, realpath, rm, unlink } from "node:fs/promises";
 import { isAbsolute, join, relative } from "node:path";
 
 const ID = /^[A-Za-z0-9_-]{1,96}$/;
@@ -168,5 +168,29 @@ export class LocalSpineStorage {
     const resolved = await realpath(workspace);
     if (relative(directory, resolved) !== "tool-workspace") throw new Error("PRIVATE_TASK_INVALID");
     return resolved;
+  }
+
+  /** Only for a withdrawn, model-disabled preflight whose worker has finished. */
+  async removePreflightWorkspace(task: string): Promise<void> {
+    let workspace: string;
+    try {
+      workspace = await this.toolWorkspaceForWorker(task);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw error;
+    }
+    // The root is operator-owned and private. Refuse links, including Windows junctions,
+    // instead of allowing cleanup to cross into a different task or external directory.
+    async function check(directory: string): Promise<void> {
+      for (const entry of await readdir(directory)) {
+        const path = join(directory, entry);
+        const info = await lstat(path);
+        if (info.isSymbolicLink()) throw new Error("PRIVATE_CLEANUP_LINK");
+        if (info.isDirectory()) await check(path);
+        else if (!info.isFile()) throw new Error("PRIVATE_CLEANUP_INVALID");
+      }
+    }
+    await check(workspace);
+    await rm(workspace, { recursive: true });
   }
 }
