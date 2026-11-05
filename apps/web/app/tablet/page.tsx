@@ -1,5 +1,6 @@
 "use client";
-import { type FormEvent, useEffect, useState } from "react";
+import { createDeviceClient } from "@ai-city/contracts/device-client";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 import { TabletCity } from "./city";
 export default function Tablet() {
@@ -16,7 +17,37 @@ export default function Tablet() {
   const [focus, setFocus] = useState<{ id: string; residentId: string; expiresAt: number } | null>(
     null,
   );
+  const [queuedFocus, setQueuedFocus] = useState<{ requestId: string; residentId: string } | null>(
+    null,
+  );
   const live = feed.state?.control.displayMode === "LIVE";
+  const acknowledgeFocus = useCallback(async (requestId: string) => {
+    await createDeviceClient().ackFocus(requestId);
+  }, []);
+  useEffect(() => {
+    if (!live) {
+      setQueuedFocus(null);
+      return;
+    }
+    const controller = new AbortController();
+    const client = createDeviceClient({ signal: controller.signal });
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
+      try {
+        const result = await client.nextFocus();
+        if (!controller.signal.aborted) setQueuedFocus(result.focus);
+      } catch {
+        if (!controller.signal.aborted) setQueuedFocus(null);
+      } finally {
+        if (!controller.signal.aborted) timer = setTimeout(poll, 1000);
+      }
+    }
+    void poll();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [live]);
   useEffect(() => {
     if (!live) {
       setFocus(null);
@@ -155,6 +186,8 @@ export default function Tablet() {
               motion={control.motionEnabled}
               sample={control.displayMode === "DEMO"}
               focus={focus}
+              reliableFocus={queuedFocus}
+              onFocusApplied={acknowledgeFocus}
               totalParticipants={state.totalParticipants}
               tools={tools}
             />

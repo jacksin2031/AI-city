@@ -24,6 +24,8 @@ export function TabletCity({
   motion,
   sample,
   focus,
+  reliableFocus,
+  onFocusApplied,
   totalParticipants,
   tools,
 }: {
@@ -31,6 +33,8 @@ export function TabletCity({
   motion: boolean;
   sample: boolean;
   focus: { id: string; residentId: string; expiresAt: number } | null;
+  reliableFocus: { requestId: string; residentId: string } | null;
+  onFocusApplied: (requestId: string) => Promise<void>;
   /** Running total of public joins; the roster alone would forget withdrawn participants. */
   totalParticipants?: number;
   /** Shows the operator pickers and status line that stay hidden on the public screen. */
@@ -80,6 +84,13 @@ export function TabletCity({
     lastFocus.current = focus.id;
     select(focus.residentId);
   }, [focus, residents, select]);
+  const lastReliableFocus = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ready || !reliableFocus || lastReliableFocus.current === reliableFocus.requestId) return;
+    if (!residents.some((resident) => resident.residentId === reliableFocus.residentId)) return;
+    lastReliableFocus.current = reliableFocus.requestId;
+    select(reliableFocus.residentId);
+  }, [ready, reliableFocus, residents, select]);
   useEffect(() => {
     if (!parent.current) return;
     setReady(false);
@@ -251,6 +262,34 @@ export function TabletCity({
     city.current?.setMotionEnabled(enabled);
   }, [residents, motion]);
   const active = view.active;
+  const focusRendered = Boolean(
+    ready &&
+      reliableFocus &&
+      active?.kind === "profile" &&
+      active.id === reliableFocus.residentId &&
+      anchor?.kind === "profile" &&
+      anchor.id === reliableFocus.residentId &&
+      anchor.cameraZoom > 1,
+  );
+  const reliableFocusId = reliableFocus?.requestId;
+  useEffect(() => {
+    if (!focusRendered || !reliableFocusId) return;
+    const requestId = reliableFocusId;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    async function acknowledge() {
+      try {
+        await onFocusApplied(requestId);
+      } catch {
+        if (!stopped) timer = setTimeout(acknowledge, 1000);
+      }
+    }
+    void acknowledge();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [focusRendered, reliableFocusId, onFocusApplied]);
   const resident = residents.find((item) => item.residentId === active?.id);
   // A focused resident outside the drawn limit is added to the scene on top of the cap.
   const focusedOutside = resident && residents.indexOf(resident) >= SCENE_RESIDENT_LIMIT ? 1 : 0;

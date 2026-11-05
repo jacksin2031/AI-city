@@ -14,6 +14,11 @@ import {
   type DeviceUpdate,
   DeviceUpdateSchema,
 } from "./device-link";
+import {
+  FocusNextResponseSchema,
+  FocusRequestInputSchema,
+  FocusStatusResponseSchema,
+} from "./focus-link";
 import { VisitorInvitationSchema } from "./visitor";
 
 export function createDeviceClient(options: { signal?: AbortSignal; fetch?: typeof fetch } = {}) {
@@ -41,6 +46,9 @@ export function createDeviceClient(options: { signal?: AbortSignal; fetch?: type
     pair: (code: string) => read("pair", DeviceOkSchema, DevicePairSchema.parse({ code })),
     admin: () => read("admin", DeviceAdminSchema),
     display: () => read("display", DeviceDisplaySchema),
+    nextFocus: () => read("focus-next", FocusNextResponseSchema),
+    ackFocus: (requestId: string) =>
+      read("focus-ack", FocusStatusResponseSchema, FocusRequestInputSchema.parse({ requestId })),
     pairing: () => read("pairing", DevicePairingSchema, {}),
     visitorInvitation: () => read("visitor-invitation", VisitorInvitationSchema, {}),
     update: (input: DeviceUpdate) =>

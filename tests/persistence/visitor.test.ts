@@ -38,6 +38,47 @@ const consent = {
 };
 
 describe("real Firestore transaction persistence", () => {
+  it("preserves simultaneous focus requests across independent clients and service restart", async () => {
+    const { namespace, store: repository } = store();
+    let now = Date.now();
+    const first = new VisitorService(repository, () => now);
+    const otherClient = new Firestore({ projectId: "demo-ai-city", preferRest: false });
+    try {
+      const second = new VisitorService(
+        new FirestoreVisitorStore(otherClient, namespace),
+        () => now,
+      );
+      async function publish(name: string) {
+        const session = await first.createSession(undefined, (await first.createInvitation()).code);
+        const job = await first.createJob(session.token, {
+          ...input,
+          requestId: name,
+          nickname: name,
+        });
+        now += 1200;
+        await first.getJob(session.token, job.job.jobId);
+        await first.confirm(session.token, job.job.jobId, consent);
+        return session.token;
+      }
+      const a = await publish("first");
+      const b = await publish("second");
+      const idA = randomUUID();
+      const idB = randomUUID();
+      await Promise.all([first.requestFocus(a, idA), second.requestFocus(b, idB)]);
+      const restarted = new VisitorService(new FirestoreVisitorStore(db, namespace), () => now);
+      const firstRequest = await restarted.nextFocus();
+      expect([idA, idB]).toContain(firstRequest?.requestId);
+      if (!firstRequest) throw new Error("Missing first focus request");
+      await restarted.ackFocus(firstRequest.requestId);
+      const secondRequest = await restarted.nextFocus();
+      expect(secondRequest?.requestId).toBe(firstRequest?.requestId === idA ? idB : idA);
+      if (!secondRequest) throw new Error("Missing second focus request");
+      await second.ackFocus(secondRequest.requestId);
+      expect(await first.nextFocus()).toBeNull();
+    } finally {
+      await otherClient.terminate();
+    }
+  });
   it("atomically bounds code-free admission across SDK clients and preserves invited-mode metadata", async () => {
     const { namespace, store: repository } = store();
     const first = new VisitorService(repository);

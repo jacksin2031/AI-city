@@ -3,6 +3,11 @@ import {
   isDevelopmentValidationError,
 } from "@ai-city/contracts/development";
 import { DeviceRemoveSchema } from "@ai-city/contracts/device-link";
+import {
+  FocusNextResponseSchema,
+  FocusRequestInputSchema,
+  FocusStatusResponseSchema,
+} from "@ai-city/contracts/focus-link";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
 import { handleLinkRequest } from "../link/http";
@@ -22,6 +27,39 @@ export async function handlePersistentDeviceRequest(
   security?: VisitorBoundary | null,
 ): Promise<Response> {
   try {
+    const focusPath = new URL(request.url).pathname;
+    if (
+      enabled &&
+      ((request.method === "GET" && focusPath === "/api/link/focus-next") ||
+        (request.method === "POST" && focusPath === "/api/link/focus-ack"))
+    ) {
+      validateRequestOrigin(request, remoteOrigin);
+      if (new URL(request.url).search) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+      const token = request.headers
+        .get("cookie")
+        ?.split(";")
+        .map((v) => v.trim())
+        .find((v) => v.startsWith("ai-city-link="))
+        ?.slice("ai-city-link=".length);
+      const display = device.display(token);
+      if (request.method === "GET") {
+        const focus =
+          visitor && display.control.displayMode === "LIVE" ? await visitor.nextFocus() : null;
+        return Response.json(FocusNextResponseSchema.parse({ mode: "MOCK", focus }), {
+          headers: { "Cache-Control": "no-store" },
+        });
+      }
+      const input = FocusRequestInputSchema.parse(await readJsonBody(request));
+      if (!visitor || display.control.displayMode !== "LIVE")
+        throw new DevelopmentServiceError("FOCUS_UNAVAILABLE", 409);
+      return Response.json(
+        FocusStatusResponseSchema.parse({
+          mode: "MOCK",
+          ...(await visitor.ackFocus(input.requestId)),
+        }),
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     if (
       enabled &&
       request.method === "GET" &&

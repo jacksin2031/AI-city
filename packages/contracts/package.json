@@ -1,7 +1,7 @@
 {
   "name": "@ai-city/contracts",
   "private": true,
-  "version": "0.11.0",
+  "version": "0.12.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -11,7 +11,8 @@
     "./device-link": "./src/device-link.ts",
     "./device-client": "./src/device-client.ts",
     "./visitor": "./src/visitor.ts",
-    "./spine": "./src/spine.ts"
+    "./spine": "./src/spine.ts",
+    "./focus-link": "./src/focus-link.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

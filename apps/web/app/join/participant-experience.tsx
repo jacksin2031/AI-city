@@ -14,6 +14,7 @@ import Link from "next/link";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
 import { LocalPhoto } from "./local-photo";
+import { useReliableFocus } from "./use-reliable-focus";
 import "./participant.css";
 
 const questions = [
@@ -61,6 +62,7 @@ type Stage =
 
 export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boolean }) {
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
+  const focusRequest = useReliableFocus(client);
   const [stage, setStage] = useState<Stage>("name");
   const [initializing, setInitializing] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -244,20 +246,6 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
         failure instanceof DevelopmentApiError
           ? failure.message
           : "公開できませんでした。接続を確認してください。",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function focus() {
-    setBusy(true);
-    setMessage("");
-    try {
-      await client.focus();
-      setMessage("リクエストを送りました。平板が参加者の街に接続中か確認してください。");
-    } catch (failure) {
-      setMessage(
-        failure instanceof DevelopmentApiError ? failure.message : "接続できませんでした。",
       );
     } finally {
       setBusy(false);
@@ -686,13 +674,18 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
                 </section>
                 <section className="pf-controls" aria-label="平板の操作">
                   <h2>平板の操作</h2>
-                  <button className="pf-primary" type="button" disabled={busy} onClick={focus}>
+                  <button
+                    className="pf-primary"
+                    type="button"
+                    disabled={busy || focusRequest.busy}
+                    onClick={focusRequest.send}
+                  >
                     平板で自分のキャラクターに注目
                   </button>
                   <p className="pf-fine">
                     管理者が平板を接続し「参加者の街」に切り替えてください。
                   </p>
-                  {message && <p role="status">{message}</p>}
+                  {focusRequest.message && <p role="status">{focusRequest.message}</p>}
                 </section>
                 <div className="pf-actions">
                   <button className="pf-back" type="button" disabled={busy} onClick={remove}>

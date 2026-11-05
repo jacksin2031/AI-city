@@ -10,6 +10,7 @@ import {
   type PublishRequest,
   PublishRequestSchema,
 } from "./development";
+import { FocusRequestInputSchema, FocusStatusResponseSchema } from "./focus-link";
 
 export class DevelopmentApiError extends Error {
   constructor(
@@ -69,6 +70,17 @@ export function createDevelopmentClient(
     },
     closeSession: () => read("logout", empty, {}),
     focus: () => read("focus", empty, {}),
+    requestFocus: (requestId: string) =>
+      read(
+        "focus-requests",
+        FocusStatusResponseSchema,
+        FocusRequestInputSchema.parse({ requestId }),
+      ),
+    focusStatus: (requestId: string) =>
+      read(
+        `focus-requests/${id(FocusRequestInputSchema.parse({ requestId }).requestId)}`,
+        FocusStatusResponseSchema,
+      ),
     createJob: (input: CreateJobRequest) =>
       read("jobs", ParticipationViewSchema, CreateJobRequestSchema.parse(input)),
     current: () => read("jobs/current", ParticipationViewSchema.nullable()),
