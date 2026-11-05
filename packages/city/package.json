@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-city/contracts": "workspace:*",
+    "@esotericsoftware/spine-canvas": "4.3.13",
     "three": "0.187.0"
   },
   "devDependencies": {

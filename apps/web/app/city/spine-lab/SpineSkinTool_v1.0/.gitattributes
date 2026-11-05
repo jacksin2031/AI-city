@@ -1,0 +1,9 @@
+# Preserve exact source bytes: task/quality hashes and release ZIP must match Git.
+# This does not disable text diffs; it disables checkout/checkin newline filters.
+* -text
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.spine binary
+*.skel binary
+*.zip binary

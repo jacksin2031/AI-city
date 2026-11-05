@@ -1,6 +1,7 @@
 import type { DialoguePlace, DialogueResult, PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { type AnimatedCharacter, animationFor, characterAspect } from "./animated-character";
 import { autumnLighting } from "./autumn";
 import { encounterPlace, findEncounter } from "./encounter";
 import {
@@ -8,6 +9,7 @@ import {
   DEFAULT_ZOOM,
   focusCamera,
   panCamera,
+  project,
   projectResident,
   RESIDENT_HEIGHT,
   RESIDENT_METRES_PER_UNIT,
@@ -31,7 +33,7 @@ import {
   stepActor,
 } from "./simulation";
 import { createTraffic, type TrafficData } from "./traffic-scene";
-import { cityViewport } from "./viewport";
+import { cityViewport, nextVisibleTourIndex, pointInVisibleCity } from "./viewport";
 import { type CityPlaces, createWorld, heightAt, parseGrid, tour, type World } from "./world";
 
 export type IllustratedCity = {
@@ -59,6 +61,7 @@ type Entry = {
   welcomeUntil: number;
   hopUntil: number;
   facing: Direction;
+  animated?: { source: AnimatedCharacter; texture: THREE.CanvasTexture; version: string };
 };
 
 const directions: Direction[] = ["front", "left", "back", "right"];
@@ -181,6 +184,8 @@ export async function createDevelopmentCity(
     onReady?: () => void;
     onPresentationFrame?: (frame: ScenePresentationFrame | null) => void;
     onClearSelection?: () => void;
+    /** Optional locally supplied animation source; authorization remains with its caller. */
+    createAnimatedCharacter?: (resident: PublicResident) => AnimatedCharacter | null;
   } = {},
 ): Promise<IllustratedCity> {
   const signal = options.signal;
@@ -464,12 +469,22 @@ function startCity(
   }
 
   function removeEntry(id: string, entry: Entry) {
+    entry.animated?.source.dispose();
+    entry.animated?.texture.dispose();
     residentLayer.remove(entry.group);
     entry.bubble.sprite.material.map?.dispose();
     entry.sprite.material.dispose();
     entry.ghost.material.dispose();
     (entry.pulse.material as THREE.Material).dispose();
     entries.delete(id);
+  }
+
+  function animatedFor(resident: PublicResident): Entry["animated"] {
+    const source = options.createAnimatedCharacter?.(resident);
+    if (!source) return undefined;
+    const texture = new THREE.CanvasTexture(source.canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return { source, texture, version: resident.avatarVersion };
   }
 
   function sync(addedIds: string[] = []) {
@@ -487,6 +502,11 @@ function startCity(
     for (const [index, resident] of visible.entries()) {
       const existing = entries.get(resident.residentId);
       if (existing) {
+        if (existing.resident.avatarVersion !== resident.avatarVersion) {
+          existing.animated?.source.dispose();
+          existing.animated?.texture.dispose();
+          existing.animated = animatedFor(resident);
+        }
         existing.resident = resident;
         existing.leaveAt = 0;
         continue;
@@ -535,6 +555,7 @@ function startCity(
         pulse,
         bubble,
         facing: "front",
+        animated: animatedFor(resident),
         hopUntil: 0,
         enterAt: moving && addedIds.includes(resident.residentId) ? now : 0,
         leaveAt: 0,
@@ -649,6 +670,16 @@ function startCity(
   canvas.addEventListener("pointercancel", onPointerUp);
   canvas.addEventListener("wheel", onWheel, { passive: false });
 
+  function inView(point: { x: number; y: number }, cameraView: SceneCamera): boolean {
+    const screen = project({ ...point, height: groundAt(point.x, point.y) }, cameraView);
+    return pointInVisibleCity(
+      screen,
+      parent.clientWidth || SCREEN.width,
+      parent.clientHeight || SCREEN.height,
+      options.fillViewport ?? false,
+    );
+  }
+
   function stepTour(seconds: number) {
     if (presentation || selectedId || clock < userHoldUntil || !moving) return;
     if (tourGlide) {
@@ -659,16 +690,29 @@ function startCity(
     }
     tourWait -= seconds;
     if (tourWait > 0) return;
-    tourStep = (tourStep + 1) % tour.length;
-    const next = tour[tourStep] ?? start;
+    const present = [...entries.values()].filter((entry) => !entry.leaveAt);
+    const viewFor = (point: { x: number; y: number }) =>
+      clampCamera({
+        centerX: point.x,
+        centerY: point.y,
+        height: groundAt(point.x, point.y),
+        zoom: DEFAULT_ZOOM,
+      });
+    const nextVisible = present.length
+      ? nextVisibleTourIndex(tourStep, tour.length, (index) => {
+          const point = tour[index];
+          return Boolean(point && present.some((entry) => inView(entry.actor, viewFor(point))));
+        })
+      : null;
+    tourStep = nextVisible ?? (tourStep + 1) % tour.length;
+    // When none of the landmarks can show a resident, centre a resident instead.
+    const next =
+      nextVisible === null && present.length
+        ? (present[tourStep % present.length]?.actor ?? start)
+        : (tour[tourStep] ?? start);
     tourGlide = {
       from: view,
-      to: clampCamera({
-        centerX: next.x,
-        centerY: next.y,
-        height: groundAt(next.x, next.y),
-        zoom: DEFAULT_ZOOM,
-      }),
+      to: viewFor(next),
       t: 0,
     };
     tourWait = 10;
@@ -754,14 +798,13 @@ function startCity(
         entry.actor.action === "idle" &&
         entry.actor.elapsed > 2.6 + index * 0.7
       )
-        entry.actor = commandActor(world, entry.actor, "walk");
+        entry.actor = commandActor(world, entry.actor, "walk", (point) => inView(point, shown));
       if (previousAction !== entry.actor.action) options.onAction?.(id, entry.actor.action);
       entry.facing = facingFor(
         entry.actor.heading,
         entry.actor.action === "walk" && !entry.actor.waitingForSignal,
       );
       const ground = groundAt(entry.actor.x, entry.actor.y);
-      const inside = entry.actor.action === "visit" && !presenting;
       const size = RESIDENT_HEIGHT;
       const hopBase =
         entry.hopUntil > now ? Math.sin(((entry.hopUntil - now) / 0.28) * Math.PI) * 0.45 : 0;
@@ -774,15 +817,29 @@ function startCity(
       // Nudged towards the camera along its own axis: the same spot on screen, but the
       // upright drawing no longer cuts into the wall the resident stands beside.
       entry.group.position.copy(toThree(entry.actor.x, entry.actor.y, ground)).add(nearer);
-      const texture = characters.get(textureFor(entry, presenting));
+      if (entry.animated) {
+        const direction = presenting ? "front" : entry.facing;
+        entry.animated.source.advance(
+          animationFor(entry.actor.action, direction, presenting),
+          direction,
+          moving ? seconds : 0,
+        );
+        entry.animated.texture.needsUpdate = true;
+      }
+      const texture = entry.animated?.texture ?? characters.get(textureFor(entry, presenting));
       for (const sprite of [entry.sprite, entry.ghost]) {
         if (texture && sprite.material.map !== texture) {
           sprite.material.map = texture;
           sprite.material.needsUpdate = true;
         }
-        sprite.scale.set(size * 0.75 * pop, size * pop, 1);
+        sprite.scale.set(
+          size * characterAspect(entry.animated?.source.canvas) * pop,
+          size * pop,
+          1,
+        );
         sprite.position.y = hop;
-        sprite.visible = !inside;
+        // Destinations are placed on the public footway, so arrivals stay visible.
+        sprite.visible = true;
       }
       entry.sprite.material.opacity = fade;
       entry.ghost.material.opacity = 0.45 * fade;
@@ -802,7 +859,7 @@ function startCity(
         entry.sprite.material.depthTest = !presenting;
         entry.sprite.renderOrder = presenting ? 15 : 0;
       }
-      entry.ring.visible = (id === selectedId || presenting) && !inside && !leaving;
+      entry.ring.visible = (id === selectedId || presenting) && !leaving;
       entry.ring.scale.setScalar(size / RESIDENT_HEIGHT);
       entry.ring.position.y = 0.06;
       const currentLine = exchange?.lines[lineIndex];
@@ -822,7 +879,7 @@ function startCity(
       const bubbleHeight = 13 * ((entry.bubble.sprite.userData.lines as number) || 1) * screenUnit;
       entry.bubble.sprite.scale.set(bubbleHeight * entry.bubble.aspect, bubbleHeight, 1);
       entry.bubble.sprite.position.y = size + 0.3 + hop;
-      entry.bubble.sprite.visible = !presenting && !inside && !leaving && Boolean(speech);
+      entry.bubble.sprite.visible = !presenting && !leaving && Boolean(speech);
       if (presenting && presentation) {
         const projected = projectResident(
           { ...entry.actor, height: ground },
@@ -1000,7 +1057,7 @@ function startCity(
             other.actor = commandActor(world, other.actor, "idle");
             options.onAction?.(otherId, "idle");
           }
-      entry.actor = commandActor(world, entry.actor, action);
+      entry.actor = commandActor(world, entry.actor, action, (point) => inView(point, shown));
       options.onAction?.(id, entry.actor.action);
     },
     destroy() {
@@ -1022,6 +1079,10 @@ function startCity(
         }
       });
       for (const texture of characters.values()) texture.dispose();
+      for (const entry of entries.values()) {
+        entry.animated?.source.dispose();
+        entry.animated?.texture.dispose();
+      }
       renderer.dispose();
       renderer.forceContextLoss();
       canvas.remove();

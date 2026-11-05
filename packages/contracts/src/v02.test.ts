@@ -98,6 +98,55 @@ describe("AvatarManifest v0.2", () => {
       ).toBe(false);
     }
   });
+  it("accepts a scoped Spine bundle while rejecting untrusted or mixed resources", () => {
+    const spine = {
+      runtime: "4.3",
+      skeleton: "/avatars/r1/v1/skeleton.json",
+      atlas: "/avatars/r1/v1/skeleton.atlas",
+      pages: ["/avatars/r1/v1/page.png"],
+      orientationPolicy: "/avatars/r1/v1/orientation-policy.json",
+      buildManifest: "/avatars/r1/v1/build-manifest.json",
+      sha256: "a".repeat(64),
+    };
+    expect(AvatarManifestSchema.safeParse({ ...manifest, spine }).success).toBe(true);
+    expect(
+      AvatarManifestSchema.safeParse({ ...manifest, directions: undefined, spine }).success,
+    ).toBe(true);
+    expect(AvatarManifestSchema.safeParse({ ...manifest, directions: undefined }).success).toBe(
+      false,
+    );
+    for (const bad of [
+      { ...spine, skeleton: "https://example.com/skeleton.json" },
+      { ...spine, atlas: "/avatars/../private/skeleton.atlas" },
+      { ...spine, pages: ["/avatars/r2/v1/page.png"] },
+      { ...spine, pages: [spine.pages[0], spine.pages[0]] },
+      { ...spine, sha256: "bad" },
+      { ...spine, runtime: "4.2" },
+    ])
+      expect(AvatarManifestSchema.safeParse({ ...manifest, spine: bad }).success).toBe(false);
+  });
+
+  it("supports the tool's multi-page export but keeps an upper bound", () => {
+    const base = "/avatars/r1/v1/";
+    const spine = {
+      runtime: "4.3",
+      skeleton: `${base}skeleton.json`,
+      atlas: `${base}skeleton.atlas`,
+      orientationPolicy: `${base}orientation-policy.json`,
+      buildManifest: `${base}build-manifest.json`,
+      sha256: "0".repeat(64),
+    };
+    const pages = (count: number) =>
+      Array.from({ length: count }, (_, i) => `${base}page-${i}.png`);
+    expect(
+      AvatarManifestSchema.safeParse({ ...manifest, spine: { ...spine, pages: pages(22) } })
+        .success,
+    ).toBe(true);
+    expect(
+      AvatarManifestSchema.safeParse({ ...manifest, spine: { ...spine, pages: pages(33) } })
+        .success,
+    ).toBe(false);
+  });
 });
 
 describe("GenerationJob v0.2", () => {

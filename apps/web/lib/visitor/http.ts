@@ -7,6 +7,8 @@ import {
 import { VisitorSessionRequestSchema } from "@ai-city/contracts/visitor";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
+import type { LocalSpineStorage } from "../spine/local-storage";
+import { submitSpinePhoto, withdrawSpinePhoto } from "../spine/photo-intake";
 import type { VisitorBoundary } from "./credentials";
 import { focusTarget } from "./focus";
 import { focusBroker } from "./focus-runtime";
@@ -25,7 +27,43 @@ const messages: Record<string, string> = {
     "管理者から受け取った参加用コードを確認してください。コードは3分間・1回だけ有効です。",
   LOCAL_CAPACITY: "ただいま参加が集中しています。しばらく待ってお試しください。",
   RATE_LIMITED: "ただいま参加が集中しています。1分ほど待って、もう一度お試しください。",
+  PHOTO_INVALID: "写真を読み取れません。JPEG、PNG または WebP を選んでください。",
+  PHOTO_SIZE: "写真の容量を確認してください。",
+  PHOTO_CONSENT_REQUIRED:
+    "写真の処理、外部AIへの送信、完成したキャラクターの公開について同意を確認してください。",
 };
+
+async function readPhoto(request: Request) {
+  const limit = 8 * 1024 * 1024;
+  const length = request.headers.get("content-length");
+  if (length !== null && (!/^\d+$/.test(length) || Number(length) > limit))
+    throw new DevelopmentServiceError("BODY_TOO_LARGE", 413);
+  const reader = request.body?.getReader();
+  if (!reader) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      total += part.value.byteLength;
+      if (total > limit) throw new DevelopmentServiceError("BODY_TOO_LARGE", 413);
+      chunks.push(part.value);
+    }
+  } catch (error) {
+    await reader.cancel().catch(() => {});
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let position = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, position);
+    position += chunk.byteLength;
+  }
+  return bytes;
+}
 function json(value: unknown, status = 200, headers: Record<string, string> = {}) {
   return Response.json(value, { status, headers: { "Cache-Control": "no-store", ...headers } });
 }
@@ -36,6 +74,7 @@ export async function handleVisitorRequest(
   remoteOrigin?: string,
   security?: VisitorBoundary | null,
   codeFree = false,
+  spineStorage?: LocalSpineStorage | null,
 ): Promise<Response> {
   try {
     if (!enabled || !service)
@@ -81,6 +120,50 @@ export async function handleVisitorRequest(
     if (path.startsWith("city/")) throw new DevelopmentServiceError("NOT_FOUND", 404);
     if (!token) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
     security.allow(`session:${rawCredential}`);
+    if (path === "spine/jobs" && request.method === "POST" && spineStorage) {
+      if (
+        request.headers.get("x-spine-processing-consent") !== "1" ||
+        request.headers.get("x-spine-model-upload-consent") !== "1" ||
+        request.headers.get("x-spine-publication-consent") !== "1"
+      )
+        throw new DevelopmentServiceError("PHOTO_CONSENT_REQUIRED", 400);
+      if (!/^(image\/(jpeg|png|webp))$/i.test(request.headers.get("content-type") ?? ""))
+        throw new DevelopmentServiceError("PHOTO_INVALID", 400);
+      const bytes = await readPhoto(request);
+      try {
+        const job = await submitSpinePhoto(service, spineStorage, token, bytes, {
+          processing: true,
+          externalModelUpload: true,
+          automaticPublication: true,
+          version: 2,
+        });
+        return json({ mode: "LOCAL_PRIVATE_TEST", ...job }, 202);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message === "PHOTO_INVALID" || error.message === "PHOTO_SIZE")
+        )
+          throw new DevelopmentServiceError(error.message, 400);
+        throw error;
+      }
+    }
+    if (spineStorage && path === "spine/jobs/current" && request.method === "GET")
+      return json({ mode: "LOCAL_PRIVATE_TEST", job: await service.currentSpineJob(token) });
+    const spineMatch = /^spine\/jobs\/([A-Za-z0-9_-]{1,96})(?:\/(withdraw))?$/.exec(path);
+    if (spineStorage && spineMatch?.[1]) {
+      if (request.method === "GET" && !spineMatch[2])
+        return json({
+          mode: "LOCAL_PRIVATE_TEST",
+          ...(await service.spineJobStatus(token, spineMatch[1])),
+        });
+      if (request.method === "POST" && spineMatch[2]) {
+        EmptyDevelopmentRequestSchema.parse(await readJsonBody(request));
+        return json({
+          mode: "LOCAL_PRIVATE_TEST",
+          ...(await withdrawSpinePhoto(service, spineStorage, token, spineMatch[1])),
+        });
+      }
+    }
     if (request.method === "POST" && path === "focus") {
       EmptyDevelopmentRequestSchema.parse(await readJsonBody(request));
       const view = await service.current(token);

@@ -29,6 +29,8 @@ export function getDevelopmentResidents(): PublicResident[] {
   );
 }
 
+export type { AnimatedCharacter } from "./animated-character";
+export { loadChibiDemo } from "./chibi-demo";
 export { type ScenePresentationFrame, speechBounds } from "./focus";
 export { LANDMARKS, type Landmark } from "./landmarks";
 export {
@@ -45,4 +47,5 @@ export {
   sceneResidentCount,
 } from "./roster";
 export type { CityAction, Direction } from "./simulation";
+export { fetchSpineBundle, prepareSpineBundle } from "./spine-bundle";
 export { clampSpeechToViewport } from "./viewport";

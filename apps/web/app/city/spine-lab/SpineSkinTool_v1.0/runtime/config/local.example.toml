@@ -1,0 +1,11 @@
+# Copy to local.toml for local machine only; never commit local.toml.
+[execution]
+mode = "mock"
+paid_api_enabled = false
+
+[spine]
+# editor_executable = "<absolute path once installed and authorized>"
+
+[template]
+# 复制实验配置到 runtime/config 内，升级 trial.revision 后在此指定。
+size_trial = "runtime/config/size-trials.toml"

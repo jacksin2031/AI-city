@@ -2,9 +2,11 @@
 import {
   closePresentation,
   createDevelopmentCity,
+  fetchSpineBundle,
   type IllustratedCity,
   LANDMARKS,
   type Landmark,
+  loadChibiDemo,
   openProfile,
   SCENE_RESIDENT_LIMIT,
   type ScenePresentationFrame,
@@ -39,10 +41,20 @@ export function TabletCity({
   const [presentation, setPresentation] = useState(() => updatePresentation(null, snapshot));
   const view = useMemo(() => updatePresentation(presentation, snapshot), [presentation, snapshot]);
   const residents = view.roster.residents;
+  const spineKey = JSON.stringify(
+    snapshot.avatars.flatMap(({ manifest }) =>
+      manifest.spine &&
+      residents.some((resident) => resident.avatarVersion === manifest.avatarVersion)
+        ? [{ version: manifest.avatarVersion, descriptor: manifest.spine }]
+        : [],
+    ),
+  );
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [anchor, setAnchor] = useState<ScenePresentationFrame | null>(null);
   const [animated, setAnimated] = useState(false);
+  const [spineSample, setSpineSample] = useState<"loading" | "ready" | "failed" | null>(null);
+  const [spineBundles, setSpineBundles] = useState(0);
   const [landmark, setLandmark] = useState<Landmark | null>(null);
   const [dialogueAvailable, setDialogueAvailable] = useState(false);
   const latest = useRef({ snapshot, residents, motion, active: view.active });
@@ -70,9 +82,14 @@ export function TabletCity({
   }, [focus, residents, select]);
   useEffect(() => {
     if (!parent.current) return;
+    setReady(false);
+    setFailed(false);
+    setSpineBundles(0);
     let active = true;
     let aiEnabled = false;
     const lifetime = new AbortController();
+    let sampleAssets: Awaited<ReturnType<typeof loadChibiDemo>> | undefined;
+    const bundleAssets = new Map<string, Awaited<ReturnType<typeof fetchSpineBundle>>>();
     void fetch("/api/link/dialogue", {
       credentials: "same-origin",
       cache: "no-store",
@@ -94,60 +111,117 @@ export function TabletCity({
     };
     applyMotion();
     media.addEventListener("change", applyMotion);
-    createDevelopmentCity(parent.current, {
-      residents: latest.current.residents,
-      fillViewport: true,
-      motionEnabled: latest.current.motion && !media.matches,
-      signal: lifetime.signal,
-      onSelect: (id) => {
-        if (active) select(id);
-      },
-      onSelectLandmark: (item) => {
-        if (!active) return;
-        if (item && latest.current.active) close();
-        setLandmark(item);
-      },
-      onEncounter: async (residentIds, place) => {
-        if (!aiEnabled || !active) return null;
-        const response = await fetch("/api/link/dialogue", {
-          method: "POST",
-          credentials: "same-origin",
-          cache: "no-store",
-          headers: { "Content-Type": "application/json" },
-          signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(15_000)]),
-          body: JSON.stringify({
-            schemaVersion: 1,
-            requestId: crypto.randomUUID(),
-            eventId: latest.current.snapshot.eventId,
-            residentIds,
-            place,
-            locale: "ja-JP",
-            maxLines: 4,
-          }),
-        });
-        if (!response.ok) {
-          if (response.status === 503) {
-            aiEnabled = false;
-            if (active) setDialogueAvailable(false);
-          }
-          return null;
+    const container = parent.current;
+    const loadSample = sample
+      ? loadChibiDemo(lifetime.signal)
+          .then((assets) => {
+            if (!active) {
+              assets.dispose();
+              return undefined;
+            }
+            sampleAssets = assets;
+            return assets;
+          })
+          .catch(() => {
+            if (active) setSpineSample("failed");
+            return undefined;
+          })
+      : Promise.resolve(undefined);
+    if (sample) setSpineSample("loading");
+    else setSpineSample(null);
+    const descriptors: Array<{
+      version: string;
+      descriptor: NonNullable<CitySnapshot["avatars"][number]["manifest"]["spine"]>;
+    }> = JSON.parse(spineKey);
+    const loadBundles = Promise.all(
+      descriptors.map(async ({ version, descriptor }) => {
+        try {
+          const assets = await fetchSpineBundle(descriptor, lifetime.signal);
+          if (!active) assets.dispose();
+          else bundleAssets.set(version, assets);
+        } catch {
+          // An unavailable or invalid bundle falls back to the existing illustration.
         }
-        return DialogueResultSchema.parse(await response.json());
-      },
-      onClearSelection: () => {
-        if (active && latest.current.active) close();
-      },
-      onPresentationFrame: (frame) => {
-        if (active) setAnchor(frame);
-      },
-      onReady: () => {
-        if (active) setReady(true);
-      },
-    })
+      }),
+    );
+    Promise.all([loadSample, loadBundles])
+      .then(([assets]) => {
+        if (!active) return;
+        const sampleId = latest.current.residents[0]?.residentId;
+        let bundlePlayers = 0;
+        return createDevelopmentCity(container, {
+          residents: latest.current.residents,
+          fillViewport: true,
+          motionEnabled: latest.current.motion && !media.matches,
+          signal: lifetime.signal,
+          createAnimatedCharacter: (resident) => {
+            try {
+              const bundle = bundleAssets.get(resident.avatarVersion);
+              if (bundle) {
+                const player = bundle.create();
+                bundlePlayers += 1;
+                return player;
+              }
+              return assets && resident.residentId === sampleId ? assets.create() : null;
+            } catch {
+              return null;
+            }
+          },
+          onSelect: (id) => {
+            if (active) select(id);
+          },
+          onSelectLandmark: (item) => {
+            if (!active) return;
+            if (item && latest.current.active) close();
+            setLandmark(item);
+          },
+          onEncounter: async (residentIds, place) => {
+            if (!aiEnabled || !active) return null;
+            const response = await fetch("/api/link/dialogue", {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json" },
+              signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(15_000)]),
+              body: JSON.stringify({
+                schemaVersion: 1,
+                requestId: crypto.randomUUID(),
+                eventId: latest.current.snapshot.eventId,
+                residentIds,
+                place,
+                locale: "ja-JP",
+                maxLines: 4,
+              }),
+            });
+            if (!response.ok) {
+              if (response.status === 503) {
+                aiEnabled = false;
+                if (active) setDialogueAvailable(false);
+              }
+              return null;
+            }
+            return DialogueResultSchema.parse(await response.json());
+          },
+          onClearSelection: () => {
+            if (active && latest.current.active) close();
+          },
+          onPresentationFrame: (frame) => {
+            if (active) setAnchor(frame);
+          },
+          onReady: () => {
+            if (active) {
+              setSpineBundles(bundlePlayers);
+              setReady(true);
+            }
+          },
+        });
+      })
       .then((instance) => {
+        if (!instance) return;
         if (!active) instance.destroy();
         else {
           city.current = instance;
+          if (sampleAssets) setSpineSample("ready");
           instance.setResidents(latest.current.residents);
           instance.select(latest.current.active?.id ?? null);
           instance.present(latest.current.active);
@@ -163,8 +237,10 @@ export function TabletCity({
       media.removeEventListener("change", applyMotion);
       city.current?.destroy();
       city.current = null;
+      sampleAssets?.dispose();
+      for (const assets of bundleAssets.values()) assets.dispose();
     };
-  }, [select, close]);
+  }, [select, close, sample, spineKey]);
   useEffect(() => {
     setPresentation((previous) => updatePresentation(previous, snapshot));
   }, [snapshot]);
@@ -210,6 +286,8 @@ export function TabletCity({
         className="tablet-city"
         data-ready={ready}
         data-failed={failed || undefined}
+        data-spine-sample={spineSample ?? undefined}
+        data-spine-bundles={spineBundles}
         aria-label="街の住民や建物をタップすると紹介を表示します。"
       >
         <div className="tablet-scene-canvas" ref={parent} />
@@ -251,6 +329,9 @@ export function TabletCity({
           />
         )}
       </section>
+      {spineSample === "failed" && (
+        <p role="status">公式サンプルを読み込めなかったため、見本イラストを表示しています。</p>
+      )}
       {tools && residents.length > 0 && (
         <details className="tablet-resident-list">
           <summary>住民のプロフィールを選ぶ</summary>

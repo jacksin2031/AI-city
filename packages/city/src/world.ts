@@ -471,17 +471,17 @@ const shopActivities: Record<string, { place: string; doing: string }[]> = {
  */
 const spawnPoints: Point[] = [
   { x: -125, y: 40 },
-  { x: -80, y: 30 },
+  { x: -104.5, y: 25.5 },
   { x: -20, y: 60 },
-  { x: 30, y: 105 },
+  { x: -120.5, y: 20.5 },
   { x: -170, y: 20 },
-  { x: -10, y: 120 },
-  { x: 60, y: 95 },
+  { x: -125.5, y: 29.5 },
+  { x: -20, y: -40 },
   { x: -80, y: 60 },
-  { x: -200, y: 40 },
-  { x: 0, y: 160 },
+  { x: -83.5, y: 60.5 },
+  { x: -86.5, y: 60.5 },
   { x: -140, y: 90 },
-  { x: 20, y: 40 },
+  { x: -131.5, y: 89.5 },
 ];
 
 export function createWorld(grid: WalkGrid, shops: Shopfront[]): World {

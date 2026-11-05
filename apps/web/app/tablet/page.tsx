@@ -159,7 +159,12 @@ export default function Tablet() {
               tools={tools}
             />
             <p className={tools ? "tablet-disclaimer" : "visually-hidden"}>
-              {control.displayMode === "DEMO" ? "架空の住民" : "仮のイラスト"}・交通は見本
+              {control.displayMode === "DEMO"
+                ? "架空の住民"
+                : state.snapshot.mode === "LOCAL_PRIVATE_TEST"
+                  ? "キャラクターは本機テスト"
+                  : "仮のイラスト"}
+              ・交通は見本
               {!control.motionEnabled && "・動きは停止中"}
             </p>
           </>

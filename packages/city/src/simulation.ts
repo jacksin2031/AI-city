@@ -20,7 +20,12 @@ export type Actor = {
 /** Walking pace in metres per second. */
 const speed = 1.35;
 /** Residents pick their next stop within a few minutes' walk. */
-const NEARBY = 220;
+const NEARBY = 80;
+
+/** Station, main street and bridges around the central railway / river corridor. */
+export function inCentralDistrict(point: Point): boolean {
+  return point.x >= -210 && point.x <= 45 && point.y >= -95 && point.y <= 110;
+}
 
 export function poiById(world: World, id: string | null): Poi | undefined {
   return id ? world.pois.find((poi) => poi.id === id) : undefined;
@@ -50,13 +55,23 @@ export function planTrip(world: World, actor: Actor, poi: Poi): Actor {
   return { ...actor, action: "walk", elapsed: 0, path, goal: poi.id, waitingForSignal: false };
 }
 
-function nextDestination(world: World, actor: Actor): Poi | undefined {
+function nextDestinations(world: World, actor: Actor, inView?: (point: Point) => boolean): Poi[] {
   // Small LCG: stable sequences per resident, varied between residents.
   const seed = (actor.seed * 1103 + 12345) % 9973;
   const others = world.pois.filter((poi) => poi.id !== actor.goal);
-  const near = others.filter((poi) => Math.hypot(poi.x - actor.x, poi.y - actor.y) < NEARBY);
-  const candidates = near.length >= 3 ? near : others;
-  return candidates[seed % Math.max(1, candidates.length)];
+  const central = others.filter(inCentralDistrict);
+  const district = central.length ? central : others;
+  const near = district.filter((poi) => Math.hypot(poi.x - actor.x, poi.y - actor.y) < NEARBY);
+  const nearby = near.length ? near : district;
+  const visible = inView ? nearby.filter(inView) : [];
+  const ordered: Poi[] = [];
+  for (const group of [visible, nearby, district]) {
+    for (let offset = 0; offset < group.length; offset++) {
+      const poi = group[(seed + offset) % group.length];
+      if (poi && !ordered.some((item) => item.id === poi.id)) ordered.push(poi);
+    }
+  }
+  return ordered.slice(0, 8);
 }
 
 function closest(world: World, actor: Actor, activity: Poi["activity"]): Poi | undefined {
@@ -67,11 +82,19 @@ function closest(world: World, actor: Actor, activity: Poi["activity"]): Poi | u
     )[0];
 }
 
-export function commandActor(world: World, actor: Actor, action: CityAction): Actor {
+export function commandActor(
+  world: World,
+  actor: Actor,
+  action: CityAction,
+  inView?: (point: Point) => boolean,
+): Actor {
   if (action === "walk") {
     const moved = { ...actor, seed: (actor.seed * 1103 + 12345) % 9973, waitingForSignal: false };
-    const poi = nextDestination(world, actor);
-    return poi ? planTrip(world, moved, poi) : moved;
+    for (const poi of nextDestinations(world, actor, inView)) {
+      const trip = planTrip(world, moved, poi);
+      if (trip.action === "walk") return trip;
+    }
+    return { ...moved, action: "idle", elapsed: 0, path: [], goal: null };
   }
   if (action === "sit" || action === "visit") {
     const poi = closest(world, actor, action);
