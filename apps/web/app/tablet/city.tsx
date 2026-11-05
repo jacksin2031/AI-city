@@ -22,11 +22,14 @@ export function TabletCity({
   motion,
   sample,
   focus,
+  totalParticipants,
 }: {
   snapshot: CitySnapshot;
   motion: boolean;
   sample: boolean;
   focus: { id: string; residentId: string; expiresAt: number } | null;
+  /** Running total of public joins; the roster alone would forget withdrawn participants. */
+  totalParticipants?: number;
 }) {
   const parent = useRef<HTMLDivElement>(null);
   const city = useRef<IllustratedCity | null>(null);
@@ -209,7 +212,10 @@ export function TabletCity({
         <div className="tablet-scene-canvas" ref={parent} />
         <AutumnFilter animated={animated} />
         <SceneLogo />
-        <SceneCounts participants={residents.length} inScene={inScene} />
+        <SceneCounts
+          participants={Math.max(totalParticipants ?? 0, residents.length)}
+          inScene={inScene}
+        />
         <p className="tablet-dialogue-status">
           {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
         </p>

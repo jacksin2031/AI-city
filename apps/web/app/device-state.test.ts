@@ -34,4 +34,13 @@ describe("device snapshot and control ordering", () => {
     };
     expect(mergeDeviceState(current, restart)).toBe(restart);
   });
+  it("keeps the running participant total with the newer snapshot it keeps", () => {
+    const counted = { ...previous, totalParticipants: 7 };
+    const merged = mergeDeviceState(counted, {
+      control: { ...deviceControlFixture, revision: 1 },
+      snapshot: developmentCitySnapshot,
+      totalParticipants: 5,
+    });
+    expect(merged.totalParticipants).toBe(7);
+  });
 });

@@ -40,6 +40,8 @@ export class LocalParticipationService {
   private sessions = new Map<string, { createdAt: number; currentJob: string | null }>();
   private jobs = new Map<string, RecordState>();
   private cityEvents: CityEvent[] = [];
+  /** Running total of public joins, including participants who later withdrew. */
+  private joined = 0;
   constructor(private now: () => number = Date.now) {}
 
   private expire() {
@@ -222,6 +224,7 @@ export class LocalParticipationService {
       publicState: "VISIBLE",
     };
     record.publication = "PUBLISHED";
+    this.joined++;
     this.emit(record, "RESIDENT_JOINED", 1);
     return this.view(record);
   }
@@ -281,6 +284,10 @@ export class LocalParticipationService {
       resident: record.resident,
       avatar: ready ? this.avatar(record) : null,
     });
+  }
+  joinedTotal() {
+    this.expire();
+    return this.joined;
   }
   snapshot() {
     this.expire();

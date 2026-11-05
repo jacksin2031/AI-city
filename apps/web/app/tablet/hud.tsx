@@ -56,11 +56,11 @@ export function AutumnFilter({ animated }: { animated: boolean }) {
 export function SceneLogo() {
   return (
     <header className="scene-logo">
-      <Maple className="scene-logo-mark" />
-      <div>
-        <p className="scene-logo-title">バーチャル御茶ノ水</p>
-        <p className="scene-logo-sub">デジタルハリウッド大学</p>
-      </div>
+      <h1 className="scene-logo-title">
+        <span className="scene-logo-pre">バーチャル</span>
+        <span className="scene-logo-main">御茶ノ水</span>
+      </h1>
+      <p className="scene-logo-sub">デジタルハリウッド大学</p>
     </header>
   );
 }

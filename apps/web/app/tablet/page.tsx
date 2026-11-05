@@ -148,6 +148,7 @@ export default function Tablet() {
               motion={control.motionEnabled}
               sample={control.displayMode === "DEMO"}
               focus={focus}
+              totalParticipants={state.totalParticipants}
             />
             <p className="tablet-disclaimer">
               {control.displayMode === "DEMO" ? "架空の住民" : "仮のイラスト"}・交通は見本
