@@ -203,7 +203,7 @@ export async function createDevelopmentCity(
   renderer.toneMapping = THREE.AgXToneMapping;
   renderer.toneMappingExposure = 1.25;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   const canvas = renderer.domElement;
   canvas.style.display = "block";
   canvas.style.touchAction = "none";
