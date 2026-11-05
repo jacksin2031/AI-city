@@ -315,7 +315,7 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
       <div className="pf-sheet">
         {spineLocal && (
           <p>
-            <Link href="/join/spine">写真からキャラクターを作る（本機テスト）</Link>
+            <Link href="/join/spine">写真からキャラクターを作る（試験運用）</Link>
           </p>
         )}
         {error && (

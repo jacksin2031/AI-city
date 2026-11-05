@@ -12,7 +12,13 @@ export default function Join() {
     process.env.AI_CITY_SPINE_LOCAL_INTAKE === "1" &&
     process.env.AI_CITY_LOOPBACK_PREVIEW === "1" &&
     !process.env.AI_CITY_PUBLIC_ORIGIN;
-  if (codeFree) return <ParticipantExperience spineLocal={spineLocal} />;
+  // Hosted photo intake is a separate, explicit switch; the page only offers it when configured.
+  const spineCloud =
+    persistent &&
+    process.env.AI_CITY_SPINE_CLOUD_INTAKE === "1" &&
+    process.env.AI_CITY_SPINE_CLOUD_ASSETS === "1" &&
+    Boolean(process.env.AI_CITY_PUBLIC_ORIGIN);
+  if (codeFree) return <ParticipantExperience spineLocal={spineLocal || spineCloud} />;
   return (
     <main className="participation">
       <h1>AIシティへの参加</h1>
@@ -40,7 +46,7 @@ export default function Join() {
         codeFree={codeFree}
       />
       <nav aria-label="サンプルの移動">
-        {spineLocal && <Link href="/join/spine">写真からキャラクターを作る（本機テスト）</Link>}
+        {spineLocal && <Link href="/join/spine">写真からキャラクターを作る（試験運用）</Link>}
         <Link href="/">戻る</Link>
       </nav>
     </main>

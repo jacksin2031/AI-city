@@ -1,3 +1,4 @@
+import { getCloudSpine } from "../../../../lib/spine/cloud-runtime";
 import { getLocalSpineStorage } from "../../../../lib/spine/local-runtime";
 import { handleVisitorRequest } from "../../../../lib/visitor/http";
 import {
@@ -17,8 +18,11 @@ async function handle(request: Request) {
       getVisitorBoundary(),
       process.env.AI_CITY_VISITOR_CODE_FREE === "1",
       new URL(request.url).pathname.startsWith("/api/visitor/spine/")
-        ? await getLocalSpineStorage()
+        ? getCloudSpine()
+          ? null
+          : await getLocalSpineStorage()
         : null,
+      new URL(request.url).pathname.startsWith("/api/visitor/spine/") ? getCloudSpine() : null,
     );
   } catch {
     return Response.json(

@@ -1,13 +1,26 @@
 import type { SpineJobs } from "./jobs";
 import type { LocalSpineStorage } from "./local-storage";
 
+/** Cloud-held objects to remove together with the local files. Both calls must be idempotent. */
+export type CloudCleanup = {
+  removePhoto(task: string): Promise<void>;
+  removeAssets(task: string): Promise<void>;
+};
+
 /** Maintenance must be run by the separate local worker; it never starts a model. */
-export async function cleanupLocalTask(jobs: SpineJobs, storage: LocalSpineStorage, task: string) {
+export async function cleanupLocalTask(
+  jobs: SpineJobs,
+  storage: LocalSpineStorage,
+  task: string,
+  cloud: CloudCleanup | null = null,
+) {
   // Expiration must revoke access even if a published workspace is still pending cleanup.
   const state = await jobs.prepareCleanup(task);
   if (!state?.pending && (await jobs.publishedPhotoCleanupPending(task))) {
     try {
       await storage.remove(task, "photo.png");
+      // The cloud copy goes with it; a failure keeps the durable marker so it is retried.
+      await cloud?.removePhoto(task);
       // A tool process may have spawned children. Never delete its workspace without proof
       // that every writer has stopped; keep the durable marker for operator recovery.
       try {
@@ -31,6 +44,9 @@ export async function cleanupLocalTask(jobs: SpineJobs, storage: LocalSpineStora
       state.toolCleanupPending = false;
     }
     await storage.removeTaskFiles(task);
+    // Withdrawal and expiry remove every cloud object before the cleanup is recorded as done.
+    await cloud?.removePhoto(task);
+    await cloud?.removeAssets(task);
     if (!state.toolCleanupPending && (await jobs.finishCleanup(task))) return "COMPLETE" as const;
   } catch {
     // Preserve the durable cleanup marker for a later retry.

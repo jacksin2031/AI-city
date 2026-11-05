@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dialogue:worker": "node scripts/run-dialogue-worker.mjs",
+    "spine:cloud-worker": "node scripts/run-cloud-spine-worker.mjs",
     "spine:preflight-worker": "node scripts/run-spine-preflight.mjs",
     "dev": "pnpm --filter @ai-city/web dev",
     "build": "pnpm --filter @ai-city/web build",

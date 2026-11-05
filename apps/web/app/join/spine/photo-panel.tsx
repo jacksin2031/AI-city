@@ -43,7 +43,13 @@ async function request(path: string, init?: RequestInit) {
   return body;
 }
 
-export function SpinePhotoPanel({ codeFree }: { codeFree: boolean }) {
+export function SpinePhotoPanel({
+  codeFree,
+  cloud = false,
+}: {
+  codeFree: boolean;
+  cloud?: boolean;
+}) {
   const [session, setSession] = useState<"checking" | "required" | "ready" | "unavailable">(
     "checking",
   );
@@ -143,7 +149,9 @@ export function SpinePhotoPanel({ codeFree }: { codeFree: boolean }) {
     <main className="participation flow">
       <h1>写真からキャラクターを作る</h1>
       <p className="notice">
-        本機限定のテストです。現在は写真の受付と工具の準備まで対応しており、自動制作・街への公開はまだ動作しません。
+        {cloud
+          ? "試験運用中です。写真は非公開のクラウドストレージに一時保存され、運営者の端末で処理されます。キャラクターの完成後、元の写真は削除されます。制作には時間がかかり、うまく作れない場合があります。"
+          : "本機限定のテストです。現在は写真の受付と工具の準備まで対応しており、自動制作・街への公開はまだ動作しません。"}
       </p>
       <p>
         写真をもとに髪型や服装をデザインします。制作を有効にした場合、写真は外部の AI
@@ -246,7 +254,9 @@ export function SpinePhotoPanel({ codeFree }: { codeFree: boolean }) {
             <p>
               {job.photoCleanup === "PENDING"
                 ? "関連ファイルの消去は確認待ちです。"
-                : "本機に保存した写真の消去を確認しました。"}
+                : cloud
+                  ? "保存した写真と関連ファイルの消去を確認しました。"
+                  : "本機に保存した写真の消去を確認しました。"}
             </p>
           )}
           {job.state !== "WITHDRAWN" && (

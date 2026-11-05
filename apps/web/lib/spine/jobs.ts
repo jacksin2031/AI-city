@@ -222,6 +222,25 @@ export class SpineJobs {
       return { owner: record.data.owner, photoSha256: record.data.photoSha256 };
     });
   }
+  /** Internal dispatcher lookup for a cloud-stored photo. Never return this record to a browser. */
+  async cloudQueuedForWorker(task: string) {
+    return this.store.run(async (tx) => {
+      const record = recordSchema.safeParse(await tx.get(this.path(task)));
+      if (
+        !record.success ||
+        record.data.state !== "QUEUED" ||
+        record.data.photoStorage !== "CLOUD_PRIVATE" ||
+        record.data.photoGeneration === undefined
+      )
+        return null;
+      if (!(await sessionActive(tx, record.data, this.now()))) return null;
+      return {
+        owner: record.data.owner,
+        photoSha256: record.data.photoSha256,
+        generation: record.data.photoGeneration,
+      };
+    });
+  }
   async claim(task: string, worker: string) {
     const path = this.path(task);
     id.parse(worker);

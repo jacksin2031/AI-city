@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { SpinePhotoConsentSchema } from "@ai-city/contracts/spine";
 import type { VisitorService } from "../visitor/service";
+import type { CloudAssetStorage } from "./cloud-asset-storage";
 import type { CloudPhotoStorage } from "./cloud-photo-storage";
 import { normalizeSpinePhoto } from "./photo-intake";
 
@@ -30,5 +31,28 @@ export async function submitCloudPhoto(
     // Never retry the upload or claim deletion here; maintenance must reconcile it.
     await service.cancelCloudPhotoUpload(token, task).catch(() => {});
     throw new Error("CLOUD_PHOTO_RECONCILIATION_REQUIRED");
+  }
+}
+
+/** Public access is revoked first. Cloud objects are removed best-effort; a failure stays PENDING. */
+export async function withdrawCloudPhoto(
+  service: VisitorService,
+  photos: Pick<CloudPhotoStorage, "remove">,
+  assets: Pick<CloudAssetStorage, "removeTask">,
+  token: string,
+  task: string,
+) {
+  const { toolCleanupPending } = await service.withdrawSpineJob(token, task);
+  try {
+    await photos.remove(task);
+    await assets.removeTask(task);
+    const done = !toolCleanupPending && (await service.completeSpinePhotoCleanup(token, task));
+    return {
+      state: "WITHDRAWN" as const,
+      photoCleanup: done ? ("COMPLETE" as const) : ("PENDING" as const),
+    };
+  } catch {
+    // The worker's cleanup pass retries; the bucket lifecycle rule is only a backstop.
+    return { state: "WITHDRAWN" as const, photoCleanup: "PENDING" as const };
   }
 }
