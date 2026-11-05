@@ -1,7 +1,8 @@
-import type { PublicResident } from "@ai-city/contracts";
+import type { DialoguePlace, DialogueResult, PublicResident } from "@ai-city/contracts";
 import * as THREE from "three";
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { autumnLighting } from "./autumn";
+import { encounterPlace, findEncounter } from "./encounter";
 import {
   clampCamera,
   DEFAULT_ZOOM,
@@ -17,6 +18,7 @@ import {
   VIEW,
 } from "./focus";
 import { characterDataUrl, illustrationPalette } from "./illustrations";
+import { LANDMARKS, type Landmark } from "./landmarks";
 import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
 import {
   type Actor,
@@ -35,6 +37,7 @@ export type IllustratedCity = {
   setResidents(residents: PublicResident[], addedIds?: string[]): void;
   setMotionEnabled(enabled: boolean): void;
   select(id: string | null): void;
+  selectLandmark(id: number | null): void;
   act(id: string, action: CityAction): void;
   present(presentation: ScenePresentation | null): void;
   destroy(): void;
@@ -48,6 +51,10 @@ type Entry = {
   ghost: THREE.Sprite;
   ring: THREE.Mesh;
   bubble: Label;
+  pulse: THREE.Mesh;
+  /** Scene time when the arrival / departure animation began; 0 when none is running. */
+  enterAt: number;
+  leaveAt: number;
   welcomeUntil: number;
   hopUntil: number;
   facing: Direction;
@@ -62,6 +69,17 @@ const font = '"Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif';
 const CHARACTER_PIXELS = 2;
 const FRAME_SECONDS = 1 / 30;
 
+const ARRIVE_SECONDS = 1.1;
+const LEAVE_SECONDS = 0.9;
+const easeOutBounce = (t: number) => {
+  const n = 7.5625;
+  const d = 2.75;
+  const bounce = (offset: number, base: number) => n * (t - offset / d) ** 2 + base;
+  if (t < 1 / d) return n * t * t;
+  if (t < 2 / d) return bounce(1.5, 0.75);
+  if (t < 2.5 / d) return bounce(2.25, 0.9375);
+  return bounce(2.625, 0.984375);
+};
 const ease = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 const mix = (a: SceneCamera, b: SceneCamera, t: number): SceneCamera => ({
   centerX: a.centerX + (b.centerX - a.centerX) * t,
@@ -156,6 +174,8 @@ export async function createDevelopmentCity(
     /** Where the exported 3D city is served from (same origin). */
     assetBase?: string;
     onSelect?: (id: string) => void;
+    onSelectLandmark?: (landmark: Landmark | null) => void;
+    onEncounter?: (ids: [string, string], place: DialoguePlace) => Promise<DialogueResult | null>;
     onAction?: (id: string, action: CityAction) => void;
     onReady?: () => void;
     onPresentationFrame?: (frame: ScenePresentationFrame | null) => void;
@@ -291,7 +311,12 @@ function startCity(
   // Read this before mergeCity bakes the source mesh transforms into the combined geometry.
   const metroRailHeightOffset =
     cityModel.scene.getObjectByName("Rail_Metro_Marunouchi")?.position.y ?? 0;
-  const buildingFade = { center: { value: new THREE.Vector2() }, zoom: { value: 0 } };
+  const buildingFade = {
+    center: { value: new THREE.Vector2() },
+    zoom: { value: 0 },
+    selected: { value: 0 },
+    pulse: { value: 0 },
+  };
   const city = mergeCity(cityModel.scene, specs, buildingFade);
   scene.add(city);
   const vehicles = vehicleModel.scene;
@@ -319,6 +344,15 @@ function startCity(
   let residents = options.residents ?? [];
   let moving = options.motionEnabled ?? true;
   let selectedId: string | null = null;
+  let exchange: {
+    ids: [string, string];
+    lines: DialogueResult["lines"];
+    startedAt: number;
+  } | null = null;
+  let dialoguePending = false;
+  let pendingPair: [string, string] | null = null;
+  const lastSpoke = new Map<string, number>();
+  let nextEncounter = 10;
   let presentation: ScenePresentation | null = null;
   let lastFrame = "";
   let destroyed = false;
@@ -428,6 +462,15 @@ function startCity(
     return `${illustrationPalette(entry.resident.avatarVersion)}-${presenting ? "front" : entry.facing}-${pose}-${frame}`;
   }
 
+  function removeEntry(id: string, entry: Entry) {
+    residentLayer.remove(entry.group);
+    entry.bubble.sprite.material.map?.dispose();
+    entry.sprite.material.dispose();
+    entry.ghost.material.dispose();
+    (entry.pulse.material as THREE.Material).dispose();
+    entries.delete(id);
+  }
+
   function sync(addedIds: string[] = []) {
     if (destroyed) return;
     const visible = residents.slice(0, 20);
@@ -436,14 +479,15 @@ function startCity(
     const ids = new Set(visible.map((resident) => resident.residentId));
     for (const [id, entry] of entries)
       if (!ids.has(id)) {
-        residentLayer.remove(entry.group);
-        entry.bubble.sprite.material.map?.dispose();
-        entries.delete(id);
+        // Residents who leave float away; with motion off they simply vanish.
+        if (moving && entry.leaveAt === 0) entry.leaveAt = now;
+        else if (!moving) removeEntry(id, entry);
       }
     for (const [index, resident] of visible.entries()) {
       const existing = entries.get(resident.residentId);
       if (existing) {
         existing.resident = resident;
+        existing.leaveAt = 0;
         continue;
       }
       const actor = createActor(world, focused === resident ? residents.indexOf(resident) : index);
@@ -466,8 +510,19 @@ function startCity(
       ring.renderOrder = 5;
       const bubble = textLabel({ background: "#ffffff", color: "#2c3a33", size: 24, wrap: 300 });
       bubble.sprite.center.set(0.5, 0);
+      const pulse = new THREE.Mesh(
+        ringGeometry,
+        new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+        }),
+      );
+      pulse.renderOrder = 5;
+      pulse.visible = false;
       const group = new THREE.Group();
-      group.add(ring, sprite, ghost, bubble.sprite);
+      group.add(ring, pulse, sprite, ghost, bubble.sprite);
       residentLayer.add(group);
       entries.set(resident.residentId, {
         actor,
@@ -476,9 +531,12 @@ function startCity(
         sprite,
         ghost,
         ring,
+        pulse,
         bubble,
         facing: "front",
         hopUntil: 0,
+        enterAt: moving && addedIds.includes(resident.residentId) ? now : 0,
+        leaveAt: 0,
         welcomeUntil: addedIds.includes(resident.residentId) ? now + 1.8 : 0,
       });
       options.onAction?.(resident.residentId, "idle");
@@ -509,6 +567,17 @@ function startCity(
     const ghosts = [...entries.values()].filter((entry) => entry.ghost.visible).map((e) => e.ghost);
     const hit = raycaster.intersectObjects(ghosts, false)[0];
     return hit ? (hit.object.userData.residentId as string) : null;
+  }
+  function landmarkAt(point: { x: number; y: number }): Landmark | null {
+    raycaster.setFromCamera(
+      new THREE.Vector2((point.x / SCREEN.width) * 2 - 1, -(point.y / SCREEN.height) * 2 + 1),
+      camera,
+    );
+    const hit = raycaster.intersectObjects(city.children, false)[0];
+    if (!hit?.face) return null;
+    const attribute = (hit.object as THREE.Mesh).geometry.getAttribute("cityLandmark");
+    const id = attribute?.getX(hit.face.a) ?? 0;
+    return LANDMARKS.find((item) => item.id === id) ?? null;
   }
   function onPointerDown(event: PointerEvent) {
     canvas.setPointerCapture(event.pointerId);
@@ -552,10 +621,18 @@ function startCity(
       const id = residentAt(point);
       const entry = id ? entries.get(id) : undefined;
       if (id && entry) {
+        buildingFade.selected.value = 0;
+        options.onSelectLandmark?.(null);
         // A quick hop acknowledges the tap before the camera moves.
         if (moving) entry.hopUntil = now + 0.28;
         options.onSelect?.(id);
-      } else options.onClearSelection?.();
+      } else {
+        const landmark = landmarkAt(point);
+        buildingFade.selected.value = landmark?.id ?? 0;
+        options.onSelectLandmark?.(landmark);
+        if (landmark) hold();
+        else options.onClearSelection?.();
+      }
     }
     if (!pointers.size) drag = null;
   }
@@ -608,7 +685,8 @@ function startCity(
       const ground = groundAt(view.centerX, view.centerY);
       view = { ...view, height: view.height + (ground - view.height) * Math.min(1, seconds * 3) };
     }
-    const focused = presentation ? entries.get(presentation.id) : undefined;
+    const focusedEntry = presentation ? entries.get(presentation.id) : undefined;
+    const focused = focusedEntry?.leaveAt ? undefined : focusedEntry;
     const placed = (actor: Actor) => ({ ...actor, height: groundAt(actor.x, actor.y) });
     const target = focused
       ? focusCamera(placed(focused.actor), presentation?.kind ?? null, view)
@@ -623,21 +701,53 @@ function startCity(
     }
     placeCamera(shown);
     updateBuildingFade(buildingFade, shown.centerX, shown.centerY, shown.zoom);
+    buildingFade.pulse.value = moving ? 0.3 + 0.25 * (1 + Math.sin(now * 4)) : 0.45;
     parent.dataset.cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
     const screenUnit = 1 / shown.zoom;
+    const lineIndex = exchange ? Math.floor((now - exchange.startedAt) / 3.5) : -1;
+    if (
+      exchange &&
+      (lineIndex >= exchange.lines.length || !moving || exchange.ids.some((id) => !entries.has(id)))
+    ) {
+      for (const id of exchange.ids) {
+        const entry = entries.get(id);
+        if (entry?.actor.action === "talk") entry.actor = commandActor(world, entry.actor, "idle");
+      }
+      exchange = null;
+    }
     let index = 0;
     for (const [id, entry] of entries) {
+      const leaving = entry.leaveAt > 0;
+      const leaveT = leaving ? (now - entry.leaveAt) / LEAVE_SECONDS : 0;
+      if (leaveT >= 1) {
+        removeEntry(id, entry);
+        continue;
+      }
+      const arriveT = entry.enterAt > 0 ? Math.min(1, (now - entry.enterAt) / ARRIVE_SECONDS) : 1;
+      if (arriveT >= 1) entry.enterAt = 0;
       const previousAction = entry.actor.action;
-      const presenting = id === presentation?.id;
+      const presenting = id === presentation?.id && !leaving;
       // Keep the underlying route position. Camera focus never relocates the original sprite.
-      entry.actor = presenting
-        ? { ...entry.actor, elapsed: entry.actor.elapsed + (moving ? seconds : 0) }
-        : stepActor(world, entry.actor, seconds, moving, {
-            signals: trafficData.pedestrianSignals,
-            time: clock,
-          });
+      const conversing = Boolean(exchange?.ids.includes(id));
+      entry.actor = pendingPair?.includes(id)
+        ? entry.actor
+        : conversing
+          ? {
+              ...entry.actor,
+              action: "talk",
+              elapsed: entry.actor.elapsed + (moving ? seconds : 0),
+            }
+          : presenting
+            ? { ...entry.actor, elapsed: entry.actor.elapsed + (moving ? seconds : 0) }
+            : leaving
+              ? entry.actor
+              : stepActor(world, entry.actor, seconds, moving, {
+                  signals: trafficData.pedestrianSignals,
+                  time: clock,
+                });
       if (
         moving &&
+        !leaving &&
         id !== selectedId &&
         !presenting &&
         entry.actor.action === "idle" &&
@@ -652,8 +762,14 @@ function startCity(
       const ground = groundAt(entry.actor.x, entry.actor.y);
       const inside = entry.actor.action === "visit" && !presenting;
       const size = RESIDENT_HEIGHT;
-      const hop =
+      const hopBase =
         entry.hopUntil > now ? Math.sin(((entry.hopUntil - now) / 0.28) * Math.PI) * 0.45 : 0;
+      // Arrival: drops in from above and bounces; departure: floats up, shrinks and fades.
+      const drop = arriveT < 1 ? (1 - easeOutBounce(arriveT)) * size * 2.4 : 0;
+      const lift = leaving ? ease(leaveT) * size * 1.3 : 0;
+      const hop = hopBase + drop + lift;
+      const fade = leaving ? 1 - ease(leaveT) : Math.min(1, arriveT * 4);
+      const pop = leaving ? 1 - 0.55 * ease(leaveT) : 0.6 + 0.4 * Math.min(1, arriveT * 3);
       // Nudged towards the camera along its own axis: the same spot on screen, but the
       // upright drawing no longer cuts into the wall the resident stands beside.
       entry.group.position.copy(toThree(entry.actor.x, entry.actor.y, ground)).add(nearer);
@@ -663,20 +779,41 @@ function startCity(
           sprite.material.map = texture;
           sprite.material.needsUpdate = true;
         }
-        sprite.scale.set(size * 0.75, size, 1);
+        sprite.scale.set(size * 0.75 * pop, size * pop, 1);
         sprite.position.y = hop;
         sprite.visible = !inside;
+      }
+      entry.sprite.material.opacity = fade;
+      entry.ghost.material.opacity = 0.45 * fade;
+      if (leaving) entry.ghost.visible = false;
+      // A ripple on the ground marks the spot where someone lands or lifts off.
+      const rippleT = leaving ? leaveT : arriveT > 0.55 ? (arriveT - 0.55) / 0.45 : -1;
+      entry.pulse.visible = rippleT >= 0 && rippleT < 1;
+      if (entry.pulse.visible) {
+        entry.pulse.scale.setScalar((size / RESIDENT_HEIGHT) * (0.8 + rippleT * 2.6));
+        entry.pulse.position.y = 0.05;
+        const pulse = entry.pulse.material as THREE.MeshBasicMaterial;
+        pulse.color.set(leaving ? 0xbcd3c6 : 0xf2c45a);
+        pulse.opacity = 0.75 * (1 - rippleT);
       }
       // The resident being shown is drawn over walls and trees, never behind them.
       if (entry.sprite.material.depthTest === presenting) {
         entry.sprite.material.depthTest = !presenting;
         entry.sprite.renderOrder = presenting ? 15 : 0;
       }
-      entry.ring.visible = (id === selectedId || presenting) && !inside;
+      entry.ring.visible = (id === selectedId || presenting) && !inside && !leaving;
       entry.ring.scale.setScalar(size / RESIDENT_HEIGHT);
       entry.ring.position.y = 0.06;
-      const speech =
-        entry.actor.action === "talk" ? preset : now < entry.welcomeUntil ? "ようこそ！" : "";
+      const currentLine = exchange?.lines[lineIndex];
+      const speech = conversing
+        ? currentLine?.residentId === id
+          ? `AI：${currentLine.text}`
+          : ""
+        : entry.actor.action === "talk"
+          ? preset
+          : now < entry.welcomeUntil
+            ? "ようこそ！"
+            : "";
       if (entry.bubble.sprite.userData.text !== speech) {
         entry.bubble.sprite.userData.text = speech;
         if (speech) entry.bubble.set(speech);
@@ -684,7 +821,7 @@ function startCity(
       const bubbleHeight = 13 * ((entry.bubble.sprite.userData.lines as number) || 1) * screenUnit;
       entry.bubble.sprite.scale.set(bubbleHeight * entry.bubble.aspect, bubbleHeight, 1);
       entry.bubble.sprite.position.y = size + 0.3 + hop;
-      entry.bubble.sprite.visible = !presenting && !inside && Boolean(speech);
+      entry.bubble.sprite.visible = !presenting && !inside && !leaving && Boolean(speech);
       if (presenting && presentation) {
         const projected = projectResident(
           { ...entry.actor, height: ground },
@@ -715,6 +852,61 @@ function startCity(
         }
       }
       index++;
+    }
+    if (
+      moving &&
+      options.onEncounter &&
+      !exchange &&
+      !dialoguePending &&
+      now >= nextEncounter &&
+      !presentation
+    ) {
+      nextEncounter = now + 2;
+      const pair = findEncounter(
+        [...entries.values()].map((entry) => ({
+          id: entry.resident.residentId,
+          actor: entry.actor,
+          personality: entry.resident.personalityLabel,
+        })),
+        selectedId,
+        groundAt,
+        now,
+        lastSpoke,
+      );
+      if (pair) {
+        const ids = pair;
+        const first = entries.get(ids[0]);
+        const second = entries.get(ids[1]);
+        if (!first || !second) return;
+        const place = encounterPlace(first.actor, second.actor, world.pois);
+        for (const entry of [first, second]) {
+          // Individual cooldowns remain bounded and never shorten the global request interval.
+          lastSpoke.set(entry.resident.residentId, now);
+        }
+        nextEncounter = now + 45;
+        dialoguePending = true;
+        pendingPair = ids;
+        void options
+          .onEncounter(ids, place)
+          .then((result) => {
+            if (
+              !destroyed &&
+              moving &&
+              !presentation &&
+              !ids.includes(selectedId ?? "") &&
+              result?.safety === "PASSED" &&
+              result.source === "LIVE" &&
+              ids.every((id) => entries.has(id)) &&
+              result.lines.every((line) => ids.includes(line.residentId))
+            )
+              exchange = { ids, lines: result.lines, startedAt: now };
+          })
+          .catch(() => {})
+          .finally(() => {
+            dialoguePending = false;
+            pendingPair = null;
+          });
+      }
     }
   }
 
@@ -783,6 +975,9 @@ function startCity(
     },
     select(id) {
       selectedId = id;
+    },
+    selectLandmark(id) {
+      buildingFade.selected.value = id ?? 0;
     },
     present(next) {
       if (presentation?.id === next?.id && presentation?.kind === next?.kind) return;

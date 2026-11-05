@@ -2,8 +2,6 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default function Home() {
-  const localDevelopment =
-    process.env.AI_CITY_LOOPBACK_PREVIEW === "1" && process.env.AI_CITY_ENABLE_VISITORS !== "1";
   return (
     <main>
       <p>AI CITY</p>
@@ -16,12 +14,6 @@ export default function Home() {
       </p>
       <nav aria-label="プレビュー">
         <Link href="/join">参加画面を確認</Link>
-        {localDevelopment && (
-          <>
-            <Link href="/city">街のサンプルを見る</Link>
-            <Link href="/integration">連携サンプルを見る</Link>
-          </>
-        )}
       </nav>
     </main>
   );
