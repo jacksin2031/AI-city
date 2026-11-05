@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { CityEvent, GenerationJob, PublicResident } from "@ai-city/contracts";
 import {
+  aiStyleLabels,
   CityEventPageSchema,
   CitySnapshotSchema,
   type CreateJobRequest,
@@ -145,8 +146,9 @@ export class LocalParticipationService {
     return {
       nickname: record.input.nickname,
       avatarVersion: this.avatar(record).manifest.avatarVersion,
-      personalityLabel:
-        sociability >= 3
+      personalityLabel: record.input.aiStyle
+        ? aiStyleLabels[record.input.aiStyle]
+        : sociability >= 3
           ? "にぎやかな交流家"
           : sociability <= 1
             ? "静かな探検家"
