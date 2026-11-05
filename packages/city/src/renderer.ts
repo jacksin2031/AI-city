@@ -19,12 +19,7 @@ import {
 } from "./focus";
 import { characterDataUrl, illustrationPalette } from "./illustrations";
 import { LANDMARKS, type Landmark } from "./landmarks";
-import {
-  createLandmarkOutlines,
-  type MaterialSpecs,
-  mergeCity,
-  updateBuildingFade,
-} from "./materials";
+import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
 import { SCENE_RESIDENT_LIMIT } from "./roster";
 import {
   type Actor,
@@ -325,8 +320,6 @@ function startCity(
   };
   const city = mergeCity(cityModel.scene, specs, buildingFade);
   scene.add(city);
-  const outlines = createLandmarkOutlines(city, buildingFade);
-  if (outlines) scene.add(outlines);
   const vehicles = vehicleModel.scene;
   vehicles.traverse((object) => {
     const mesh = object as THREE.Mesh;
