@@ -13,8 +13,8 @@ import {
 import Link from "next/link";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
-import { useReliableFocus } from "./use-reliable-focus";
 import { LocalPhoto } from "./local-photo";
+import { useReliableFocus } from "./use-reliable-focus";
 import "./participant.css";
 
 const questions = [
