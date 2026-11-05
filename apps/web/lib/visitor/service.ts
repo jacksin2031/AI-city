@@ -16,7 +16,8 @@ import {
 } from "@ai-city/contracts/development";
 import { z } from "zod";
 import { DevelopmentServiceError } from "../development/service";
-import { makeSpineJob, withdrawSpineJobRecord } from "../spine/jobs";
+import { makeSpineJob, publishedSpineRecord, withdrawSpineJobRecord } from "../spine/jobs";
+import { removeSpineResident, SpineRosterEntrySchema } from "../spine/roster-index";
 import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -69,6 +70,7 @@ const VisitorStateSchema = z.strictObject({
     .record(INVITATION_DIGEST, z.number().int().nonnegative())
     .refine((invitations) => Object.keys(invitations).length <= MAX_ACTIVE_INVITATIONS),
   residents: z.array(StoredResidentSchema).max(MAX_ACTIVE_SESSIONS),
+  spineResidents: z.array(SpineRosterEntrySchema).max(MAX_ACTIVE_SESSIONS).default([]),
 });
 const StoredConsentSchema = z.strictObject({
   avatarPublicConsent: z.literal(true),
@@ -212,12 +214,19 @@ function removeDigest(state: VisitorState, digest: string): VisitorState {
   delete activeSessions[digest];
   delete pendingSessions[digest];
   const residents = state.residents.filter((stored) => stored.ownerDigest !== digest);
+  const spineResidents = state.spineResidents.filter((stored) => stored.owner !== digest);
   return {
     ...state,
     activeSessions,
     pendingSessions,
     residents,
-    eventSeq: state.eventSeq + state.residents.length - residents.length,
+    spineResidents,
+    eventSeq:
+      state.eventSeq +
+      state.residents.length -
+      residents.length +
+      state.spineResidents.length -
+      spineResidents.length,
   };
 }
 
@@ -252,6 +261,16 @@ function sweepExpired(
       eventSeq: next.eventSeq + next.residents.length - residents.length,
     };
   }
+  const spineResidents = next.spineResidents.filter(
+    (stored) => stored.expiresAt > now && next.activeSessions[stored.owner] === stored.expiresAt,
+  );
+  if (spineResidents.length !== next.spineResidents.length) {
+    next = {
+      ...next,
+      spineResidents,
+      eventSeq: next.eventSeq + next.spineResidents.length - spineResidents.length,
+    };
+  }
   const invitations = Object.fromEntries(
     Object.entries(next.invitations).filter(([, expiresAt]) => expiresAt > now),
   );
@@ -269,6 +288,7 @@ function sweepExpired(
     changed:
       expired.size > 0 ||
       residents.length !== state.residents.length ||
+      spineResidents.length !== state.spineResidents.length ||
       invitationsChanged ||
       pendingSessionsChanged,
   };
@@ -494,6 +514,7 @@ export class VisitorService {
         throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
       if (!raw || raw.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
       const withdrawn = withdrawSpineJobRecord(raw, owner);
+      await removeSpineResident(tx, task);
       tx.set(`jobs/spine-${task}`, withdrawn);
       return { toolCleanupPending: withdrawn.toolCleanupPending };
     });
@@ -898,6 +919,13 @@ export class VisitorService {
         return failure("JOB_NOT_READY");
       }
 
+      if (
+        state.residents.filter((stored) => stored.ownerDigest !== digest).length +
+          state.spineResidents.length >=
+        MAX_ACTIVE_SESSIONS
+      )
+        return failure("LOCAL_CAPACITY", 429);
+
       const preview = previewFor(record.input);
       const resident: PublicResident = PublicResidentSchema.parse({
         schemaVersion: 1,
@@ -1059,16 +1087,53 @@ export class VisitorService {
       const cleaned = sweepExpired(tx, state, now);
       if (!rawState || cleaned.changed) setDocument(tx, "meta/state", cleaned.state);
       const residents = cleaned.state.residents.map((stored) => stored.resident);
+      const spineAvatars: DevelopmentAvatar[] = [];
+      for (const entry of cleaned.state.spineResidents) {
+        const session = parseSession(await tx.get(`sessions/${entry.owner}`));
+        if (!validSession(session, entry.owner, cleaned.state, now)) continue;
+        const bundle = publishedSpineRecord(
+          await tx.get(`jobs/spine-${entry.task}`),
+          entry.owner,
+          entry.expiresAt,
+        );
+        if (!bundle) continue;
+        residents.push(
+          PublicResidentSchema.parse({
+            schemaVersion: 1,
+            residentId: entry.task,
+            eventId: developmentEventId,
+            nickname: "参加者",
+            avatarVersion: entry.task,
+            publicConsent: true,
+            consentVersion: 1,
+            personalityLabel: "非公開",
+            interests: [],
+            publicState: "VISIBLE",
+          }),
+        );
+        spineAvatars.push({
+          manifest: {
+            schemaVersion: 1,
+            avatarVersion: entry.task,
+            rigVersion: "spine-4.3",
+            spine: bundle,
+          },
+          assetStatus: "VERIFIED_SPINE",
+        });
+      }
       return CitySnapshotSchema.parse({
         schemaVersion: 1,
-        mode: "MOCK",
+        mode: spineAvatars.length ? "LOCAL_PRIVATE_TEST" : "MOCK",
         eventId: developmentEventId,
         streamId: cleaned.state.streamId,
         eventSeq: cleaned.state.eventSeq,
         residents,
-        avatars: developmentAvatars.filter((avatar) =>
-          residents.some((resident) => resident.avatarVersion === avatar.manifest.avatarVersion),
-        ),
+        avatars: [
+          ...developmentAvatars.filter((avatar) =>
+            residents.some((resident) => resident.avatarVersion === avatar.manifest.avatarVersion),
+          ),
+          ...spineAvatars,
+        ],
       });
     });
   }
@@ -1077,6 +1142,16 @@ export class VisitorService {
     const now = this.now();
     const outcome = await this.store.run(async (tx) => {
       let state = await readState(tx);
+      const spine = state.spineResidents.find((entry) => entry.task === id);
+      if (spine && spine.expiresAt > now) {
+        const raw = await tx.get(`jobs/spine-${spine.task}`);
+        if (!raw || raw.owner !== spine.owner)
+          throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+        const withdrawn = withdrawSpineJobRecord(raw, spine.owner);
+        await removeSpineResident(tx, spine.task);
+        tx.set(`jobs/spine-${spine.task}`, withdrawn);
+        return success(undefined);
+      }
       const candidate = state.residents.find((stored) => stored.resident.residentId === id);
       if (!candidate || candidate.expiresAt <= now) {
         state = cleanExpiredState(tx, state, now);

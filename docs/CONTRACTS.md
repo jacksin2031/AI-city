@@ -6,7 +6,8 @@
 
 - `AvatarSpec`：模板 ID、可见外观颜色、色盘、配件与不对称标记；不包含照片或敏感推断。
 - `AvatarManifest`：同一素材版本的四方向、Rig 与动画版本、透明帧尺寸、锚点（相对帧 0–1）、atlas 和 fallback 标记；公开引用只接受 `/avatars/` 范围内 PNG/WebP（atlas 数据为 JSON）路径，不接收私有签名 URL 或任意外部网址。由 A 实现授权资产传输；签名 URL 属于独立内部传输接口。
-- `AvatarManifest.spine`：可选 Spine 4.3 运行包路径及 build-manifest SHA-256，同一角色版本目录内提供 skeleton、atlas、最多 32 个 PNG 页面和方向守卫策略。schema 不核验文件内容或授权，生产者须校验全部哈希；旧客户端只接受最多 16 页，须先升级消费者。平板支持校验后播放；真实生产发布仍未接通。
+- `AvatarManifest.spine`：可选 Spine 4.3 运行包路径及 build-manifest SHA-256，同一角色版本目录内提供 skeleton、atlas、最多 32 个 PNG 页面和方向守卫策略。头像必须具有四方向图或 Spine 包；仅含 Spine 的清单不提供方向图。schema 不核验文件内容或授权，生产者须校验全部哈希；旧客户端不接受仅 Spine 清单或超过 16 页，须先升级消费者。平板支持校验后播放；真实生产发布仍未接通。
+- 城市快照中 `LOCAL_PRIVATE_TEST` 和 `VERIFIED_SPINE` 表示经本机测试路径校验的素材，不代表实际生产许可或质量批准。原 `MOCK` 快照和样例含义保持不变。
 - `GenerationJob`：QUEUED / RUNNING / READY / FAILED / CANCELLED，含 deadline、更新时间、取消标记、READY 才有的结果（版本、FAST/ENHANCED 模式、回退）和 FAILED 才有的错误码。READY 不等于已公开。后续由 A 增加租约及重试语义与标准错误码表。
 - `PublicResident`：只允许授权公开的字段，拒绝原始照片、问卷、token 等额外数据；`publicState` 区分显示与隐藏。`publicConsent: true` 只校验结构，真正发布仍需服务端验证同意记录和会话。
 - `CityEvent`：居民加入、更新、隐藏、删除事件；`CityModeEvent` 为 LIVE / DEMO / MAINTENANCE 切换；`CityStreamEvent` 是两者联合。`id` 是事件 ID，`eventId` 是所属活动 ID。消费者仍需实现重复、乱序、删除和重连对账。

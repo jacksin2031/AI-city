@@ -109,6 +109,12 @@ describe("AvatarManifest v0.2", () => {
       sha256: "a".repeat(64),
     };
     expect(AvatarManifestSchema.safeParse({ ...manifest, spine }).success).toBe(true);
+    expect(
+      AvatarManifestSchema.safeParse({ ...manifest, directions: undefined, spine }).success,
+    ).toBe(true);
+    expect(AvatarManifestSchema.safeParse({ ...manifest, directions: undefined }).success).toBe(
+      false,
+    );
     for (const bad of [
       { ...spine, skeleton: "https://example.com/skeleton.json" },
       { ...spine, atlas: "/avatars/../private/skeleton.atlas" },

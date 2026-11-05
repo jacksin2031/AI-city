@@ -57,6 +57,33 @@ describe("local integration boundaries", () => {
       }).success,
     ).toBe(false);
   });
+  it("accepts verified Spine assets only in an explicitly marked local test snapshot", () => {
+    const base = "/avatars/r1/v1/";
+    const avatar = developmentCitySnapshot.avatars[0];
+    if (!avatar) throw new Error("FIXTURE_MISSING");
+    const spine = {
+      runtime: "4.3",
+      skeleton: `${base}skeleton.json`,
+      atlas: `${base}skeleton.atlas`,
+      pages: [`${base}page.png`],
+      orientationPolicy: `${base}orientation-policy.json`,
+      buildManifest: `${base}build-manifest.json`,
+      sha256: "a".repeat(64),
+    };
+    const verified = {
+      ...avatar,
+      assetStatus: "VERIFIED_SPINE",
+      manifest: { ...avatar.manifest, directions: undefined, spine },
+    };
+    const snapshot = {
+      ...developmentCitySnapshot,
+      avatars: [verified, ...developmentCitySnapshot.avatars.slice(1)],
+    };
+    expect(CitySnapshotSchema.safeParse(snapshot).success).toBe(false);
+    expect(CitySnapshotSchema.safeParse({ ...snapshot, mode: "LOCAL_PRIVATE_TEST" }).success).toBe(
+      true,
+    );
+  });
 
   it("requires a usable READY result while keeping the old general contract compatible", () => {
     const job = {

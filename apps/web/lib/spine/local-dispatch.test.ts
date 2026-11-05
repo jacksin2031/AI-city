@@ -2,8 +2,12 @@ import { createHash } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DeviceDisplaySchema } from "@ai-city/contracts/device-link";
 import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LocalParticipationService } from "../development/service";
+import { DeviceLinkService } from "../link/service";
+import { handlePersistentDeviceRequest } from "../visitor/device-http";
 import { VisitorService } from "../visitor/service";
 import { MemoryVisitorStore } from "../visitor/test-store";
 import { handleLocalSpineAsset } from "./asset-http";
@@ -75,12 +79,23 @@ async function candidate(task: string) {
 describe("local task dispatch with isolated synthetic data", () => {
   it("claims once, stages verified assets, serves them, and withdraws all stored files", async () => {
     const f = await fixture();
+    const before = await f.service.snapshot();
     const output = await candidate(f.task);
     const execute = vi.fn(async () => ({ status: "APPROVED" as const, candidate: output }));
     expect(await f.storage.listTasks()).toContain(f.task);
     expect((await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", execute))?.state).toBe(
       "PUBLISHED",
     );
+    const published = await f.service.snapshot();
+    expect(published.mode).toBe("LOCAL_PRIVATE_TEST");
+    expect(published.eventSeq).toBe(before.eventSeq + 1);
+    expect(published.residents.some((resident) => resident.residentId === f.task)).toBe(true);
+    expect(
+      published.avatars.find((avatar) => avatar.manifest.avatarVersion === f.task)?.manifest.spine,
+    ).toEqual(output.descriptor);
+    const serialized = JSON.stringify(published);
+    expect(serialized).not.toContain(createHash("sha256").update(f.token).digest("hex"));
+    expect(serialized).not.toContain("photo.png");
     expect(
       await readPublishedSpineAsset(
         f.jobs,
@@ -111,6 +126,10 @@ describe("local task dispatch with isolated synthetic data", () => {
       ),
     ).toBeNull();
     expect((await handleLocalSpineAsset(request, f.jobs, f.storage)).status).toBe(404);
+    const withdrawn = await f.service.snapshot();
+    expect(withdrawn.eventSeq).toBe(published.eventSeq + 1);
+    expect(withdrawn.residents.some((resident) => resident.residentId === f.task)).toBe(false);
+    expect(withdrawn.mode).toBe("MOCK");
     expect(await f.storage.read(f.task, "page.png", 10000)).toBeNull();
     expect(await f.storage.read(f.task, "photo.png", 10000)).toBeNull();
   });
@@ -146,6 +165,94 @@ describe("local task dispatch with isolated synthetic data", () => {
     expect(await f.storage.read(f.task, "photo.png", 10000)).toBeNull();
     expect(await f.jobs.publishedBundle(f.task)).toBeNull();
     expect(await cleanupLocalTask(f.jobs, f.storage, f.task)).toBe("NOT_REQUIRED");
+  });
+  it("removes a published resident when the visitor session closes", async () => {
+    const f = await fixture();
+    const output = await candidate(f.task);
+    await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    expect(
+      (await f.service.snapshot()).residents.some((resident) => resident.residentId === f.task),
+    ).toBe(true);
+    await f.service.closeSession(f.token);
+    expect(
+      (await f.service.snapshot()).residents.some((resident) => resident.residentId === f.task),
+    ).toBe(false);
+    expect(await f.jobs.publishedBundle(f.task)).toBeNull();
+  });
+  it("expires a published resident and denies assets when the session expires", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-city-expiry-"));
+    roots.push(root);
+    const storage = await LocalSpineStorage.open(root);
+    const store = new MemoryVisitorStore();
+    let now = Date.parse("2026-11-05T00:00:00Z");
+    const service = new VisitorService(store, () => now);
+    const jobs = new SpineJobs(store, () => now);
+    const { token } = await service.createOpenSession();
+    const photo = await sharp({ create: { width: 4, height: 4, channels: 3, background: "red" } })
+      .png()
+      .toBuffer();
+    const { task } = await submitSpinePhoto(service, storage, token, photo, {
+      processing: true,
+      automaticPublication: true,
+      version: 1,
+    });
+    const output = await candidate(task);
+    await dispatchLocalTask(jobs, storage, task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    expect(
+      (await service.snapshot()).residents.some((resident) => resident.residentId === task),
+    ).toBe(true);
+    now += 25 * 60 * 60 * 1000;
+    expect(await jobs.publishedBundle(task)).toBeNull();
+    expect(
+      (await service.snapshot()).residents.some((resident) => resident.residentId === task),
+    ).toBe(false);
+    expect(await cleanupLocalTask(jobs, storage, task)).toBe("PENDING");
+    expect(await storage.read(task, "photo.png", 10000)).toBeNull();
+  });
+  it("allows an administrator to withdraw a Spine resident from the city", async () => {
+    const f = await fixture();
+    const output = await candidate(f.task);
+    await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    await f.service.removeResident(f.task);
+    expect(
+      (await f.service.snapshot()).residents.some((resident) => resident.residentId === f.task),
+    ).toBe(false);
+    expect(await f.jobs.publishedBundle(f.task)).toBeNull();
+    expect((await f.service.spineJobStatus(f.token, f.task)).state).toBe("WITHDRAWN");
+  });
+  it("delivers the resident to a paired display and removes it after withdrawal", async () => {
+    const f = await fixture();
+    const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    const admin = device.login("a".repeat(64));
+    const display = device.pair(device.createPairing(admin).code);
+    device.update(admin, { expectedRevision: 0, displayMode: "LIVE" });
+    const request = () =>
+      new Request("http://127.0.0.1:3000/api/link/display", {
+        headers: { host: "127.0.0.1:3000", cookie: `ai-city-link=${display}` },
+      });
+    const output = await candidate(f.task);
+    await dispatchLocalTask(f.jobs, f.storage, f.task, "worker1", async () => ({
+      status: "APPROVED",
+      candidate: output,
+    }));
+    const firstResponse = await handlePersistentDeviceRequest(request(), device, f.service, true);
+    expect(firstResponse.status).toBe(200);
+    const first = DeviceDisplaySchema.parse(await firstResponse.json());
+    expect(first.snapshot?.residents.some((resident) => resident.residentId === f.task)).toBe(true);
+    await withdrawSpinePhoto(f.service, f.storage, f.token, f.task);
+    const nextResponse = await handlePersistentDeviceRequest(request(), device, f.service, true);
+    const next = DeviceDisplaySchema.parse(await nextResponse.json());
+    expect(next.snapshot?.residents.some((resident) => resident.residentId === f.task)).toBe(false);
+    expect(next.snapshot?.eventSeq).toBeGreaterThan(first.snapshot?.eventSeq ?? -1);
   });
   it("processes a bounded queue without retrying a completed task", async () => {
     const f = await fixture();

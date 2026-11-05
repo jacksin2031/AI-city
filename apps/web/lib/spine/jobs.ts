@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { VisitorStore, VisitorTransaction } from "../visitor/store";
 import { verifySpineBundle } from "./bundle";
 import { createProductionJob, transitionProductionJob } from "./lifecycle";
+import { addSpineResident, removeSpineResident } from "./roster-index";
 
 const id = z.string().regex(/^[A-Za-z0-9_-]{1,96}$/);
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
@@ -97,6 +98,19 @@ export function withdrawSpineJobRecord(value: unknown, owner: string) {
       record.toolCleanupPending || (record.state !== "QUEUED" && record.state !== "WITHDRAWN"),
     ),
   };
+}
+
+/** Public data only; caller must independently check the roster entry and live session. */
+export function publishedSpineRecord(value: unknown, owner: string, expiresAt: number) {
+  const parsed = recordSchema.safeParse(value);
+  if (
+    !parsed.success ||
+    parsed.data.state !== "PUBLISHED" ||
+    parsed.data.owner !== owner ||
+    parsed.data.sessionExpiresAt !== expiresAt
+  )
+    return null;
+  return parsed.data.bundle ?? null;
 }
 
 async function sessionActive(
@@ -226,6 +240,12 @@ export class SpineJobs {
         ...transitionProductionJob(record, { type: "PUBLISH", verified: true, approved: true }),
         bundle: descriptor,
       };
+      if (record.sessionExpiresAt !== undefined)
+        await addSpineResident(tx, {
+          task,
+          owner: record.owner,
+          expiresAt: record.sessionExpiresAt,
+        });
       tx.set(path, next);
       return next;
     });
@@ -252,6 +272,7 @@ export class SpineJobs {
         if (record.sessionExpiresAt === undefined || (await sessionActive(tx, record, this.now())))
           return null;
         record = withdrawSpineJobRecord(record, record.owner);
+        await removeSpineResident(tx, task);
         tx.set(path, record);
       }
       return {
@@ -275,6 +296,7 @@ export class SpineJobs {
     digest.parse(owner);
     return this.store.run(async (tx) => {
       const next = withdrawSpineJobRecord(await tx.get(path), owner);
+      await removeSpineResident(tx, task);
       tx.set(path, next);
       return next;
     });

@@ -68,7 +68,12 @@ test("a verified public Spine bundle plays in the tablet and a damaged asset fal
     await page.route("**/api/link/display", async (route) => {
       const response = await route.fetch();
       const body = await response.json();
-      if (body.snapshot?.avatars?.[0]) body.snapshot.avatars[0].manifest.spine = descriptor;
+      if (body.snapshot?.avatars?.[0]) {
+        body.snapshot.mode = "LOCAL_PRIVATE_TEST";
+        body.snapshot.avatars[0].assetStatus = "VERIFIED_SPINE";
+        body.snapshot.avatars[0].manifest.spine = descriptor;
+        delete body.snapshot.avatars[0].manifest.directions;
+      }
       await route.fulfill({ response, json: body });
     });
     await page.route("**/avatars/test/v1/**", async (route) => {
