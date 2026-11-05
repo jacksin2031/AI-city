@@ -1,3 +1,4 @@
+import { getLocalSpineStorage } from "../../../../lib/spine/local-runtime";
 import { handleVisitorRequest } from "../../../../lib/visitor/http";
 import {
   getVisitorBoundary,
@@ -15,6 +16,9 @@ async function handle(request: Request) {
       process.env.AI_CITY_PUBLIC_ORIGIN,
       getVisitorBoundary(),
       process.env.AI_CITY_VISITOR_CODE_FREE === "1",
+      new URL(request.url).pathname.startsWith("/api/visitor/spine/")
+        ? await getLocalSpineStorage()
+        : null,
     );
   } catch {
     return Response.json(

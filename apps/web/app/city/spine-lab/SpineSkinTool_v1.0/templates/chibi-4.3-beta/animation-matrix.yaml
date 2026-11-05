@@ -1,0 +1,19 @@
+schema_version: "1.0.0"
+template_id: "chibi-4.3-beta"
+status: "UNVERIFIED_RENDER_MATRIX"
+required_movement:
+  - movement/idle-front
+  - movement/idle-back
+  - movement/idle-left
+  - movement/idle-right
+  - movement/trot-front
+  - movement/trot-back
+  - movement/trot-left
+  - movement/trot-right
+required_transition_tests:
+  - movement/idle-front + emotes/just-right
+  - emotes/just-right then movement/idle-back
+  - movement/idle-back then movement/idle-front
+  - movement/trot-front then movement/idle-front
+  - movement/trot-back then movement/idle-back
+note: "Durations, drawOrder frame times, sampling thresholds and actual outcomes MUST be measured by real Spine Runtime."

@@ -75,6 +75,24 @@ describe("placeholder character behaviour", () => {
     expect([actor.x, actor.y]).toEqual([goal?.x, goal?.y]);
     expect(actor.action).toBe(goal?.activity === "sit" ? "sit" : "visit");
   });
+  it("prefers nearby destinations in the current view without teleporting", () => {
+    const world = testWorld();
+    const initial = createActor(world, 0);
+    const walking = commandActor(world, initial, "walk", (point) => point.x < 5);
+    expect(walking.goal).toBe("west");
+    expect([walking.x, walking.y]).toEqual([initial.x, initial.y]);
+    expect(walking.path.length).toBeGreaterThan(0);
+  });
+  it("does not choose a remote destination when a nearby option is available", () => {
+    const world = testWorld();
+    const first = world.pois[0];
+    if (!first) throw new Error("Test destination missing");
+    world.pois.push({ ...first, id: "remote", x: 1000, y: 1000 });
+    for (let seed = 0; seed < 20; seed++) {
+      const walking = commandActor(world, { ...createActor(world, 0), seed }, "walk");
+      expect(walking.goal).not.toBe("remote");
+    }
+  });
   it("turns through four directions without changing position", () => {
     const world = testWorld();
     const initial = createActor(world, 0);

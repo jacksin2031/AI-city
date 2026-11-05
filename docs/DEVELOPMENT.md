@@ -37,4 +37,4 @@ HTTP 可以验证启动和日语 HTML，实际 3D 街景还须浏览器检查。
 
 配对的展示平板可在虚构预设或示例住民相遇时通过服务端请求 Vertex AI 日语对话。客户端只发送两个住民 ID，服务端只查找固定的虚构住民公开资料；真人资料、问卷和照片不发送。输出通过 Gemini 内容过滤及严格格式、参与者、长度校验，过滤不等于完整人工审核。展示端注明 AI 输出；请求失败或配置缺失时不冒充生成内容。
 
-仅在明确批准模型费用及配置后，在服务端设置 `AI_CITY_DIALOGUE_ENABLED=1`、`AI_CITY_DIALOGUE_PROJECT`、`AI_CITY_DIALOGUE_MAX_CALLS`（1–5）、可选 `AI_CITY_GEMINI_MODEL`（默认 `gemini-3.1-flash-lite`），并提供具有 Vertex AI 调用权限及对应项目消费权限的 ADC。使用 Vertex AI **global** endpoint，处理位置不保证在日本；只允许虚构数据。设置项目也用于 `x-goog-user-project`，避免意外使用其他 quota 项目。调用最短间隔 30 秒，只有一个并发请求；模型仅可选择挥手、步行或休息，禁止任意操作。该进程内总次数上限会在重启时重置，不能作为云账单预算或多实例配额；未建立持久预算与监控前不得视为生产运行方案。真实模型测试通过显式环境变量单独启用，最多调用一次，使用虚构样例；普通测试不会调用云端。未修改 IAM、计费或部署。
+只有未来明确批准模型费用及配置后，才在服务端设置 `AI_CITY_DIALOGUE_ENABLED=1`、`AI_CITY_DIALOGUE_PROJECT`、`AI_CITY_DIALOGUE_MAX_CALLS`（1–200）、可选 `AI_CITY_GEMINI_MODEL`（默认 `gemini-3.1-flash-lite`），并提供具有 Vertex AI 调用权限及对应项目消费权限的 ADC。使用 Vertex AI **global** endpoint，处理位置不保证在日本；只允许虚构数据。设置项目也用于 `x-goog-user-project`，避免意外使用其他 quota 项目。调用最短间隔 30 秒，只有一个并发请求，模型输出受限；该进程内总次数上限会在重启时重置，不能作为云账单预算或多实例配额，未建立持久预算与监控前不得视为生产运行方案。用户需要另外设置云端预算和限额；本任务不修改 IAM、计费或部署，不做真实模型调用。

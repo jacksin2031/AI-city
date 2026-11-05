@@ -4,6 +4,8 @@ import { fallbackContentSecurityPolicy } from "./lib/csp";
 const config: NextConfig = {
   // Project-owned AGENTS.md files must not be appended to by the development server.
   agentRules: false,
+  // The bundled Spine tool contains JavaScript dependencies under app/; they are not routes.
+  pageExtensions: ["ts", "tsx"],
   serverExternalPackages: ["@google-cloud/firestore"],
   transpilePackages: ["@ai-city/contracts", "@ai-city/city"],
   poweredByHeader: false,

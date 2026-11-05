@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0.0",
+  "release_id": "spine-skin-tool-0.1.0-20261105-bundled",
+  "source_directories": [
+    "src",
+    "ui",
+    "scripts",
+    "tests",
+    "templates",
+    "schemas",
+    "prompts",
+    "fixtures"
+  ],
+  "source_top": [
+    "AGENTS.md",
+    "README.md",
+    "使用说明.md",
+    "文件分类与发布说明.md",
+    "DISTRIBUTION.json",
+    ".gitignore",
+    ".gitattributes",
+    "启动工具.cmd"
+  ],
+  "public_docs": [
+    "QUALITY.md",
+    "TEXTURE_CONSTRUCTION_BASELINE.md",
+    "REFERENCE_PIXEL_MEASUREMENTS.md",
+    "CHARACTER_PIPELINE.md",
+    "SHARED_CHARACTER_FLOW.md",
+    "GENERATORS.md",
+    "REVIEW_PIPELINE.md",
+    "REPAIR_PIPELINE.md",
+    "REVIEW_CALIBRATION.md",
+    "CHAT_VALIDATED_FLOW.md",
+    "TEXTURE_ONLY_EDIT_POLICY.md",
+    "TEXTURE_COMPARISON.md",
+    "OPS.md",
+    "CODEX_IMPLEMENTATION_SPEC.md",
+    "DECISIONS.md",
+    "CHANGES_GUIDE.md",
+    "RELEASE_STATUS.md"
+  ],
+  "runtime_files": [
+    "versions.toml",
+    "README.md",
+    "license-manifest.json",
+    "python/pyproject.toml",
+    "python/uv.lock",
+    "js/package.json",
+    "js/pnpm-lock.yaml",
+    "js/.npmrc",
+    "config/defaults.toml",
+    "config/size-trials.toml",
+    "config/quality-policy.json",
+    "config/review-criteria.json",
+    "config/calibration.example.json",
+    "config/design.example.json",
+    "config/local.example.toml",
+    "config/providers.example.json",
+    "config/repair.example.json",
+    "config/review.example.json"
+  ],
+  "private_directories": [
+    "runtime/work",
+    "runtime/data",
+    "runtime/output",
+    "runtime/logs",
+    "runtime/secrets",
+    "runtime/vendor-untracked"
+  ],
+  "rebuildable_directories": [
+    "runtime/python/.venv",
+    "runtime/js/node_modules",
+    "runtime/cache",
+    "runtime/tmp",
+    "runtime/bin",
+    "runtime/js/runtime"
+  ],
+  "local_history_directories": [
+    "docs/evidence",
+    "docs/plans",
+    "docs/changes"
+  ],
+  "credential_policy": "Never copy credentials, CODEX_HOME, auth.json, API config, user config or task sessions. Each operator signs in with their own ChatGPT account.",
+  "reference_directory": "references/spine"
+}

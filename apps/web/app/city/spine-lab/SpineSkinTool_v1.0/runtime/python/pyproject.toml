@@ -1,0 +1,10 @@
+[project]
+name = "spine-skin-tool-runtime"
+version = "0.1.0"
+requires-python = "==3.12.10"
+dependencies = [
+    "pillow==12.0.0",
+]  # 里程碑 3：实际 PNG 解码、RGBA 和 alpha 校验。
+
+[tool.uv]
+package = false

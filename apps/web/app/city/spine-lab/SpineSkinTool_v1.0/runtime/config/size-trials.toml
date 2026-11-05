@@ -1,0 +1,41 @@
+# 原始 PNG/附件观测值仅用于当前实验起点。修改后应升级 revision 并重新装配/验收。
+# width/height 仅代表拟导出贴图画布，不代表生成器原图或 Spine 世界坐标。
+schema_version = "1.0.0"
+
+[trial]
+id = "reference-hair-size-trial"
+revision = "trial-002"
+profile = "reference_hair_8part_v2"
+status = "EXPERIMENTAL"
+production_approved = false
+generation_canvas_status = "NOT_SELECTED"
+spine_geometry_status = "UNMEASURED"
+source_reference = "docs/REFERENCE_PIXEL_MEASUREMENTS.md"
+
+[parts.HAIR_FRONT]
+width = 289
+height = 240
+[parts.HAIR_BACK]
+width = 315
+height = 282
+[parts.BODY_FRONT]
+width = 140
+height = 195
+[parts.BODY_BACK]
+width = 140
+height = 195
+[parts.ARM_FRONT]
+width = 55
+height = 179
+[parts.ARM_BACK]
+width = 55
+height = 179
+[parts.LEG_FRONT]
+width = 57
+height = 201
+[parts.LEG_BACK]
+width = 57
+height = 201
+[parts.BLANK]
+width = 4
+height = 4

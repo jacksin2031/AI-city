@@ -98,6 +98,7 @@ export async function handlePersistentDeviceRequest(
       const snapshot = await visitor.snapshot();
       payload.snapshot =
         "pairedDisplays" in payload ? snapshot : device.withPresets(snapshot, "LIVE");
+      if (!("pairedDisplays" in payload)) payload.totalParticipants = await visitor.joinedTotal();
       return Response.json(payload, { status: response.status, headers: response.headers });
     }
     return response;

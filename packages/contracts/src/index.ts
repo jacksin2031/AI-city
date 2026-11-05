@@ -20,6 +20,39 @@ const AtlasDataReference = z
   .max(512)
   .regex(/^\/avatars\/[A-Za-z0-9/_-]+\.json$/, "Expected a scoped avatar atlas JSON path");
 
+// A bundle lives in one immutable version directory; paths never point to private storage.
+export const SpineBundleSchema = z
+  .strictObject({
+    runtime: z.literal("4.3"),
+    skeleton: z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/skeleton\.json$/),
+    atlas: z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/skeleton\.atlas$/),
+    pages: z
+      .array(z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.png$/))
+      .min(1)
+      .max(32),
+    orientationPolicy: z
+      .string()
+      .regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/orientation-policy\.json$/),
+    buildManifest: z
+      .string()
+      .regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/build-manifest\.json$/),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .refine((bundle) => {
+    const directory = bundle.skeleton.slice(0, bundle.skeleton.lastIndexOf("/") + 1);
+    const paths = [
+      bundle.skeleton,
+      bundle.atlas,
+      bundle.orientationPolicy,
+      bundle.buildManifest,
+      ...bundle.pages,
+    ];
+    return (
+      paths.every((path) => path.slice(0, path.lastIndexOf("/") + 1) === directory) &&
+      new Set(paths).size === paths.length
+    );
+  }, "Spine bundle assets must be unique and in one version directory");
+
 // Fields added in v0.2 are optional so that v0.1 documents and callers stay valid.
 
 export const AvatarSpecSchema = z.strictObject({
@@ -34,29 +67,37 @@ export const AvatarSpecSchema = z.strictObject({
   asymmetryIds: z.array(Id).max(8).optional(),
 });
 
-export const AvatarManifestSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  avatarVersion: Version,
-  rigVersion: Version,
-  directions: z.strictObject({
-    front: AssetReference,
-    back: AssetReference,
-    left: AssetReference,
-    right: AssetReference,
-  }),
-  animationVersion: Version.optional(),
-  // Transparent frame size in pixels; the anchor is normalized to that frame (0–1).
-  frameSize: z
-    .strictObject({
-      width: z.number().int().min(1).max(4096),
-      height: z.number().int().min(1).max(4096),
-    })
-    .optional(),
-  anchor: z.strictObject({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).optional(),
-  atlas: z.strictObject({ image: AssetReference, data: AtlasDataReference }).optional(),
-  // True when this asset set is a template or Fast Mode fallback, not the requested result.
-  fallback: z.boolean().optional(),
-});
+export const AvatarManifestSchema = z
+  .strictObject({
+    schemaVersion: z.literal(1),
+    avatarVersion: Version,
+    rigVersion: Version,
+    directions: z
+      .strictObject({
+        front: AssetReference,
+        back: AssetReference,
+        left: AssetReference,
+        right: AssetReference,
+      })
+      .optional(),
+    animationVersion: Version.optional(),
+    // Transparent frame size in pixels; the anchor is normalized to that frame (0–1).
+    frameSize: z
+      .strictObject({
+        width: z.number().int().min(1).max(4096),
+        height: z.number().int().min(1).max(4096),
+      })
+      .optional(),
+    anchor: z.strictObject({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).optional(),
+    atlas: z.strictObject({ image: AssetReference, data: AtlasDataReference }).optional(),
+    // True when this asset set is a template or Fast Mode fallback, not the requested result.
+    fallback: z.boolean().optional(),
+    spine: SpineBundleSchema.optional(),
+  })
+  .refine(
+    (manifest) => manifest.directions !== undefined || manifest.spine !== undefined,
+    "An avatar requires directions or a Spine bundle",
+  );
 
 // Shape validation is NOT proof of a real consent record or authorization.
 // The future publishing service must verify session ownership and consent independently.
@@ -173,28 +214,10 @@ export const DialogueResultSchema = z
     lines: z
       .array(z.strictObject({ residentId: Id, text: z.string().trim().min(1).max(80) }))
       .max(6),
-    actions: z
-      .tuple([
-        z.strictObject({ residentId: Id, action: z.enum(["wave", "walk", "idle"]) }),
-        z.strictObject({ residentId: Id, action: z.enum(["wave", "walk", "idle"]) }),
-      ])
-      .optional(),
   })
   .superRefine((result, context) => {
     if (result.safety === "BLOCKED" && result.lines.length > 0)
       context.addIssue({ code: "custom", path: ["lines"], message: "Blocked output has no lines" });
-    if (result.safety === "BLOCKED" && result.actions)
-      context.addIssue({
-        code: "custom",
-        path: ["actions"],
-        message: "Blocked output has no actions",
-      });
-    if (result.actions && result.actions[0].residentId === result.actions[1].residentId)
-      context.addIssue({
-        code: "custom",
-        path: ["actions"],
-        message: "Actions require two different residents",
-      });
     if (result.safety === "PASSED" && result.lines.length === 0)
       context.addIssue({ code: "custom", path: ["lines"], message: "Passed output needs lines" });
   });

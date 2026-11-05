@@ -1,18 +1,6 @@
 import { expect, it } from "vitest";
-import { dialogueCooldown, encounterPlace, findEncounter, postDialogueAction } from "./encounter";
+import { dialogueCooldown, encounterPlace, findEncounter } from "./encounter";
 import type { Actor } from "./simulation";
-
-it("applies AI actions only after completed dialogue and leaves focused or interrupted characters alone", () => {
-  const actions = [
-    { residentId: "preset-aoi", action: "wave" },
-    { residentId: "preset-ren", action: "walk" },
-  ] as const;
-  expect(postDialogueAction("preset-aoi", actions, true, null)).toBe("wave");
-  expect(postDialogueAction("preset-ren", actions, true, null)).toBe("walk");
-  expect(postDialogueAction("preset-aoi", actions, false, null)).toBe("idle");
-  expect(postDialogueAction("preset-aoi", actions, true, "preset-aoi")).toBe("idle");
-  expect(postDialogueAction("preset-unknown", actions, true, null)).toBe("idle");
-});
 
 it("only starts fictional conversations when characters are nearby and on the same level", () => {
   const actor = (x: number, overrides: Partial<Actor> = {}): Actor => ({

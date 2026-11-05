@@ -1,0 +1,106 @@
+{
+  "revision": "review-criteria-006",
+  "authority": "EXISTING_USER_TEXTURE_SPEC",
+  "documents": [
+    "docs/QUALITY.md",
+    "docs/TEXTURE_CONSTRUCTION_BASELINE.md"
+  ],
+  "style_roles": {
+    "identity": "original human photo",
+    "construction": "original Harri components",
+    "rendering": "original Davide and Spineboy components"
+  },
+  "criteria": {
+    "HAIR_GAP": {
+      "document": "docs/QUALITY.md",
+      "section": "头发专项硬性检查",
+      "instruction_en": "Hair must be continuous. Reject an artificial transparent central cut through hair; do not mistake an intentional narrow photographed part for a background crack."
+    },
+    "HAIR_COVERAGE": {
+      "document": "docs/QUALITY.md",
+      "section": "头发专项硬性检查",
+      "instruction_en": "On the assembled fixed head, inspect LEFT and RIGHT side-cheek joins above the lower jaw. Preserve 1-3% overlap at these joins, not one-pixel tangency. Normal lower chin/jaw visibility is allowed and is NOT a hair-coverage failure. Never require a closed hair ring around the chin. No old-outline pixel/IoU lock or one-axis stretch. Hair tip length is assessed separately under PROPORTION."
+    },
+    "FRONT_BACK_HAIR_MISMATCH": {
+      "document": "docs/QUALITY.md",
+      "section": "后发",
+      "instruction_en": "Rear hair covers the back head and uses the SAME palette/rendering treatment as the front hair. No stricter independent zero-gradient or one-shadow test. Only reject clear inconsistent hairstyle/style or unnatural overall volume, not normal view differences."
+    },
+    "ARM_OUTLINE_MISSING": {
+      "document": "docs/QUALITY.md",
+      "section": "衣身与四肢专项硬性检查",
+      "instruction_en": "Sleeve/shoulder uses a darker sleeve contour; exposed skin and semicircular hand use a deeper WARM SKIN contour. Reject missing/flat skin outline. Do not demand a black or sleeve-colored skin outline."
+    },
+    "PROPORTION": {
+      "document": "docs/QUALITY.md",
+      "section": "衣身与四肢专项硬性检查",
+      "instruction_en": "Judge the assembled hair/head relationship. Short hair tips should finish close to the neighboring head outline; small natural extensions PASS, clearly long thin hanging sideburn points beyond the lower face FAIL. Do not classify the normal visible lower jaw as missing hair. Keep suitable crown, fringe and face opening during an explicitly localized tip correction, using the SAME frozen base and original photo, never successive edits. Limbs retain broad tubular Harri proportions and rounded mitten ends."
+    },
+    "SHOULDER_WING": {
+      "document": "docs/QUALITY.md",
+      "section": "衣身与四肢专项硬性检查",
+      "instruction_en": "BODY is a shoulder-free and sleeveless single convex dome with collar marks INSIDE. All shoulder caps belong to ARM. Reject two shoulder peaks, wing-like shoulder pixels or baked sleeve caps in the isolated BODY."
+    },
+    "PALETTE_MISMATCH": {
+      "document": "docs/QUALITY.md",
+      "section": "衣身与四肢专项硬性检查",
+      "instruction_en": "Approximate dominant palette only. Reject only an obviously wrong main color family, e.g. red versus blue. Nearby blue/navy/purple shades, shadows and hem-to-leg small hue differences are acceptable; exact fidelity is not required."
+    },
+    "NOISY_TEXTURE": {
+      "document": "docs/QUALITY.md",
+      "section": "所有部件的硬性拒收项",
+      "instruction_en": "Reject only actual visible random corruption/debris that breaks the asset. Ordinary strand detail, gradients, highlights, line density or brush texture are not a style defect. No exact original-Spine shading recipe."
+    },
+    "SKIRT_LEG_EXPOSED": {
+      "document": "docs/QUALITY.md",
+      "section": "Spine Runtime 必查范围",
+      "instruction_en": "A separate skirt must cover the upper leg roots throughout sampled trot sweep. Legs BELOW the hem are normal. Reject an upper-root/hip gap or a skirt narrowed so legs protrude through the skirt side ABOVE the hem."
+    },
+    "EAR_ATTACHMENT_VISIBILITY": {
+      "document": "docs/QUALITY.md",
+      "section": "Spine Runtime 必查范围",
+      "instruction_en": "For INTEGRATED_SMALL_EARS_IN_HAIR, hide ORIGINAL ear slots in ALL views, emotes and transitions. Small warm-skin ears are painted into front hair, partially nestled in hair and matching fixed-head linework. Do not require the old large ears or nonempty original ear slots. Legacy bundles retain their recorded policy."
+    },
+    "ARM_BODY_ORDER": {
+      "document": "docs/QUALITY.md",
+      "section": "衣身与四肢专项硬性检查",
+      "instruction_en": "Front/side: LEGS < BODY/SKIRT < ARMS < HEAD. Back: LEGS < ARMS < BODY/SKIRT < HEAD, including emotes and transitions."
+    },
+    "HAIR_ATTACHMENT_MISSING": {
+      "document": "docs/QUALITY.md",
+      "section": "Spine Runtime 必查范围",
+      "instruction_en": "After every animation apply and transition there must be an active front hair attachment in non-back directions and rear hair attachment in back."
+    },
+    "STYLE_FAMILY_MISMATCH": {
+      "document": "docs/QUALITY.md",
+      "section": "当前外观审核范围",
+      "instruction_en": "Only reject a CLEAR STYLE FAMILY change: illustrated 2D chibi versus photographic/realistic 3D/pixel art. Front and rear hair need the same broad style; shadows, gradients, strand count, highlights, brushwork and exact original Spine recipes are FREE and NEVER standalone rejection reasons. Other parts may differ in detail."
+    },
+    "VIEW_ANGLE": {
+      "document": "docs/QUALITY.md",
+      "section": "当前外观审核范围",
+      "instruction_en": "Generate STRICT orthographic FRONT or REAR, zero head yaw/pitch/roll. Reject three-quarter/profile/turned face-opening perspective in the TEXTURE, not natural asymmetric hair or ordinary rig pose. Reinterpret oblique source photos into the frontal fixed-head view. Do not rotate the source PNG as a perspective fix."
+    },
+    "COARSE_COLOR_MISMATCH": {
+      "document": "docs/QUALITY.md",
+      "section": "当前外观审核范围",
+      "instruction_en": "Approximate dominant palette only. Reject only an obviously wrong main color family, e.g. red versus blue. Nearby blue/navy/purple shades, shadows and hem-to-leg small hue differences are acceptable; exact fidelity is not required."
+    },
+    "GARMENT_TYPE_MISMATCH": {
+      "document": "docs/QUALITY.md",
+      "section": "当前外观审核范围",
+      "instruction_en": "Only require the intended broad garment type and approximate palette. Do not demand exact clothing pattern, collar, fabric detail or resemblance to photo; retain existing shoulder-free layer construction."
+    },
+    "EAR_ALIGNMENT": {
+      "document": "docs/QUALITY.md",
+      "section": "耳根定位与二阶段验收",
+      "instruction_en": "Follow declared ear mode. HIDDEN: neither ear needs to show; NOT_APPLICABLE is correct, no missing-ear repair. PARTIAL_BOTH: both left and right small ears should be recognizable in applicable front/back views, EACH about 40-60% visible with a 40% minimum; a single sliver or one-sided presence fails. Preserve common head-local roots, never move confirmed hair to expose ears. Faded-layer evidence proves placement only, not final visible quality."
+    },
+    "HEIGHT_MISMATCH": {
+      "document": "docs/QUALITY.md",
+      "section": "先头发后耳与同高坐标",
+      "instruction_en": "Match FRONT and REAR head-plus-hair union top/bottom/total height in the SAME head-local space using uniform fitting. If one view cannot fit naturally, regenerate that entire hair from original photo; no one-axis stretch, old-outline mask, or resizing by ear position."
+    }
+  },
+  "automatic_visual_pass_enabled": false
+}
