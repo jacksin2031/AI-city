@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { type PublicResident, PublicResidentSchema } from "@ai-city/contracts";
 import {
+  aiStyleLabels,
   type CitySnapshot,
   CitySnapshotSchema,
   type CreateJobRequest,
@@ -365,8 +366,9 @@ function previewFor(input: CreateJobRequest) {
   return {
     nickname: input.nickname,
     avatarVersion: avatar.manifest.avatarVersion,
-    personalityLabel:
-      sociability >= 3
+    personalityLabel: input.aiStyle
+      ? aiStyleLabels[input.aiStyle]
+      : sociability >= 3
         ? "にぎやかな交流家"
         : sociability <= 1
           ? "静かな探検家"

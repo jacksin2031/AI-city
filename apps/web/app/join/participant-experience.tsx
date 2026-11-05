@@ -1,14 +1,19 @@
 "use client";
 
 import { characterDataUrl } from "@ai-city/city/illustrations";
-import type { ParticipationView } from "@ai-city/contracts/development";
+import {
+  type AiStyle,
+  aiStyleLabels,
+  type ParticipationView,
+} from "@ai-city/contracts/development";
 import {
   createDevelopmentClient,
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
+import { LocalPhoto } from "./local-photo";
 import "./participant.css";
 
 const questions = [
@@ -70,12 +75,54 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
   const [hasDecoration, setHasDecoration] = useState(false);
   const [answers, setAnswers] = useState<(number | null)[]>(Array(6).fill(null));
   const [question, setQuestion] = useState(0);
-  const [style, setStyle] = useState<string | null>(null);
   const [view, setView] = useState<ParticipationView | null>(null);
   const [avatarConsent, setAvatarConsent] = useState(false);
+  const [photoConsent, setPhotoConsent] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState("");
+  const localPhoto = useRef<LocalPhoto | null>(null);
+  localPhoto.current ??= new LocalPhoto({
+    create: (file) => URL.createObjectURL(file),
+    revoke: (url) => URL.revokeObjectURL(url),
+  });
   const [fields, setFields] = useState({ nickname: false, personality: false, interests: false });
   const requestId = useRef<string | null>(null);
   const waitUntil = useRef(0);
+
+  useEffect(() => {
+    const discard = () => {
+      localPhoto.current?.clear();
+      setPhotoUrl(null);
+      setPhotoConsent(false);
+    };
+    window.addEventListener("pagehide", discard);
+    return () => {
+      window.removeEventListener("pagehide", discard);
+      localPhoto.current?.clear();
+    };
+  }, []);
+
+  function discardPhoto() {
+    localPhoto.current?.clear();
+    setPhotoUrl(null);
+    setPhotoError("");
+  }
+  function leavePhoto(next: "name" | "custom") {
+    discardPhoto();
+    setPhotoConsent(false);
+    setStage(next);
+  }
+  async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!photoConsent || !file || !localPhoto.current) return;
+    setPhotoUrl(null);
+    setPhotoError("");
+    const result = await localPhoto.current.select(file);
+    if (result.status === "ready") setPhotoUrl(result.url);
+    else if (result.status === "too-large") setPhotoError("写真は8 MB以下を選んでください。");
+    else if (result.status === "invalid") setPhotoError("JPEG・PNG・WebPの写真を選んでください。");
+  }
 
   useEffect(() => {
     let live = true;
@@ -134,23 +181,23 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
     return () => window.clearTimeout(timer);
   }, [stage, feedbackShown]);
 
-  function computeStyle(values: (number | null)[]) {
+  function computeStyle(values: (number | null)[]): AiStyle {
     const score = (indices: number[]) =>
       indices.reduce((sum, i) => sum + (values[i] === 0 ? 1 : values[i] === 1 ? -1 : 0), 0);
     const a = score([0, 2, 4]),
       c = score([1, 3, 5]);
     return !a || !c
-      ? "バランス型"
+      ? "BALANCED"
       : a > 0
         ? c > 0
-          ? "ひらめき探検家"
-          : "実践チャレンジャー"
+          ? "INSPIRED_EXPLORER"
+          : "PRACTICAL_CHALLENGER"
         : c > 0
-          ? "じっくりアイデア家"
-          : "しっかりサポーター";
+          ? "THOUGHTFUL_CREATOR"
+          : "STEADY_SUPPORTER";
   }
   async function prepare(skipped: boolean) {
-    setStyle(skipped ? "未回答" : computeStyle(answers));
+    const aiStyle = skipped ? "UNANSWERED" : computeStyle(answers);
     setError("");
     setBusy(true);
     setStage("waiting");
@@ -163,6 +210,7 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
         requestId: requestId.current,
         nickname: nickname.trim(),
         sampleId: sample,
+        aiStyle,
         scenario: "SUCCESS",
         answers: null,
       });
@@ -322,15 +370,84 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
               <>
                 <p className="pf-step">ステップ 2 / 4</p>
                 <h2>写真について</h2>
-                <p>写真からアバターを作る機能を準備しています。</p>
+                <p>写真はこの端末で一時的に確認できます。</p>
                 <div className="pf-note">
-                  <strong>写真の撮影・送信はできません</strong>
-                  <p>写真を使わず、サンプルを選んで参加できます。</p>
+                  <strong>写真はアップロードされません</strong>
+                  <p>
+                    この画面を離れるか削除すると、アプリ内の一時プレビューを破棄します。端末の写真アプリにある元の写真は削除されません。
+                  </p>
+                  <p>
+                    写真からのアバター生成はまだ利用できません。次の画面ではサンプルを選びます。
+                  </p>
                 </div>
-                <button className="pf-primary" type="button" onClick={() => setStage("custom")}>
+                <label className="pf-check">
+                  <input
+                    type="checkbox"
+                    checked={photoConsent}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      if (!checked) discardPhoto();
+                      setPhotoConsent(checked);
+                    }}
+                  />
+                  自分の写真をこの端末で一時表示することに同意します
+                </label>
+                <div className="pf-photo-actions">
+                  <label className="pf-back">
+                    写真を選ぶ
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={!photoConsent}
+                      onChange={choosePhoto}
+                    />
+                  </label>
+                  <label className="pf-back">
+                    写真を撮る
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      capture="user"
+                      disabled={!photoConsent}
+                      onChange={choosePhoto}
+                    />
+                  </label>
+                </div>
+                {photoError && (
+                  <p role="alert" className="pf-error">
+                    {photoError}
+                  </p>
+                )}
+                {photoUrl && (
+                  <div className="pf-photo-preview">
+                    <img
+                      src={photoUrl}
+                      alt="この端末だけの写真プレビュー"
+                      onError={() => {
+                        discardPhoto();
+                        setPhotoError("写真を読み込めませんでした。別の写真を選んでください。");
+                      }}
+                      onLoad={(event) => {
+                        const image = event.currentTarget;
+                        if (
+                          !image.naturalWidth ||
+                          !image.naturalHeight ||
+                          image.naturalWidth * image.naturalHeight > 20_000_000
+                        ) {
+                          discardPhoto();
+                          setPhotoError("写真のサイズが大きすぎるか、読み込めませんでした。");
+                        }
+                      }}
+                    />
+                    <button type="button" className="pf-back" onClick={discardPhoto}>
+                      写真のプレビューを削除
+                    </button>
+                  </div>
+                )}
+                <button className="pf-primary" type="button" onClick={() => leavePhoto("custom")}>
                   写真を使わずにカスタマイズ
                 </button>
-                <button className="pf-back" type="button" onClick={() => setStage("name")}>
+                <button className="pf-back" type="button" onClick={() => leavePhoto("name")}>
                   戻る
                 </button>
               </>
@@ -447,7 +564,7 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
                   </button>
                 </div>
                 <p className="pf-fine">
-                  AIスタイルは娯楽用で、この画面にのみ表示され、ページを更新すると消えます。
+                  AIスタイルは娯楽用です。回答は送信せず、計算した結果のみ参加情報として保存します。
                 </p>
               </>
             )}
@@ -480,13 +597,18 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
                   />
                   <strong>{view.preview.nickname}</strong>
                   <p>仮のイラスト・写真からの生成ではありません</p>
-                  {style && <p>スマホのAIスタイル：{style}（娯楽用）</p>}
+                  <p>
+                    {Object.values(aiStyleLabels).includes(view.preview.personalityLabel)
+                      ? "スマホのAIスタイル"
+                      : "見本の性格"}
+                    ：{view.preview.personalityLabel}（娯楽用）
+                  </p>
                 </div>
                 <p>
                   街では選択した項目だけを表示します。情報はこのブラウザーの参加情報として24時間保存されます。
                 </p>
                 <p className="pf-fine">
-                  AIスタイルは街に公開されません。街の性格は用意された見本です。
+                  性格の表示に同意した場合、AIスタイルを街と平板に表示します。質問への回答は送信しません。
                 </p>
                 <label className="pf-check">
                   <input
@@ -499,7 +621,7 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
                 {(
                   [
                     ["nickname", "ニックネームを表示する"],
-                    ["personality", "遊びの性格を表示する"],
+                    ["personality", "AIスタイル（遊びの性格）を表示する"],
                     ["interests", "興味を表示する"],
                   ] as const
                 ).map(([key, label]) => (
@@ -554,7 +676,12 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
                       </span>
                     </p>
                   )}
-                  {style && <p>スマホのAIスタイル：{style}（娯楽用）</p>}
+                  <p>
+                    {Object.values(aiStyleLabels).includes(view.preview.personalityLabel)
+                      ? "スマホのAIスタイル"
+                      : "見本の性格"}
+                    ：{view.preview.personalityLabel}（娯楽用）
+                  </p>
                   <p className="pf-fine">スマホの色・マークは街には表示されません。</p>
                 </section>
                 <section className="pf-controls" aria-label="平板の操作">

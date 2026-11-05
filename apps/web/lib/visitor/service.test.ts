@@ -72,6 +72,36 @@ describe("persistent anonymous visitors", () => {
     await expect(action).rejects.toMatchObject({ code, status });
   }
 
+  it("links an entertainment style to the character only when personality is published", async () => {
+    const session = await newSession();
+    const job = await ready(session.token, {
+      ...input,
+      aiStyle: "INSPIRED_EXPLORER",
+    } as typeof input);
+    expect(job.preview?.personalityLabel).toBe("ひらめき探検家");
+    await service.confirm(session.token, job.job.jobId, {
+      ...consent,
+      fields: { ...consent.fields, personality: false },
+    });
+    expect((await service.snapshot()).residents[0]?.personalityLabel).toBe("非公開");
+    const serialized = JSON.stringify(await service.snapshot());
+    expect(serialized).not.toContain("INSPIRED_EXPLORER");
+    expect(serialized).not.toContain("answers");
+
+    const another = await newSession();
+    const published = await ready(another.token, {
+      ...input,
+      requestId: "request-2",
+      aiStyle: "INSPIRED_EXPLORER",
+    } as typeof input);
+    await service.confirm(another.token, published.job.jobId, consent);
+    expect(
+      (await service.snapshot()).residents.some(
+        (resident) => resident.personalityLabel === "ひらめき探検家",
+      ),
+    ).toBe(true);
+  });
+
   it("stages transaction writes, reads its own writes, and discards them on callback failure", async () => {
     await store.run(async (tx) => {
       tx.set("meta/state", { seq: 1 });

@@ -14,6 +14,23 @@ const Id = z
   .regex(/^[A-Za-z0-9_-]+$/);
 export const developmentEventId = "fixture-event" as const;
 export const SampleIdSchema = z.enum(["sora", "haru"]);
+export const AiStyleSchema = z.enum([
+  "INSPIRED_EXPLORER",
+  "PRACTICAL_CHALLENGER",
+  "THOUGHTFUL_CREATOR",
+  "STEADY_SUPPORTER",
+  "BALANCED",
+  "UNANSWERED",
+]);
+export type AiStyle = z.infer<typeof AiStyleSchema>;
+export const aiStyleLabels: Record<AiStyle, string> = {
+  INSPIRED_EXPLORER: "ひらめき探検家",
+  PRACTICAL_CHALLENGER: "実践チャレンジャー",
+  THOUGHTFUL_CREATOR: "じっくりアイデア家",
+  STEADY_SUPPORTER: "しっかりサポーター",
+  BALANCED: "バランス型",
+  UNANSWERED: "未回答",
+};
 export const EmptyDevelopmentRequestSchema = z.strictObject({});
 export function isDevelopmentValidationError(error: unknown): boolean {
   return error instanceof z.ZodError;
@@ -32,6 +49,7 @@ export const CreateJobRequestSchema = z.strictObject({
       ),
     ),
   sampleId: SampleIdSchema,
+  aiStyle: AiStyleSchema.optional(),
   answers: z
     .tuple([
       z.number().int().min(0).max(2),
