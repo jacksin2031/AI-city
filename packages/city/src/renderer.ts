@@ -22,6 +22,7 @@ import {
 import { characterDataUrl, illustrationPalette } from "./illustrations";
 import { LANDMARKS, type Landmark } from "./landmarks";
 import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
+import { SCENE_RESIDENT_LIMIT } from "./roster";
 import {
   type Actor,
   type CityAction,
@@ -488,7 +489,7 @@ function startCity(
 
   function sync(addedIds: string[] = []) {
     if (destroyed) return;
-    const visible = residents.slice(0, 20);
+    const visible = residents.slice(0, SCENE_RESIDENT_LIMIT);
     const focused = residents.find((resident) => resident.residentId === presentation?.id);
     if (focused && !visible.includes(focused)) visible.push(focused);
     const ids = new Set(visible.map((resident) => resident.residentId));

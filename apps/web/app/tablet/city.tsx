@@ -8,24 +8,33 @@ import {
   type Landmark,
   loadChibiDemo,
   openProfile,
+  SCENE_RESIDENT_LIMIT,
   type ScenePresentationFrame,
+  sceneResidentCount,
   updatePresentation,
 } from "@ai-city/city";
 import { DialogueResultSchema } from "@ai-city/contracts";
 import type { CitySnapshot } from "@ai-city/contracts/development";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LandmarkCard } from "../landmark-card";
+import { AutumnFilter, SceneCounts, SceneLogo } from "./hud";
 import { ResidentSpeech } from "./resident-speech";
 export function TabletCity({
   snapshot,
   motion,
   sample,
   focus,
+  totalParticipants,
+  tools,
 }: {
   snapshot: CitySnapshot;
   motion: boolean;
   sample: boolean;
   focus: { id: string; residentId: string; expiresAt: number } | null;
+  /** Running total of public joins; the roster alone would forget withdrawn participants. */
+  totalParticipants?: number;
+  /** Shows the operator pickers and status line that stay hidden on the public screen. */
+  tools: boolean;
 }) {
   const parent = useRef<HTMLDivElement>(null);
   const city = useRef<IllustratedCity | null>(null);
@@ -243,6 +252,9 @@ export function TabletCity({
   }, [residents, motion]);
   const active = view.active;
   const resident = residents.find((item) => item.residentId === active?.id);
+  // A focused resident outside the drawn limit is added to the scene on top of the cap.
+  const focusedOutside = resident && residents.indexOf(resident) >= SCENE_RESIDENT_LIMIT ? 1 : 0;
+  const inScene = sceneResidentCount(residents.length) + focusedOutside;
   useEffect(() => {
     if (!active) return;
     setLandmark(null);
@@ -279,9 +291,17 @@ export function TabletCity({
         aria-label="街の住民や建物をタップすると紹介を表示します。"
       >
         <div className="tablet-scene-canvas" ref={parent} />
-        <p className="tablet-dialogue-status">
-          {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
-        </p>
+        <AutumnFilter animated={animated} />
+        <SceneLogo />
+        <SceneCounts
+          participants={Math.max(totalParticipants ?? 0, residents.length)}
+          inScene={inScene}
+        />
+        {tools && (
+          <p className="tablet-dialogue-status">
+            {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
+          </p>
+        )}
         <p className="canvas-failure" role="alert">
           街を表示できません。ページを読み直してください。
         </p>
@@ -312,7 +332,7 @@ export function TabletCity({
       {spineSample === "failed" && (
         <p role="status">公式サンプルを読み込めなかったため、見本イラストを表示しています。</p>
       )}
-      {residents.length > 0 && (
+      {tools && residents.length > 0 && (
         <details className="tablet-resident-list">
           <summary>住民のプロフィールを選ぶ</summary>
           <div className="tablet-resident-buttons">
@@ -324,25 +344,27 @@ export function TabletCity({
           </div>
         </details>
       )}
-      <details className="tablet-landmark-list">
-        <summary>建物・駅を選ぶ</summary>
-        <div>
-          {LANDMARKS.map((item) => (
-            <button
-              type="button"
-              key={item.key}
-              disabled={!ready || failed}
-              onClick={() => {
-                if (view.active) close();
-                setLandmark(item);
-                city.current?.selectLandmark(item.id);
-              }}
-            >
-              {item.name}
-            </button>
-          ))}
-        </div>
-      </details>
+      {tools && (
+        <details className="tablet-landmark-list">
+          <summary>建物・駅を選ぶ</summary>
+          <div>
+            {LANDMARKS.map((item) => (
+              <button
+                type="button"
+                key={item.key}
+                disabled={!ready || failed}
+                onClick={() => {
+                  if (view.active) close();
+                  setLandmark(item);
+                  city.current?.selectLandmark(item.id);
+                }}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
     </>
   );
 }

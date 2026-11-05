@@ -326,6 +326,34 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     );
     await visitor.screenshot({ path: "output/playwright/persistent-visitor.png", fullPage: true });
     await tablet.screenshot({ path: "output/playwright/persistent-tablet.png", fullPage: true });
+    if (codeFree) {
+      const feedback = visitor.getByRole("dialog", { name: "アンケートのお願い" });
+      await expect(feedback).toBeVisible({ timeout: 25000 });
+      await expect(feedback.getByRole("link", { name: "アンケートに回答する" })).toHaveAttribute(
+        "href",
+        /docs\.google\.com\/forms\//,
+      );
+      await feedback.getByRole("button", { name: "あとで" }).click();
+      visitor.once("dialog", (dialog) => dialog.dismiss());
+      await visitor.getByRole("button", { name: "やり直す", exact: true }).click();
+      await expect(profile).toBeVisible();
+      visitor.once("dialog", (dialog) => dialog.accept());
+      await visitor.getByRole("button", { name: "やり直す", exact: true }).click();
+      await expect(visitor.getByLabel("ニックネーム", { exact: true })).toHaveValue("");
+      await expect(profile).toHaveCount(0);
+      await expect
+        .poll(
+          async () =>
+            (await (await tabletContext.request.get("/api/link/display")).json()).snapshot.residents
+              .length,
+        )
+        .toBe(0);
+      expect((await visitorContext.cookies()).some((c) => c.name === "ai-city-visitor")).toBe(
+        false,
+      );
+      expect(problems).toEqual([]);
+      return;
+    }
     await visitor
       .getByRole("button", { name: codeFree ? "公開を取り消す" : "一覧から削除", exact: true })
       .click();

@@ -31,7 +31,7 @@ test("the official sample is rendered in the tablet demo city", async ({
     const pairing = await (
       await manager.request.post("/api/link/pairing", { data: {}, headers: { origin } })
     ).json();
-    await page.goto("/tablet");
+    await page.goto("/tablet?tools=1");
     await page.getByLabel("8桁の接続コード").fill(pairing.code);
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
     await expect(page.locator(".tablet-city")).toHaveAttribute("data-spine-sample", "ready", {

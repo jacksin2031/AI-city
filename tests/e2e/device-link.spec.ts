@@ -43,7 +43,7 @@ test("mobile manager pairs an isolated tablet, controls it and revokes its read-
   await phone.getByLabel("管理キー", { exact: true }).fill(key);
   await phone.getByRole("button", { name: "管理画面に接続", exact: true }).click();
   await expect(phone.getByRole("heading", { name: "スマホで街を管理" })).toBeVisible();
-  await tablet.goto("/tablet");
+  await tablet.goto("/tablet?tools=1");
   await expect(tablet.getByRole("heading", { name: "タブレットを接続" })).toBeVisible();
   await phone.getByRole("button", { name: "タブレットの接続コードを発行" }).click();
   const code = await phone.getByTestId("pair-code").innerText();

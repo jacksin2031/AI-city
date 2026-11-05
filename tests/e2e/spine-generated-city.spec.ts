@@ -62,7 +62,7 @@ test("a generated participant character is drawn in the tablet city", async ({
         contentType: name.endsWith(".png") ? "image/png" : "application/octet-stream",
       });
     });
-    await page.goto("/tablet");
+    await page.goto("/tablet?tools=1");
     await page.getByLabel("8桁の接続コード").fill(pairing.code);
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
     await expect(page.locator(".tablet-city")).toHaveAttribute("data-spine-bundles", "1", {
