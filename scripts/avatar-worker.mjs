@@ -2,8 +2,20 @@
 // with the developer's gcloud ADC) pulls QUEUED jobs from Firestore and generates the sprite with
 // the local Codex CLI. Photos are sent to OpenAI through Codex — the consent text says so.
 //
+// It also keeps the city talking: when no avatar job is pending it produces one resident
+// conversation per loop with the same Codex CLI, using a lighter model.
+//
 //   gcloud auth application-default login   (once)
-//   AI_CITY_BACKEND=gcp node scripts/avatar-worker.mjs [--once]
+//   node scripts/avatar-worker.mjs            (resident service: loops until stopped)
+//   node scripts/avatar-worker.mjs --once     (one pass, useful for testing)
+//
+// Environment:
+//   GOOGLE_CLOUD_PROJECT             default ai-city-511822
+//   AI_CITY_CHAT_WORKER_MODEL        default gpt-6-luna
+//   AI_CITY_CHAT_TTL_SECONDS         default 1800  (how long a pair's dialogue stays current)
+//   AI_CITY_CHAT_MAX_PAIRS           default 28    (upper bound on pairs checked per loop)
+//   AI_CITY_WORKER_IDLE_SECONDS      default 5     (pause after producing a conversation)
+//   AI_CITY_CHAT_IDLE_SECONDS        default 30    (pause when every pair is already current)
 import { spawn } from "node:child_process";
 import { mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
@@ -21,6 +33,31 @@ const assetBucket = process.env.AI_CITY_ASSET_BUCKET ?? `${project}-assets`;
 const once = process.argv.includes("--once");
 const MAX_ATTEMPTS = 2;
 const CODEX_TIMEOUT_MS = 6 * 60_000;
+
+// How long one pair's dialogue is considered current.
+// Cost scales with the number of visible residents: 8 residents is 28 pairs, so a 10 minute
+// window would mean 168 Codex calls an hour. A conversation does not go stale that fast.
+const CHAT_TTL_MS = Number(process.env.AI_CITY_CHAT_TTL_SECONDS ?? 1800) * 1000;
+
+// Resident pairs are capped so a busy exhibition cannot make the loop unbounded.
+const MAX_CHAT_PAIRS_CHECKED = Number(process.env.AI_CITY_CHAT_MAX_PAIRS ?? 28);
+
+// Idle pause between loops when there was nothing to do.
+const IDLE_MS = Number(process.env.AI_CITY_WORKER_IDLE_SECONDS ?? 5) * 1000;
+
+// Even when every pair is current, pause this long before looking again, so a resident
+// appearing does not have to wait a full TTL but the loop still does not spin.
+const CHAT_IDLE_MS = Number(process.env.AI_CITY_CHAT_IDLE_SECONDS ?? 30) * 1000;
+
+// Resolve the Codex executable once. Running it directly (no shell) keeps the
+// participant-supplied model name and paths out of a command interpreter, which is what
+// Node's DEP0190 warns about when `shell: true` is combined with an argument array.
+// AI_CITY_CODEX_BIN overrides it; the default matches the documented install location.
+const CODEX_BIN =
+  process.env.AI_CITY_CODEX_BIN ??
+  (process.platform === "win32"
+    ? join(homedir(), "AppData", "Local", "Programs", "OpenAI", "Codex", "bin", "codex.exe")
+    : "codex");
 
 const firestore = new Firestore({ projectId: project });
 const storage = new Storage({ projectId: project });
@@ -147,10 +184,10 @@ function runCodex(cwd, prompt, imagePath) {
     const args = ["exec", "--json", "--skip-git-repo-check", "-s", "workspace-write"];
     if (imagePath) args.push("-i", imagePath);
     args.push("-");
-    const child = spawn("codex", args, { cwd, shell: true, stdio: ["pipe", "pipe", "ignore"] });
+    const child = spawn(CODEX_BIN, args, { cwd, stdio: ["pipe", "pipe", "ignore"] });
     let threadId = null;
     let buffered = "";
-    child.stdout.on("data", (chunk) => {
+    const handle = (chunk) => {
       buffered += chunk;
       let newline = buffered.indexOf("\n");
       while (newline >= 0) {
@@ -164,7 +201,8 @@ function runCodex(cwd, prompt, imagePath) {
           // not a JSON line
         }
       }
-    });
+    };
+    child.stdout.on("data", handle);
     const timer = setTimeout(() => {
       child.kill();
       reject(new Error("codex timeout"));
@@ -172,6 +210,10 @@ function runCodex(cwd, prompt, imagePath) {
     child.on("error", reject);
     child.on("close", () => {
       clearTimeout(timer);
+      // See runCodexText: resident mode must not accumulate listeners across spawns.
+      child.stdout.removeListener("data", handle);
+      child.stdout.destroy();
+      child.removeAllListeners();
       resolve(threadId);
     });
     child.stdin.end(prompt);
@@ -196,7 +238,7 @@ function runCodexText(cwd, prompt) {
       model,
       "-",
     ];
-    const child = spawn("codex", args, { cwd, shell: true, stdio: ["pipe", "pipe", "ignore"] });
+    const child = spawn(CODEX_BIN, args, { cwd, stdio: ["pipe", "pipe", "ignore"] });
     let buffered = "";
     let finalText = "";
     const handle = (chunk) => {
@@ -228,6 +270,11 @@ function runCodexText(cwd, prompt) {
     child.on("error", reject);
     child.on("close", () => {
       clearTimeout(timer);
+      // Resident mode spawns Codex repeatedly; release the streams so listeners from
+      // finished children do not accumulate and trigger MaxListenersExceededWarning.
+      child.stdout.removeListener("data", handle);
+      child.stdout.destroy();
+      child.removeAllListeners();
       resolve(finalText);
     });
     child.stdin.end(prompt);
@@ -339,9 +386,10 @@ async function chatTick() {
   const residents = snap.docs.map((d) => d.data()).filter((r) => r?.residentId);
   if (residents.length < 2) return false;
 
-  const CHAT_TTL_MS = 10 * 60_000;
+  let checked = 0;
   for (let i = 0; i < residents.length; i++) {
     for (let j = i + 1; j < residents.length; j++) {
+      if (checked++ >= MAX_CHAT_PAIRS_CHECKED) return false;
       const a = residents[i];
       const b = residents[j];
       const key = [a.residentId, b.residentId].sort().join("__");
@@ -355,19 +403,27 @@ async function chatTick() {
   return false;
 }
 
-console.log(`[worker] project=${project} private=${privateBucket} assets=${assetBucket}`);
+console.log(
+  `[worker] project=${project} private=${privateBucket} assets=${assetBucket}`,
+  `chatTtl=${CHAT_TTL_MS / 1000}s idle=${IDLE_MS / 1000}s chatIdle=${CHAT_IDLE_MS / 1000}s`,
+);
 do {
-  let worked = await tick().catch((error) => {
+  // Avatar jobs first: a participant is waiting on those.
+  const jobWorked = await tick().catch((error) => {
     console.error(`[worker] loop error: ${error?.name ?? "Error"}`);
     return false;
   });
-  // No avatar job pending: keep the city talking by producing one Codex dialogue.
-  if (!worked) {
-    worked = await chatTick().catch((error) => {
-      console.error(`[worker] chat loop error: ${error?.name ?? "Error"}`);
-      return false;
-    });
-  }
+
+  // Then keep the city talking. Only one conversation is produced per loop so that a
+  // backlog of pairs is worked through gradually instead of in one long burst.
+  const chatWorked = jobWorked
+    ? false
+    : await chatTick().catch((error) => {
+        console.error(`[worker] chat loop error: ${error?.name ?? "Error"}`);
+        return false;
+      });
+
   if (once) break;
-  if (!worked) await new Promise((resolve) => setTimeout(resolve, 5000));
+  if (jobWorked) continue;
+  await new Promise((resolve) => setTimeout(resolve, chatWorked ? IDLE_MS : CHAT_IDLE_MS));
 } while (true);
