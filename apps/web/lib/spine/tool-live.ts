@@ -42,6 +42,29 @@ function toolEnvironment(): NodeJS.ProcessEnv {
   return env;
 }
 
+/** Report only a static, privacy-safe preparation stage. */
+export function classifyPrepareFailure(error: unknown): SpineFailureCode {
+  const phase = error instanceof Error && "phase" in error ? error.phase : null;
+  switch (phase) {
+    case "IMPORTS":
+      return "PREPARE_RUNTIME_FAILED";
+    case "PHOTO_VERIFY":
+    case "PHOTO_IMPORT":
+      return "PREPARE_PHOTO_FAILED";
+    case "REFERENCE_VERIFY":
+    case "REFERENCE_COPY":
+      return "PREPARE_REFERENCE_FAILED";
+    case "WORKSPACE":
+      return "PREPARE_WORKSPACE_FAILED";
+    case "FLOW_CREATE":
+      return "PREPARE_FLOW_FAILED";
+    case "RECEIPT":
+      return "PREPARE_RECEIPT_FAILED";
+    default:
+      return "TOOL_PREPARATION_FAILED";
+  }
+}
+
 /** Collapse private Python diagnostics to a strictly enumerated operator-facing reason. */
 export function classifyToolFailure(code: unknown): SpineFailureCode {
   if (code === "CODEX_CHATGPT_LOGIN_REQUIRED" || code === "CODEX_CLI_NOT_FOUND")
@@ -66,6 +89,17 @@ export function interpretToolOutput(output: string, code: number | null): unknow
   if (code !== 0 && resultSchema.safeParse(payload).data?.status !== "FAILED")
     throw new Error("TOOL_LIVE_EXIT");
   return payload;
+}
+
+/** Only an approved, finished pipeline may be published. An unfinished or blocked one is NOT reviewable. */
+export function liveDisposition(
+  status: string,
+  hasBundle: boolean,
+  autoPublish: boolean,
+): "APPROVED" | "REQUIRES_REVIEW" | "UNKNOWN" {
+  if (status === "REQUIRES_REVIEW" && hasBundle) return "REQUIRES_REVIEW";
+  if (status !== "READY_FOR_REVIEWED_EXPORT" || !hasBundle) return "UNKNOWN";
+  return autoPublish ? "APPROVED" : "REQUIRES_REVIEW";
 }
 
 function runLive(
@@ -143,8 +177,8 @@ export function createToolLiveExecutor(
   return async (task: string, photo: Uint8Array, worker: string): Promise<ToolOutcome> => {
     try {
       await prepareToolTask(config, jobs, storage, task, worker, photo);
-    } catch {
-      return { status: "UNKNOWN", failureCode: "TOOL_PREPARATION_FAILED" };
+    } catch (error) {
+      return { status: "UNKNOWN", failureCode: classifyPrepareFailure(error) };
     }
     const root = await storage.privateRootForWorker(task);
     const sha = createHash("sha256").update(photo).digest("hex");
@@ -157,13 +191,16 @@ export function createToolLiveExecutor(
         failureCode: classifyToolFailure(error instanceof Error ? error.message : null),
       };
     }
-    if (result.status === "FAILED" || result.status === "ERROR_OR_RESULT_UNKNOWN")
+    // The tool output is untrusted. WAIT_RESULT, OUTPUT_BLOCKED, CONFIGURATION_BLOCKED,
+    // CANCELLED and all other unfinished states must not be mislabelled as reviewable bundles.
+    const disposition = liveDisposition(
+      result.status,
+      Boolean(result.bundle),
+      result.auto_publish === true,
+    );
+    if (disposition === "UNKNOWN" || !result.bundle)
       return { status: "UNKNOWN", failureCode: classifyToolFailure(result.error_code) };
-    // The tool output is untrusted and may contain private data; never log it.
-    if (!result.bundle || !result.auto_publish) {
-      process.stderr.write("Spine task held for review.\n");
-      return { status: "REQUIRES_REVIEW" };
-    }
+    if (disposition === "REQUIRES_REVIEW") return { status: "REQUIRES_REVIEW" };
     try {
       return {
         status: "APPROVED",

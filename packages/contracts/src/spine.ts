@@ -63,6 +63,12 @@ export type SpineRepairEntry = z.infer<typeof SpineRepairEntrySchema>;
 /** Static, privacy-safe failure classification. No free-form tool error or photo information. */
 export const SpineFailureCodeSchema = z.enum([
   "TOOL_PREPARATION_FAILED",
+  "PREPARE_RUNTIME_FAILED",
+  "PREPARE_PHOTO_FAILED",
+  "PREPARE_REFERENCE_FAILED",
+  "PREPARE_WORKSPACE_FAILED",
+  "PREPARE_FLOW_FAILED",
+  "PREPARE_RECEIPT_FAILED",
   "TOOL_RUNTIME_FAILED",
   "TOOL_LIVE_INVALID",
   "TOOL_LIVE_EXIT",
