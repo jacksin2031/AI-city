@@ -160,4 +160,16 @@ describe("buildAdminView", () => {
     expect(view.tasks).toHaveLength(200);
     expect(view.truncated).toBe(true);
   });
+
+  it("keeps tasks visible when a stored timestamp is corrupt or out of range", async () => {
+    const store = new MemoryVisitorStore();
+    await put(store, 1, { stateSince: Number.MAX_SAFE_INTEGER });
+    await put(store, 2, { stateSince: "invalid" });
+    await put(store, 3, running(now - STUCK_AFTER_MS - 1));
+    const view = await buildAdminView(store, now);
+    expect(view.tasks).toHaveLength(3);
+    expect(view.tasks.filter((task) => task.stateSince === null)).toHaveLength(2);
+    expect(view.running).toBe(1);
+    expect(view.tasks.find((task) => task.code === "00000003")?.needsAttention).toBe(true);
+  });
 });

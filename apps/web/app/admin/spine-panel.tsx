@@ -243,26 +243,33 @@ function Detail({
   const [confirm, setConfirm] = useState<"cancel" | "requeue" | "preset" | null>(null);
   const [presetId, setPresetId] = useState<DevicePresetId | null>(null);
   const needsHelp = task.needsAttention || describeState(task.state).tone === "alert";
+  const canCancel = task.state !== "WITHDRAWN";
   const preview = task.state === "PUBLISHED" ? task.preview : null;
   return (
     <div className="spine-detail">
-      {needsHelp && (
+      {(canCancel || needsHelp) && (
         <>
           <div className="admin-actions">
-            <button
-              type="button"
-              className="secondary"
-              disabled={disabled}
-              onClick={() => setConfirm("cancel")}
-            >
-              取り消す
-            </button>
-            <button type="button" disabled={disabled} onClick={() => setConfirm("requeue")}>
-              作り直す
-            </button>
-            <button type="button" disabled={disabled} onClick={() => setConfirm("preset")}>
-              見本キャラクターに変更
-            </button>
+            {canCancel && (
+              <button
+                type="button"
+                className="secondary"
+                disabled={disabled}
+                onClick={() => setConfirm("cancel")}
+              >
+                取り消す
+              </button>
+            )}
+            {needsHelp && (
+              <>
+                <button type="button" disabled={disabled} onClick={() => setConfirm("requeue")}>
+                  作り直す
+                </button>
+                <button type="button" disabled={disabled} onClick={() => setConfirm("preset")}>
+                  見本キャラクターに変更
+                </button>
+              </>
+            )}
           </div>
           {confirm === "cancel" && (
             <fieldset className="admin-confirm" aria-label="取り消しの確認">
@@ -367,7 +374,9 @@ function Detail({
           reset={() => send({ action: "resetAdjust", task: task.task })}
         />
       )}
-      {!needsHelp && !preview && <p className="muted">操作が必要な状態ではありません。</p>}
+      {!canCancel && !needsHelp && !preview && (
+        <p className="muted">操作が必要な状態ではありません。</p>
+      )}
     </div>
   );
 }
@@ -383,6 +392,9 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const alive = useRef(true);
+  // Ignore GET responses that overlap a write: an older poll must not undo a confirmed action.
+  const requestEpoch = useRef(0);
+  const actionPending = useRef(false);
 
   useEffect(() => {
     alive.current = true;
@@ -392,9 +404,14 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     // Each request starts only after the previous one has settled, so polls never overlap.
     async function tick() {
+      const epoch = requestEpoch.current;
       try {
         const next = await client.spineAdmin();
-        if (!controller.signal.aborted) {
+        if (
+          !controller.signal.aborted &&
+          epoch === requestEpoch.current &&
+          !actionPending.current
+        ) {
           setView(next);
           setNow(Date.now());
           setConnected(true);
@@ -403,15 +420,17 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
         }
       } catch (failure) {
         if (controller.signal.aborted) return;
-        // Only a never-loaded block or a disabled API is 未接続; loaded data stays, marked stale.
-        if (
-          !loadedOnce ||
-          (failure instanceof DevelopmentApiError && failure.code === "VISITORS_DISABLED")
-        ) {
-          setView(null);
-          setConnected(false);
-          loadedOnce = false;
-        } else setStale(true);
+        if (epoch === requestEpoch.current && !actionPending.current) {
+          // Only a never-loaded block or a disabled API is 未接続; loaded data stays, marked stale.
+          if (
+            !loadedOnce ||
+            (failure instanceof DevelopmentApiError && failure.code === "VISITORS_DISABLED")
+          ) {
+            setView(null);
+            setConnected(false);
+            loadedOnce = false;
+          } else setStale(true);
+        }
       }
       if (!controller.signal.aborted) timer = setTimeout(() => void tick(), POLL_MS);
     }
@@ -425,6 +444,10 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
 
   const send = useCallback(
     async (action: SpineAdminAction) => {
+      // Block repeated clicks synchronously, before React can render the disabled buttons.
+      if (actionPending.current) return;
+      actionPending.current = true;
+      requestEpoch.current++;
       setPending(true);
       setError("");
       setNotice("");
@@ -437,6 +460,9 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
       } catch (failure) {
         if (alive.current) setError(describeFailure(failure));
       } finally {
+        // Invalidate GET requests started during the POST as well as those started before it.
+        requestEpoch.current++;
+        actionPending.current = false;
         if (alive.current) setPending(false);
       }
     },

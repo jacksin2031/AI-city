@@ -46,7 +46,7 @@ async function openAdmin(
 ) {
   const bootstrap = await request.post("/api/link/bootstrap", {
     data: {},
-    headers: { origin: "http://127.0.0.1:3000" },
+    headers: { origin: process.env.AI_CITY_E2E_ORIGIN || "http://127.0.0.1:3000" },
   });
   const { key } = await bootstrap.json();
   await page.setViewportSize({ width: 390, height: 844 });
@@ -135,4 +135,72 @@ test("a failed poll keeps loaded data and the open detail, with a warning", asyn
   });
   await expect(page.getByRole("button", { name: "保存", exact: true })).toBeVisible();
   await expect(page.getByText("未接続", { exact: true })).toHaveCount(0);
+});
+
+test("admin can cancel queued and published photo jobs, not just failed jobs", async ({
+  page,
+  request,
+}) => {
+  const queuedTask = { ...view.tasks[0], state: "QUEUED", needsAttention: false };
+  const current = { ...view, tasks: [queuedTask, view.tasks[1]], queued: 1 };
+  const posts: unknown[] = [];
+  await page.route("**/api/link/spine-admin", async (route) => {
+    if (route.request().method() === "POST") posts.push(route.request().postDataJSON());
+    await route.fulfill({ json: current });
+  });
+  await openAdmin(page, request);
+
+  await page.locator(".spine-row").first().click();
+  await expect(page.getByRole("button", { name: "取り消す", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "作り直す", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "取り消す", exact: true }).click();
+  await expect(page.getByText(/元に戻せません/)).toBeVisible();
+  await page.getByRole("button", { name: "取り消しを確定", exact: true }).click();
+  await expect.poll(() => posts.length).toBe(1);
+  expect(posts[0]).toMatchObject({ action: "cancel", task: failedTask });
+
+  await page.locator(".spine-row").nth(1).click();
+  await expect(page.getByRole("button", { name: "取り消す", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "作り直す", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "取り消す", exact: true }).click();
+  await page.getByRole("button", { name: "取り消しを確定", exact: true }).click();
+  await expect.poll(() => posts.length).toBe(2);
+  expect(posts[1]).toMatchObject({ action: "cancel", task: publishedTask });
+});
+
+test("an older poll cannot bring back a cancelled task after the POST succeeds", async ({
+  page,
+  request,
+}) => {
+  const before = { ...view, tasks: [view.tasks[0]] };
+  const after = { ...before, tasks: [] };
+  let reads = 0;
+  let releasePoll = () => {};
+  let signalPoll = () => {};
+  const pollStarted = new Promise<void>((resolve) => { signalPoll = resolve; });
+  const holdPoll = new Promise<void>((resolve) => { releasePoll = resolve; });
+  await page.route("**/api/link/spine-admin", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({ json: after });
+      return;
+    }
+    if (++reads === 2) {
+      signalPoll();
+      await holdPoll;
+    }
+    await route.fulfill({ json: before });
+  });
+  try {
+    await openAdmin(page, request);
+    await page.locator(".spine-row").click();
+    await pollStarted;
+    await page.getByRole("button", { name: "取り消す", exact: true }).click();
+    await page.getByRole("button", { name: "取り消しを確定", exact: true }).click();
+    await expect(page.locator(".spine-row")).toHaveCount(0);
+    releasePoll();
+    await page.waitForTimeout(300);
+    await expect(page.locator(".spine-row")).toHaveCount(0);
+  } finally {
+    releasePoll();
+  }
 });

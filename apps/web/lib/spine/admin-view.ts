@@ -20,7 +20,8 @@ const ATTENTION_STATES = new Set(["FAILED", "UNKNOWN", "REQUIRES_REVIEW"]);
 /** Only these fields of a stored job are ever read; everything else stays server-side. */
 const jobView = z.object({
   state: SpineTaskStateSchema,
-  stateSince: z.number().int().nonnegative().optional(),
+  // A malformed timestamp must not hide an otherwise valid job from administrators.
+  stateSince: z.unknown().optional(),
   bundle: z.unknown().optional(),
   adjustment: z.unknown().optional(),
 });
@@ -46,7 +47,15 @@ export async function buildAdminView(store: VisitorStore, now: number): Promise<
     );
     const job = jobView.safeParse(value);
     if (!task.success || !job.success || job.data.state === "WITHDRAWN") continue;
-    const { state, stateSince } = job.data;
+    const { state } = job.data;
+    const rawSince = job.data.stateSince;
+    const stateSince =
+      typeof rawSince === "number" &&
+      Number.isSafeInteger(rawSince) &&
+      rawSince >= 0 &&
+      rawSince <= 253_402_300_799_999
+        ? rawSince
+        : undefined;
     if (state === "QUEUED") queued++;
     if (state === "RUNNING") running++;
     const stuck =
