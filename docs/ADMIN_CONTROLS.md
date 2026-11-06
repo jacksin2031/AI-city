@@ -26,3 +26,73 @@ Owner：A / Main。基于现有 `/admin`、ADMIN cookie 与 device-link API 扩�
 独立 Luna Max 静态审查发现批次确认缺少完整名单，已加入全部目标昵称与搜索隐藏项回归。配对 UI 没有服务端消费回执：已使用的单次码仍可能显示至到期；服务端会拒绝重用，不以连接台数推测该码是否被消费。到期后计时器停止。
 
 修正后重新执行 `pnpm check` 全通过，并重跑 admin-controls + device-link 共 3 项 E2E（34.6 秒）PASS；独立复核未发现残余 mustfix。
+
+## 写真生成（照片恢复面板）
+
+管理页「写真生成」面板用于发现并修复卡住或失败的照片生成任务。以下内容均对应代码实际行为（`apps/web/app/admin/spine-panel.tsx`、`spine-labels.ts`、`apps/web/lib/visitor/device-http.ts`、`apps/web/lib/spine/*`）。面板每 10 秒轮询一次；一次轮询失败时保留已显示内容与未保存的滑块值，并提示「最新の状態を取得できません。再試行しています」。
+
+### Worker 心跳
+
+- Worker 每 30 秒向访客存储文档 `meta/spine-worker` 写一次心跳。
+- 超过 2 分钟没有心跳即判定离线；心跳时间比当前时间晚 5 分钟以上（时钟偏差或异常值）同样判定离线。
+- 面板顶部显示「Worker 稼働中」（绿）或「Worker 停止？ 最終確認 HH:MM」/「Worker 停止？ 最終確認なし」（红），并显示「順番待ち N人・作成中 N人」（只统计已列出的任务）。
+
+### 任务清单
+
+- 状态标签：QUEUED 順番待ち、RUNNING 作成中、PREPARED 公開準備中、UNKNOWN 状態不明、REQUIRES_REVIEW 要確認、FAILED 失敗、PUBLISHED 公開中、WITHDRAWN 取り下げ済み。每行显示 8 位短码和状态持续时间。
+- `needsAttention`：状态为 FAILED、UNKNOWN、REQUIRES_REVIEW，或 RUNNING 超过 15 分钟（以 `stateSince` 计）。需要关注的任务排在前面。
+- 清单最多 200 条；超出时 `truncated` 为真，面板提示「一覧は200件までです。それ以降は表示されません。」。
+- PUBLISHED 任务带角色缩略图（来自公开的 bundle 描述，非照片）。
+
+### 修复动作
+
+| 按钮 | 效果 | 费用 |
+|---|---|---|
+| 取り消す | 先弹确认（「取り消しを確定」/「やめる」）。确认后撤回任务并开始照片清理，无法撤销。对已是 WITHDRAWN 的任务再次取消返回 409（`INVALID_TRANSITION`），界面按错误显示。 | 无 |
+| 作り直す | 仅 UNKNOWN / REQUIRES_REVIEW / FAILED / RUNNING 可用，且仅限云端照片（CLOUD_PRIVATE）。必须通过费用确认（「費用を了承して作り直す」，请求带 `confirmCost: true`，未带返回 400 `COST_UNCONFIRMED`）。仅当原照片仍存在时才可执行。执行后任务回到 QUEUED，重置 liveIntent / worker / toolFlow 并删除 `requests/spine-live-<task>`；实时预算计数不回退，Worker 再次领取时重新计入 `meta/spine-live-budget`。 | 会调用付费外部 AI，受实时预算约束 |
+| 見本キャラクターに変更 | 从 6 个预置角色中选一个，用该参加者自己已公开的资料（昵称等）发布，没有资料则用「ゲスト」；随后撤回原任务。参加者会话已结束返回 409 `SESSION_REQUIRED`；该参加者已有居民返回 409 `ACTIVE_JOB_EXISTS`。 | 无 |
+| 位置调整（5 个部位 × 上下/左右/大きさ） | 部位：髪、左手、右手、左足、右足。`dx`/`dy` 范围为角色高度的 ±0.15（步进 0.01），`scale` 范围 0.5–1.5（步进 0.05）。调整值作为独立字段保存在任务记录旁，已发布的 bundle 文件不被修改。仅对 PUBLISHED 任务有意义。 | 无 |
+| 元に戻す | 删除该调整值，恢复原样。 | 无 |
+
+作り直す 在照片已不存在、或照片存储未接入（离线 mock / 未启用云端收件）时都返回 `PHOTO_GONE`，界面统一显示「再生成できません（写真が残っていない、または未接続）」，不声称照片已被删除。
+
+### 修复记录
+
+- 保存在 `meta/spine-repair-log`，最多保留最近 50 条；面板显示最近 20 条（时间、动作名、任务短码）。
+- 只含时间、动作、短码，不含操作者身份。动作名：取り消し、作り直し、見本キャラクターへの変更、調整の保存、調整のリセット。
+
+### API
+
+- `GET /api/link/spine-admin`：返回管理视图（worker、queued、running、tasks、truncated、repairs）。
+- `POST /api/link/spine-admin`：body 为 `cancel` / `requeue` / `preset` / `adjust` / `resetAdjust` 之一（严格 schema，多余字段被拒），成功后返回最新管理视图。
+- 仅 GET、POST；带查询字符串返回 400；需要 ADMIN cookie（`authorizeParticipant`）并通过来源校验（`validateRequestOrigin`）。响应均为 `Cache-Control: no-store`。
+- 错误体为 `{ mode: "MOCK", error: { code, message } }`，`message` 为固定日语文案。
+
+| code | HTTP | 说明 |
+|---|---|---|
+| `INVALID_REQUEST` | 400 | schema 或查询字符串不合法（含未知 presetId、超范围调整值） |
+| `COST_UNCONFIRMED` | 400 | 作り直す 未带费用确认 |
+| `PAIR_REQUIRED` | 401 | 无有效管理会话 |
+| `ADMIN_REQUIRED`、`LOCAL_ONLY` | 403 | 非 ADMIN 角色 / 来源不合法 |
+| `JOB_NOT_FOUND` | 404 | 任务不存在（含调整时记录缺失） |
+| `PHOTO_GONE` | 409 | 照片不存在或未接入 |
+| `INVALID_TRANSITION` | 409 | 当前状态不允许（含重复取消、非云端照片） |
+| `SESSION_REQUIRED` | 409 | 参加者会话已结束（服务内部 401 被改映射为 409，避免被当作管理员会话过期） |
+| `ACTIVE_JOB_EXISTS` | 409 | 参加者已有居民 |
+| `LOCAL_CAPACITY` | 429 | 街的容量已满 |
+| `RATE_LIMITED` / `CAPACITY` | 429 | 设备链接层限流 |
+| `CLOUD_PHOTO_UNAVAILABLE` | 503 | 照片存储暂不可用 |
+| `VISITORS_DISABLED` | 503 | 未启用访客存储（离线 mock） |
+| `STORE_UNAVAILABLE` | 503 | 其他未知错误 |
+
+### 隐私
+
+任何响应都不含照片、照片路径、`owner`、`photoSha256`、`photoGeneration`、`consent`、存储路径。缩略图和预览只用已公开的 bundle 描述与调整值绘制。
+
+### 权限
+
+所有管理员权限相同，沿用同一个 ADMIN 会话；没有角色区分，修复记录也不记录是谁操作的。
+
+### 未接続 / offline mock
+
+默认离线 mock 下访客存储未启用，路由返回 `VISITORS_DISABLED`（503），面板只显示「未接続」，不显示任务也不提供按钮。真实行为需要接入真实 Firestore、Worker 与平板验证，见 `docs/superpowers/plans/2026-11-06-admin-photo-recovery-checklist.md`（目前全部 NOT RUN）。
