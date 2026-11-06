@@ -24,6 +24,18 @@ const recordSchema = z
     state: SpineTaskStateSchema,
     /** Epoch ms of the last state change; absent on records written before it existed. */
     stateSince: z.number().int().nonnegative().optional(),
+    /**
+     * Epoch ms of persisted transitions, for measuring real durations later. All optional so records
+     * written before they existed stay valid. NOTE: the record is strict, so a worker running code
+     * older than these fields cannot read a record that carries them; deploy the worker first.
+     * queuedAt: admission or latest requeue. startedAt: first claim of the current attempt.
+     * preparedAt: tool workspace prepared. finishedAt: the attempt ended (published, failed, held
+     * for review or unknown). A requeue starts a new attempt and clears the later three.
+     */
+    queuedAt: z.number().int().nonnegative().optional(),
+    startedAt: z.number().int().nonnegative().optional(),
+    preparedAt: z.number().int().nonnegative().optional(),
+    finishedAt: z.number().int().nonnegative().optional(),
     processingConsent: z.boolean(),
     publicationConsent: z.boolean(),
     worker: id.nullable(),
@@ -71,6 +83,13 @@ const recordSchema = z
     if (record.bundle != null) return false;
     return record.state === "QUEUED" ? record.worker === null : record.worker !== null;
   }, "Inconsistent job state");
+export type CloudQueueRefusal =
+  | "RECORD_MISSING"
+  | "RECORD_INVALID"
+  | "WITHDRAWN"
+  | "NOT_QUEUED"
+  | "NOT_CLOUD_PHOTO"
+  | "SESSION_INACTIVE";
 /** Single place that records when a job entered its current state. */
 function stamp<T extends object>(record: T, now: number): T & { stateSince: number } {
   return { ...record, stateSince: now };
@@ -96,6 +115,7 @@ export function makeSpineJob(
     photoSha256: digest.parse(photoSha256),
     consent: consentSchema.parse(consent),
     ...stamp(createProductionJob(consent), now),
+    queuedAt: now,
     worker: null,
     bundle: null,
     cleanupPending: false,
@@ -242,20 +262,37 @@ export class SpineJobs {
   }
   /** Internal dispatcher lookup for a cloud-stored photo. Never return this record to a browser. */
   async cloudQueuedForWorker(task: string) {
+    const found = await this.inspectCloudQueue(task);
+    return found.queued ? found.queued : null;
+  }
+  /**
+   * Same admission test as cloudQueuedForWorker, but a refusal carries a reason code so a worker can
+   * say why a job was not picked up. The code names a condition only: no owner, digest, URL or ID.
+   */
+  async inspectCloudQueue(
+    task: string,
+  ): Promise<
+    | { queued: { owner: string; photoSha256: string | null; generation: string } }
+    | { queued: null; reason: CloudQueueRefusal }
+  > {
     return this.store.run(async (tx) => {
-      const record = recordSchema.safeParse(await tx.get(this.path(task)));
-      if (
-        !record.success ||
-        record.data.state !== "QUEUED" ||
-        record.data.photoStorage !== "CLOUD_PRIVATE" ||
-        record.data.photoGeneration === undefined
-      )
-        return null;
-      if (!(await sessionActive(tx, record.data, this.now()))) return null;
+      const raw = await tx.get(this.path(task));
+      if (raw === null || raw === undefined) return { queued: null, reason: "RECORD_MISSING" };
+      const record = recordSchema.safeParse(raw);
+      // A record this build cannot parse (for example one written by newer code) is never claimable.
+      if (!record.success) return { queued: null, reason: "RECORD_INVALID" };
+      if (record.data.state === "WITHDRAWN") return { queued: null, reason: "WITHDRAWN" };
+      if (record.data.state !== "QUEUED") return { queued: null, reason: "NOT_QUEUED" };
+      if (record.data.photoStorage !== "CLOUD_PRIVATE" || record.data.photoGeneration === undefined)
+        return { queued: null, reason: "NOT_CLOUD_PHOTO" };
+      if (!(await sessionActive(tx, record.data, this.now())))
+        return { queued: null, reason: "SESSION_INACTIVE" };
       return {
-        owner: record.data.owner,
-        photoSha256: record.data.photoSha256,
-        generation: record.data.photoGeneration,
+        queued: {
+          owner: record.data.owner,
+          photoSha256: record.data.photoSha256,
+          generation: record.data.photoGeneration,
+        },
       };
     });
   }
@@ -265,9 +302,11 @@ export class SpineJobs {
     return this.store.run(async (tx) => {
       const record = recordSchema.parse(await tx.get(path));
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
+      const at = this.now();
       const next = {
         ...record,
-        ...stamp(transitionProductionJob(record, { type: "START" }), this.now()),
+        ...stamp(transitionProductionJob(record, { type: "START" }), at),
+        startedAt: at,
         worker,
       };
       tx.set(path, next);
@@ -280,9 +319,11 @@ export class SpineJobs {
     return this.store.run(async (tx) => {
       const record = recordSchema.parse(await tx.get(path));
       if (record.worker !== worker) throw new Error("WORKER_MISMATCH");
+      const at = this.now();
       const next = {
         ...record,
-        ...stamp(transitionProductionJob(record, { type: "UNKNOWN" }), this.now()),
+        ...stamp(transitionProductionJob(record, { type: "UNKNOWN" }), at),
+        finishedAt: at,
       };
       tx.set(path, next);
       return next;
@@ -400,9 +441,11 @@ export class SpineJobs {
       if (record.worker !== worker || !record.toolFlow || record.liveIntent)
         throw new Error("TOOL_FLOW_MISMATCH");
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
+      const at = this.now();
       const next = {
         ...record,
-        ...stamp(transitionProductionJob(record, { type: "PREPARE" }), this.now()),
+        ...stamp(transitionProductionJob(record, { type: "PREPARE" }), at),
+        preparedAt: at,
       };
       tx.set(path, next);
       return next;
@@ -417,9 +460,11 @@ export class SpineJobs {
     return this.store.run(async (tx) => {
       const record = recordSchema.parse(await tx.get(path));
       if (record.worker !== worker) throw new Error("WORKER_MISMATCH");
+      const at = this.now();
       const next = {
         ...record,
-        ...stamp(transitionProductionJob(record, { type }), this.now()),
+        ...stamp(transitionProductionJob(record, { type }), at),
+        finishedAt: at,
       };
       tx.set(path, next);
       return next;
@@ -448,12 +493,14 @@ export class SpineJobs {
       const record = recordSchema.parse(await tx.get(path));
       if (record.worker !== worker) throw new Error("WORKER_MISMATCH");
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
+      const at = this.now();
       const next = {
         ...record,
         ...stamp(
           transitionProductionJob(record, { type: "PUBLISH", verified: true, approved: true }),
-          this.now(),
+          at,
         ),
+        finishedAt: at,
         bundle: descriptor,
         publishedPhotoCleanupPending: true,
       };
@@ -577,10 +624,18 @@ export class SpineJobs {
     return this.store.run(async (tx) => {
       const found = recordSchema.safeParse(await tx.get(path));
       if (!found.success) throw new Error("NOT_FOUND");
-      const record = found.data;
+      // A requeue starts a new attempt: earlier attempt timestamps would mislead a duration.
+      const {
+        startedAt: _startedAt,
+        preparedAt: _preparedAt,
+        finishedAt: _finishedAt,
+        ...record
+      } = found.data;
+      const at = this.now();
       const next = {
         ...record,
-        ...stamp(transitionProductionJob(record, { type: "REQUEUE" }), this.now()),
+        ...stamp(transitionProductionJob(record, { type: "REQUEUE" }), at),
+        queuedAt: at,
         worker: null,
         toolFlow: null,
         liveIntent: false,

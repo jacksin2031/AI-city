@@ -820,18 +820,29 @@
   display: grid;
   gap: 12px;
 }
-.pf-bar {
-  height: 14px;
-  overflow: hidden;
+/* Three fixed steps; the highlight follows the job state, never elapsed time. */
+.pf-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pf-steps li {
+  padding: 8px 4px;
+  font-size: 14px;
+  text-align: center;
+  color: #5b6b63;
   background: #dbe5dd;
   border-radius: 7px;
 }
-.pf-bar span {
-  display: block;
-  height: 100%;
+.pf-steps li[data-reached="true"] {
+  color: #fff;
   background: linear-gradient(90deg, #2f7a5f, #5aa886);
-  border-radius: 7px;
-  transition: width 0.8s ease;
+}
+.pf-steps li[aria-current="step"] {
+  font-weight: 700;
 }
 .pf-bar-text {
   margin: 0;
@@ -853,9 +864,4 @@
 }
 .pf-tip li {
   margin: 4px 0;
-}
-@media (prefers-reduced-motion: reduce) {
-  .pf-bar span {
-    transition: none;
-  }
 }

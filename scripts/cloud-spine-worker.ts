@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { CloudAssetStorage } from "../apps/web/lib/spine/cloud-asset-storage";
 import { CloudPhotoStorage } from "../apps/web/lib/spine/cloud-photo-storage";
 import { pollCloudSpineTasks } from "../apps/web/lib/spine/cloud-worker";
+import { buildTaskListing, PollReporter } from "../apps/web/lib/spine/cloud-worker-report";
 import { HEARTBEAT_INTERVAL_MS, HEARTBEAT_PATH } from "../apps/web/lib/spine/heartbeat";
 import { SpineJobs } from "../apps/web/lib/spine/jobs";
 import { LocalSpineStorage } from "../apps/web/lib/spine/local-storage";
@@ -56,6 +57,8 @@ async function main() {
   if (!fromProject.startsWith("..") && !isAbsolute(fromProject))
     throw new Error("PRIVATE_ROOT_IN_PROJECT");
 
+  // One process per scratch directory, as the worker design requires; a dead process's lock is taken over.
+  await acquireLock(join(scratch, ".cloud-worker.lock"));
   const db = new Firestore({ projectId: PROJECT });
   const store = new FirestoreVisitorStore(db, namespace);
   const jobs = new SpineJobs(store);
@@ -101,34 +104,72 @@ async function main() {
   heartbeat.unref();
 
   // Job documents are named `spine-<task>`; only cloud-stored photos are of interest here.
+  // Only the few fields that decide whether a job needs attention are fetched, so consent records,
+  // owner and digest never leave Firestore for the listing. Queued jobs come first, oldest first,
+  // and withdrawn jobs whose cleanup is finished are counted but not visited.
   const listTasks = async () => {
     const snapshot = await db
       .collection(`visitorExhibitions/${namespace}/jobs`)
       .where("photoStorage", "==", "CLOUD_PRIVATE")
+      .select(
+        "photoStorage",
+        "state",
+        "stateSince",
+        "queuedAt",
+        "cleanupPending",
+        "toolCleanupPending",
+      )
       .get();
-    return snapshot.docs
-      .map((doc) => doc.id.replace(/^spine-/, ""))
-      .filter((task) => /^spine-[0-9a-f-]{36}$/.test(task));
+    return buildTaskListing(
+      snapshot.docs.map((doc: { id: string; data(): Record<string, unknown> }) => ({
+        id: doc.id,
+        data: doc.data(),
+      })),
+      Date.now(),
+    );
   };
 
   const stop = new AbortController();
   process.once("SIGINT", () => stop.abort());
   process.once("SIGTERM", () => stop.abort());
-  do {
-    const summary = await pollCloudSpineTasks(
-      { jobs, storage, photos, assets, listTasks, execute },
-      1,
-    );
-    if (summary.claimed || summary.cleaned) process.stdout.write(`${JSON.stringify(summary)}\n`);
-    if (args.includes("--once") || stop.signal.aborted) break;
-    try {
-      await delay(5000, undefined, { signal: stop.signal });
-    } catch {
-      if (!stop.signal.aborted) throw new Error("WORKER_WAIT_FAILED");
-    }
-  } while (!stop.signal.aborted);
-  clearInterval(heartbeat);
-  await db.terminate();
+  // Reason-coded counts only. Task IDs, owners, digests and photo data never reach this log.
+  const reporter = new PollReporter();
+  const inFlight = new Set<string>();
+  const loop = async () => {
+    do {
+      try {
+        const summary = await pollCloudSpineTasks(
+          { jobs, storage, photos, assets, listTasks, execute },
+          1,
+          inFlight,
+        );
+        const line = reporter.line(summary);
+        if (line) process.stdout.write(`${line}\n`);
+      } catch (error) {
+        // A failed listing (for example Firestore unavailable) must not end a long-running worker.
+        if (args.includes("--once")) throw error;
+        const message = error instanceof Error ? error.message : "";
+        const code = /^[A-Z][A-Z0-9_]{2,40}$/.test(message) ? message : "UNCLASSIFIED";
+        process.stdout.write(
+          `${JSON.stringify({ at: new Date().toISOString(), pollError: code })}\n`,
+        );
+      }
+      if (args.includes("--once") || stop.signal.aborted) break;
+      try {
+        await delay(5000, undefined, { signal: stop.signal });
+      } catch {
+        if (!stop.signal.aborted) throw new Error("WORKER_WAIT_FAILED");
+      }
+    } while (!stop.signal.aborted);
+  };
+  try {
+    // One loop per requested worker. They share the in-flight set, so a person is never run twice.
+    await Promise.all(Array.from({ length: workers }, () => loop()));
+  } finally {
+    clearInterval(heartbeat);
+    await rm(join(scratch, ".cloud-worker.lock"), { force: true });
+    await db.terminate();
+  }
 }
 
 /** One owner per scratch directory; a lock left by a dead process is taken over. */

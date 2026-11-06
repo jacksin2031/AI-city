@@ -91,6 +91,103 @@ describe("Spine job stateSince", () => {
   });
 });
 
+describe("Spine job attempt timestamps", () => {
+  it("persists queued, started, prepared and finished from the real transitions", async () => {
+    let now = 1_000;
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, () => now);
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    expect(await jobs.get("task1", owner)).toMatchObject({ queuedAt: 1_000 });
+    expect((await jobs.get("task1", owner)).startedAt).toBeUndefined();
+    now = 2_000;
+    expect(await jobs.claim("task1", "worker1")).toMatchObject({
+      queuedAt: 1_000,
+      startedAt: 2_000,
+    });
+    now = 5_000;
+    await store.run(async (tx) => {
+      const record = (await tx.get("jobs/spine-task1")) as Record<string, unknown>;
+      tx.set("jobs/spine-task1", { ...record, toolFlow: `flow-${"a".repeat(32)}` });
+    });
+    expect(await jobs.markPrepared("task1", "worker1")).toMatchObject({
+      state: "PREPARED",
+      startedAt: 2_000,
+      preparedAt: 5_000,
+    });
+    expect((await jobs.get("task1", owner)).finishedAt).toBeUndefined();
+  });
+
+  it("records the end of an attempt for unknown, failed and review outcomes", async () => {
+    for (const [finish, state] of [
+      ["markUnknown", "UNKNOWN"],
+      ["markFailed", "FAILED"],
+      ["markReview", "REQUIRES_REVIEW"],
+    ] as const) {
+      let now = 1_000;
+      const jobs = new SpineJobs(new MemoryVisitorStore(), () => now);
+      await jobs.create("task1", owner, "c".repeat(64), consent);
+      now = 2_000;
+      await jobs.claim("task1", "worker1");
+      now = 9_000;
+      expect(await jobs[finish]("task1", "worker1")).toMatchObject({
+        state,
+        startedAt: 2_000,
+        finishedAt: 9_000,
+      });
+    }
+  });
+
+  it("records publication time with the bundle", async () => {
+    let now = 1_000;
+    const jobs = new SpineJobs(new MemoryVisitorStore(), () => now);
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    now = 2_000;
+    await jobs.claim("task1", "worker1");
+    now = 12_000;
+    const published = await jobs.publish("task1", "worker1", candidate());
+    expect(published).toMatchObject({ state: "PUBLISHED", startedAt: 2_000, finishedAt: 12_000 });
+  });
+
+  it("starts a new attempt on requeue without carrying over the old one", async () => {
+    const now = 50_000;
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, () => now);
+    await store.run(async (tx) =>
+      tx.set("jobs/spine-task1", {
+        ...makeCloudSpineJob(
+          owner,
+          "c".repeat(64),
+          { ...spineConsent, recordedAt: "2026-11-05T00:00:00.000Z" },
+          99_000,
+          "7",
+          1_000,
+        ),
+        state: "FAILED",
+        worker: "worker1",
+        startedAt: 2_000,
+        finishedAt: 3_000,
+      }),
+    );
+    await jobs.requeue("task1");
+    const record = await jobs.get("task1", owner);
+    expect(record).toMatchObject({ state: "QUEUED", queuedAt: 50_000, stateSince: 50_000 });
+    expect(record.startedAt).toBeUndefined();
+    expect(record.finishedAt).toBeUndefined();
+  });
+
+  it("still reads records written before these fields existed", async () => {
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, () => 7_000);
+    const job = makeSpineJob(owner, "c".repeat(64), consent, undefined, 5_000);
+    const { queuedAt: _queuedAt, ...legacy } = job;
+    await store.run(async (tx) => tx.set("jobs/spine-old", legacy));
+    const record = await jobs.get("old", owner);
+    expect(record.queuedAt).toBeUndefined();
+    await jobs.claim("old", "worker1");
+    expect((await jobs.get("old", owner)).startedAt).toBe(7_000);
+  });
+});
+
 describe("Spine jobs transaction boundary", () => {
   it("binds job to owner and prevents duplicate claims", async () => {
     const jobs = new SpineJobs(new MemoryVisitorStore());
