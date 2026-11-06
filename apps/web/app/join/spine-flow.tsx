@@ -15,10 +15,20 @@ import Link from "next/link";
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
 import { LocalPhoto } from "./local-photo";
+import { ParticipantCard } from "./participant-card";
 import { computeStyle, questions } from "./questions";
 import { attentionMessages, estimateProgress } from "./spine-progress";
+import { traitValues } from "./trait-values";
 import { useReliableFocus } from "./use-reliable-focus";
+import { useSpinePortrait } from "./use-spine-portrait";
 import "./participant.css";
+
+/** Shown until the finished figure is drawn; the card keeps its layout either way. */
+const TRANSPARENT_PORTRAIT =
+  "data:image/svg+xml;charset=utf-8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="128" viewBox="0 0 96 128"></svg>',
+  );
 
 type Stage = "name" | "upload" | "questions" | "progress" | "done" | "closed";
 const MAX_PHOTO = 8 * 1024 * 1024;
@@ -226,6 +236,9 @@ export function SpineParticipantFlow() {
   );
   const style = computeStyle(answers);
   const answered = answers.some((answer) => answer !== null);
+  const styleLabel = aiStyleLabels[style];
+  // The finished figure is drawn from the participant's own published bundle.
+  const portrait = useSpinePortrait(stage === "done" && job?.state === "PUBLISHED");
   const stepLabel = (n: number) => `ステップ ${n} / 4`;
 
   return (
@@ -495,10 +508,16 @@ export function SpineParticipantFlow() {
                   <p>キャラクターが完成し、展示の街に公開されました。</p>
                 </header>
                 {answered && (
-                  <div className="pf-card">
-                    <strong>あなたのAIスタイル（娯楽用）</strong>
-                    <p>{aiStyleLabels[style]}</p>
-                  </div>
+                  <ParticipantCard
+                    name={nickname.trim() || "ゲスト"}
+                    avatarSrc={portrait ?? TRANSPARENT_PORTRAIT}
+                    tone="green"
+                    decoration={null}
+                    isStyle
+                    styleText={`スマホのAIスタイル：${styleLabel}（娯楽用）`}
+                    styleLabel={styleLabel}
+                    values={traitValues(answers, styleLabel)}
+                  />
                 )}
                 <section className="pf-controls" aria-label="平板の操作">
                   <h2>平板の操作</h2>

@@ -184,6 +184,12 @@ export async function handleVisitorRequest(
     }
     if ((spineStorage || spineCloud) && path === "spine/jobs/current" && request.method === "GET")
       return json({ mode: "LOCAL_PRIVATE_TEST", job: await service.currentSpineJob(token) });
+    // The participant's own character, so the summary card can draw the finished figure.
+    if ((spineStorage || spineCloud) && path === "spine/bundle" && request.method === "GET")
+      return json({
+        mode: "LOCAL_PRIVATE_TEST",
+        bundle: await service.currentSpineBundle(token),
+      });
     const spineMatch = /^spine\/jobs\/([A-Za-z0-9_-]{1,96})(?:\/(withdraw))?$/.exec(path);
     if ((spineStorage || spineCloud) && spineMatch?.[1]) {
       if (request.method === "GET" && !spineMatch[2])

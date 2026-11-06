@@ -18,6 +18,8 @@ import {
   type SceneCamera,
   type ScenePresentation,
   type ScenePresentationFrame,
+  facingFor as sceneFacingFor,
+  tourCamera,
   VIEW,
 } from "./focus";
 import { characterDataUrl, illustrationPalette } from "./illustrations";
@@ -34,11 +36,18 @@ import {
   stepActor,
 } from "./simulation";
 import { createTraffic, type TrafficData } from "./traffic-scene";
-import { cityViewport, nextVisibleTourIndex, pointInVisibleCity } from "./viewport";
+import {
+  cityViewport,
+  nextResidentTourIndex,
+  nextVisibleTourIndex,
+  pointInVisibleCity,
+} from "./viewport";
 import { type CityPlaces, createWorld, heightAt, parseGrid, tour, type World } from "./world";
 
 export type IllustratedCity = {
   setResidents(residents: PublicResident[], addedIds?: string[]): void;
+  /** Pick up newly loaded character art without rebuilding the scene. */
+  refreshCharacters(): void;
   setMotionEnabled(enabled: boolean): void;
   select(id: string | null): void;
   selectLandmark(id: number | null): void;
@@ -402,6 +411,7 @@ function startCity(
   let glide: { from: SceneCamera; startedAt: number; duration: number } | null = null;
   let tourStep = 0;
   let tourWait = 9;
+  let tourResidentId: string | null = null;
   let tourGlide: { from: SceneCamera; to: SceneCamera; t: number } | null = null;
   let userHoldUntil = 0;
 
@@ -448,16 +458,7 @@ function startCity(
   resize();
 
   /** Which drawing faces the viewer: a heading relative to the fixed camera. */
-  function facingFor(heading: number, walking: boolean): Direction {
-    const fx = Math.cos(heading);
-    const fy = Math.sin(heading);
-    const right = fx * VIEW.right.x + fy * VIEW.right.y;
-    const length = Math.hypot(VIEW.toCamera.x, VIEW.toCamera.y);
-    const toward = (fx * VIEW.toCamera.x + fy * VIEW.toCamera.y) / length;
-    // Walkers show their profile unless they head almost straight at or away from the viewer.
-    if (Math.abs(right) > (walking ? 0.3 : 0.7)) return right > 0 ? "right" : "left";
-    return toward > 0 ? "front" : "back";
-  }
+  const facingFor = sceneFacingFor;
 
   function textureFor(entry: Entry, presenting: boolean) {
     const action = entry.actor.waitingForSignal ? "idle" : entry.actor.action;
@@ -686,6 +687,11 @@ function startCity(
     );
   }
 
+  /** Frame a resident for the automatic tour, using the scene's shared composition rules. */
+  function residentView(actor: Actor): SceneCamera {
+    return tourCamera({ x: actor.x, y: actor.y, height: groundAt(actor.x, actor.y) });
+  }
+
   function stepTour(seconds: number) {
     if (presentation || selectedId || clock < userHoldUntil || !moving) return;
     if (tourGlide) {
@@ -696,7 +702,27 @@ function startCity(
     }
     tourWait -= seconds;
     if (tourWait > 0) return;
-    const present = [...entries.values()].filter((entry) => !entry.leaveAt);
+    // Participants first: the tour looks at a resident whenever one is on screen, and only
+    // falls back to a landmark when the street is empty.
+    const present = [...entries.entries()].filter(
+      ([, entry]) => !entry.leaveAt && entry.enterAt === 0,
+    );
+    const guidedIndex = present.length
+      ? nextResidentTourIndex(
+          present.map(([id]) => id),
+          tourResidentId,
+        )
+      : null;
+    const guided = guidedIndex === null ? undefined : present[guidedIndex];
+    if (guided) {
+      const [guidedId, guidedEntry] = guided;
+      tourResidentId = guidedId;
+      tourStep = (tourStep + 1) % tour.length;
+      tourGlide = { from: view, to: residentView(guidedEntry.actor), t: 0 };
+      tourWait = 10;
+      return;
+    }
+    tourResidentId = null;
     const viewFor = (point: { x: number; y: number }) =>
       clampCamera({
         centerX: point.x,
@@ -704,21 +730,14 @@ function startCity(
         height: groundAt(point.x, point.y),
         zoom: DEFAULT_ZOOM,
       });
-    const nextVisible = present.length
-      ? nextVisibleTourIndex(tourStep, tour.length, (index) => {
-          const point = tour[index];
-          return Boolean(point && present.some((entry) => inView(entry.actor, viewFor(point))));
-        })
-      : null;
+    const nextVisible = nextVisibleTourIndex(tourStep, tour.length, (index) => {
+      const point = tour[index];
+      return Boolean(point && present.some(([, entry]) => inView(entry.actor, viewFor(point))));
+    });
     tourStep = nextVisible ?? (tourStep + 1) % tour.length;
-    // When none of the landmarks can show a resident, centre a resident instead.
-    const next =
-      nextVisible === null && present.length
-        ? (present[tourStep % present.length]?.actor ?? start)
-        : (tour[tourStep] ?? start);
     tourGlide = {
       from: view,
-      to: viewFor(next),
+      to: viewFor(tour[tourStep] ?? start),
       t: 0,
     };
     tourWait = 10;
@@ -1044,6 +1063,20 @@ function startCity(
     setResidents(next, addedIds = []) {
       residents = next;
       sync(addedIds);
+    },
+    /**
+     * Re-attempt the animated artwork for residents that are still on the fallback drawing.
+     * Called after a Spine bundle finishes loading, so a character that appeared before its
+     * assets were ready picks them up without the scene being rebuilt.
+     */
+    refreshCharacters() {
+      if (destroyed) return;
+      for (const entry of entries.values()) {
+        if (entry.animated || entry.leaveAt) continue;
+        const animated = animatedFor(entry.resident);
+        if (!animated) continue;
+        entry.animated = animated;
+      }
     },
     setMotionEnabled(enabled) {
       moving = enabled;

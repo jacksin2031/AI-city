@@ -39,10 +39,21 @@ export type World = { grid: WalkGrid; pois: Poi[]; spawns: Point[] };
 /** Extent of the exported terrain. */
 export const BOUNDS = { x0: -480, y0: -390, width: 790, depth: 730 } as const;
 
-/** Relative effort of walking one metre over each cell kind; streets are crossed, not followed. */
-const COST = [0, 1, 1.3, 2.5, 3.5, 9];
+/**
+ * Relative effort of walking one metre over each cell kind. Footways are the intended route, so
+ * they are cheapest; open ground is markedly more expensive because it includes the unmarked gaps
+ * between buildings, and a resident should only cross it when there is no footway alternative.
+ * Streets are crossed rather than followed.
+ */
+const COST = [0, 1, 4, 2.5, 3.5, 9];
 /** Kerbs and steps are fine; anything taller is a wall, an embankment or a bridge edge. */
 const MAX_STEP_CM = 45;
+/**
+ * Extra metres of apparent distance that make a walker prefer a footway over open ground.
+ * Open ground includes the unmarked gaps between buildings, so it should only be chosen when
+ * nothing paved is anywhere near.
+ */
+const OPEN_GROUND_AVOIDANCE = 10;
 
 export function parseGrid(meta: CityPlaces["grid"], data: ArrayBuffer): WalkGrid {
   const cells = meta.width * meta.depth;
@@ -105,11 +116,14 @@ export function nearestWalkable(grid: WalkGrid, point: Point, radius = 40): Poin
         const r = row + dr;
         if (c < 0 || r < 0 || c >= grid.width || r >= grid.depth) continue;
         const index = r * grid.width + c;
-        // Prefer footways; a street cell only counts when nothing better is near.
+        // Prefer footways. Open ground may be a gap between buildings, so it is only chosen
+        // when no footway is near; a street cell is a last resort.
         const kind = grid.kinds[index] ?? 0;
         if (!kind) continue;
         const cell = centre(grid, index);
-        const distance = Math.hypot(cell.x - point.x, cell.y - point.y) + (kind >= 4 ? 6 : 0);
+        // Open ground may be a gap between buildings; a street cell is a last resort.
+        const avoidance = kind === 2 ? OPEN_GROUND_AVOIDANCE : kind >= 4 ? 6 : 0;
+        const distance = Math.hypot(cell.x - point.x, cell.y - point.y) + avoidance;
         if (distance < bestDistance) {
           bestDistance = distance;
           best = cell;

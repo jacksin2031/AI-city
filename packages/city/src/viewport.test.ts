@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cityViewport,
   clampSpeechToViewport,
+  nextResidentTourIndex,
   nextVisibleTourIndex,
   pointInVisibleCity,
 } from "./viewport";
@@ -35,6 +36,18 @@ describe("city viewport", () => {
     expect(nextVisibleTourIndex(0, 4, (index) => index === 2)).toBe(2);
     expect(nextVisibleTourIndex(2, 4, (index) => index === 0)).toBe(0);
     expect(nextVisibleTourIndex(0, 4, () => false)).toBeNull();
+  });
+  it("walks the participants so the tour moves on to the next person each time", () => {
+    const ids = ["a", "b", "c"];
+    expect(nextResidentTourIndex(ids, null)).toBe(0);
+    expect(nextResidentTourIndex(ids, "a")).toBe(1);
+    expect(nextResidentTourIndex(ids, "b")).toBe(2);
+    expect(nextResidentTourIndex(ids, "c")).toBe(0);
+    // A resident who left the scene no longer appears in the list, so the tour restarts
+    // from the front instead of sticking on a stale id.
+    expect(nextResidentTourIndex(["b", "c"], "a")).toBe(0);
+    expect(nextResidentTourIndex(["only"], "only")).toBe(0);
+    expect(nextResidentTourIndex([], null)).toBeNull();
   });
 });
 

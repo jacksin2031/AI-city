@@ -1,5 +1,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { type PublicResident, PublicResidentSchema } from "@ai-city/contracts";
+import {
+  type PublicResident,
+  PublicResidentSchema,
+  type SpineBundleSchema,
+} from "@ai-city/contracts";
 import {
   aiStyleLabels,
   type CitySnapshot,
@@ -30,6 +34,9 @@ import {
 } from "../spine/jobs";
 import { removeSpineResident, SpineRosterEntrySchema } from "../spine/roster-index";
 import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
+
+/** The public descriptor of a published Spine bundle; enough to fetch and draw the character. */
+type SpineBundle = z.infer<typeof SpineBundleSchema>;
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const INVITATION_TTL_MS = 3 * 60 * 1000;
@@ -861,6 +868,28 @@ export class VisitorService {
     });
   }
 
+  /**
+   * The participant's own published character bundle, so the summary card can draw it.
+   * Only the owner of a live session may read it, and only once it is public.
+   */
+  async currentSpineBundle(token: string): Promise<SpineBundle | null> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const index = await tx.get(`requests/spine-owner-${owner}`);
+      const task = index?.task;
+      if (typeof task !== "string" || !/^[A-Za-z0-9_-]{1,96}$/.test(task)) return null;
+      const entry = state.spineResidents.find((item) => item.task === task);
+      if (!entry || entry.owner !== owner || entry.expiresAt <= now) return null;
+      return publishedSpineRecord(await tx.get(`jobs/spine-${task}`), owner, entry.expiresAt);
+    });
+  }
+
   async createInvitation(): Promise<{ code: string; expiresAt: number }> {
     const now = this.now();
     const code = randomBytes(16).toString("hex");
@@ -1295,7 +1324,11 @@ export class VisitorService {
         eventSeq: state.eventSeq + 1,
         // Re-publishing an already public profile is not a new participant.
         joinedTotal:
-          state.joinedTotal + (state.residents.some((s) => s.ownerDigest === digest) ? 0 : 1),
+          state.joinedTotal +
+          (state.residents.some((stored) => stored.ownerDigest === digest) ||
+          state.spineResidents.some((stored) => stored.owner === digest)
+            ? 0
+            : 1),
         residents: [
           ...state.residents.filter((stored) => stored.ownerDigest !== digest),
           { ownerDigest: digest, jobId: id, expiresAt: session.expiresAt, resident },
@@ -1494,6 +1527,15 @@ export class VisitorService {
     return this.store.run(async (tx) => {
       const raw = await tx.get("meta/state");
       return raw ? parseState(raw).joinedTotal : 0;
+    });
+  }
+
+  /** Resets the anonymous public-join total without changing the resident roster. */
+  async resetJoinedTotal(): Promise<number> {
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      setDocument(tx, "meta/state", { ...state, joinedTotal: 0 });
+      return 0;
     });
   }
 

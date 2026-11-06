@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ZOOM,
+  facingFor,
   focusCamera,
   PROFILE_MAGNIFICATION,
   panCamera,
   project,
   projectResident,
   speechBounds,
+  TOUR_FOCUS_ZOOM,
+  tourCamera,
   VIEW,
 } from "./focus";
 
@@ -37,6 +40,50 @@ describe("in-scene character focus", () => {
     expect(south.y).toBeCloseTo(east.y);
     expect(up.x).toBeCloseTo(480);
     expect(up.y).toBeCloseTo(300 - DEFAULT_ZOOM * VIEW.up.height);
+  });
+
+  it("centres the tour on a participant, keeping the figure low with headroom", () => {
+    const actor = { x: 70, y: 110, height: 13.5 };
+    const camera = tourCamera(actor);
+    // The tour zooms in on the participant, but stays wider than a full profile view.
+    expect(camera.zoom).toBe(TOUR_FOCUS_ZOOM);
+    expect(camera.zoom).toBeGreaterThan(DEFAULT_ZOOM);
+    expect(camera.zoom).toBeLessThan(DEFAULT_ZOOM * PROFILE_MAGNIFICATION);
+    const pose = projectResident(actor, camera, 0.02);
+    const feet = project(actor, camera);
+    // The resident is the subject: centred horizontally, below the mid-line.
+    expect(pose.x).toBeCloseTo(480);
+    expect(feet.y).toBeGreaterThan(300);
+    // Head and feet both stay inside the 600-unit frame, with room above the head.
+    const headTop = pose.y - pose.scale * 128;
+    expect(headTop).toBeGreaterThan(8);
+    expect(headTop).toBeLessThan(300);
+    expect(feet.y).toBeLessThan(600);
+    // Aim height tracks the actor, so a taller spot does not push the figure off centre.
+    const high = tourCamera({ x: 70, y: 110, height: 20 });
+    expect(project({ x: 70, y: 110, height: 20 }, high).x).toBeCloseTo(480);
+  });
+
+  it("shows the drawing that matches the direction the figure travels on screen", () => {
+    const camera = { centerX: 0, centerY: 0, height: 0, zoom: DEFAULT_ZOOM };
+    const origin = project({ x: 0, y: 0, height: 0 }, camera);
+    // Walk a metre in each world direction and see which way the figure actually moves.
+    for (let degrees = 0; degrees < 360; degrees += 15) {
+      const heading = (degrees * Math.PI) / 180;
+      const moved = project(
+        { x: Math.cos(heading) * 5, y: Math.sin(heading) * 5, height: 0 },
+        camera,
+      );
+      const dx = moved.x - origin.x;
+      const facing = facingFor(heading, true);
+      if (Math.abs(dx) > 4) {
+        // Moving across the view: the profile must match that side of the screen.
+        expect(facing, `${degrees}° moves dx=${dx.toFixed(1)}`).toBe(dx > 0 ? "right" : "left");
+      } else {
+        // Almost straight into or out of the view: never a profile.
+        expect(["front", "back"], `${degrees}° is almost head-on`).toContain(facing);
+      }
+    }
   });
 
   it("pans so the ground under the finger follows the drag", () => {

@@ -44,4 +44,24 @@ describe("central district roaming on the exported city grid", () => {
       }
     }
   });
+
+  it("keeps planned routes on paved ground instead of the gaps between buildings", () => {
+    const world = realWorld();
+    let paved = 0;
+    let open = 0;
+    for (let index = 0; index < Math.min(world.spawns.length, 12); index++) {
+      let actor = createActor(world, index);
+      for (let trip = 0; trip < 5; trip++) {
+        const walking = commandActor(world, actor, "walk");
+        if (walking.action !== "walk") break;
+        for (const point of walking.path)
+          if (kindAt(world.grid, point.x, point.y) === 1) paved++;
+          else if (kindAt(world.grid, point.x, point.y) === 2) open++;
+        actor = stepActor(world, walking, 4000, true);
+      }
+    }
+    expect(paved + open).toBeGreaterThan(40);
+    // Open ground is what hides the gaps between buildings, so routes must clearly avoid it.
+    expect(paved / (paved + open)).toBeGreaterThan(0.6);
+  });
 });
