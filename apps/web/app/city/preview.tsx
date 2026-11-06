@@ -69,7 +69,8 @@ export function CityPreview() {
     };
     void refresh();
     const interval = window.setInterval(refresh, 5000);
-    void talk();
+    // Default scene has no resident dialogue; opt in with NEXT_PUBLIC_AI_CITY_CHAT=1.
+    if (process.env.NEXT_PUBLIC_AI_CITY_CHAT === "1") void talk();
     return () => {
       disposed = true;
       window.clearInterval(interval);

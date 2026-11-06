@@ -2,8 +2,8 @@
 // with the developer's gcloud ADC) pulls QUEUED jobs from Firestore and generates the sprite with
 // the local Codex CLI. Photos are sent to OpenAI through Codex — the consent text says so.
 //
-// It also keeps the city talking: when no avatar job is pending it produces one resident
-// conversation per loop with the same Codex CLI, using a lighter model.
+// Optionally (--chat or AI_CITY_WORKER_CHAT=1, off by default) it keeps the city talking: when no
+// avatar job is pending it produces one resident conversation per loop with the same Codex CLI.
 //
 //   gcloud auth application-default login   (once)
 //   node scripts/avatar-worker.mjs            (resident service: loops until stopped)
@@ -31,6 +31,9 @@ const project = process.env.GOOGLE_CLOUD_PROJECT ?? "ai-city-511822";
 const privateBucket = process.env.AI_CITY_PRIVATE_BUCKET ?? `${project}-private`;
 const assetBucket = process.env.AI_CITY_ASSET_BUCKET ?? `${project}-assets`;
 const once = process.argv.includes("--once");
+// Resident dialogue spends Codex calls, so it is OFF by default: the default scene has no AI
+// conversation. Opt in with --chat or AI_CITY_WORKER_CHAT=1. Avatar jobs are unaffected.
+const chatEnabled = process.argv.includes("--chat") || process.env.AI_CITY_WORKER_CHAT === "1";
 const MAX_ATTEMPTS = 2;
 const CODEX_TIMEOUT_MS = 6 * 60_000;
 
@@ -405,7 +408,7 @@ async function chatTick() {
 
 console.log(
   `[worker] project=${project} private=${privateBucket} assets=${assetBucket}`,
-  `chatTtl=${CHAT_TTL_MS / 1000}s idle=${IDLE_MS / 1000}s chatIdle=${CHAT_IDLE_MS / 1000}s`,
+  `chat=${chatEnabled ? "on" : "off"} chatTtl=${CHAT_TTL_MS / 1000}s idle=${IDLE_MS / 1000}s chatIdle=${CHAT_IDLE_MS / 1000}s`,
 );
 do {
   // Avatar jobs first: a participant is waiting on those.
@@ -416,12 +419,13 @@ do {
 
   // Then keep the city talking. Only one conversation is produced per loop so that a
   // backlog of pairs is worked through gradually instead of in one long burst.
-  const chatWorked = jobWorked
-    ? false
-    : await chatTick().catch((error) => {
-        console.error(`[worker] chat loop error: ${error?.name ?? "Error"}`);
-        return false;
-      });
+  const chatWorked =
+    jobWorked || !chatEnabled
+      ? false
+      : await chatTick().catch((error) => {
+          console.error(`[worker] chat loop error: ${error?.name ?? "Error"}`);
+          return false;
+        });
 
   if (once) break;
   if (jobWorked) continue;
