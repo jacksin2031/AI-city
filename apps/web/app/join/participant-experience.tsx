@@ -54,10 +54,13 @@ type Stage =
 
 export function ParticipantExperience({
   spineLocal = false,
+  spineAvailable = false,
   photoHref = "/join/spine",
   presetOnly = false,
 }: {
   spineLocal?: boolean;
+  /** True when Spine jobs exist, even if the administrator has paused new photo uploads. */
+  spineAvailable?: boolean;
   photoHref?: string;
   /** Join as a prepared character: no name, no photo, straight to choosing a character. */
   presetOnly?: boolean;
@@ -159,21 +162,22 @@ export function ParticipantExperience({
   // surfaced first, because the next person on a shared phone may not be its owner.
   useEffect(() => {
     let live = true;
-    void probeExisting({ sample: () => client.current(), spine: readSpineCurrent }).then(
-      (probe) => {
-        if (!live) return;
-        if (probe.unreadable)
-          setError("参加情報を確認できませんでした。ページを読み直してください。");
-        if (probe.existing) setGuard({ probe, existing: probe.existing, late: false });
-        // A removed or cancelled participation shows nothing public and blocks nothing.
-        else if (probe.sample) showView(probe.sample);
-        setInitializing(false);
-      },
-    );
+    void probeExisting({
+      sample: () => client.current(),
+      spine: () => (spineAvailable ? readSpineCurrent() : Promise.resolve(null)),
+    }).then((probe) => {
+      if (!live) return;
+      if (probe.unreadable)
+        setError("参加情報を確認できませんでした。ページを読み直してください。");
+      if (probe.existing) setGuard({ probe, existing: probe.existing, late: false });
+      // A removed or cancelled participation shows nothing public and blocks nothing.
+      else if (probe.sample) showView(probe.sample);
+      setInitializing(false);
+    });
     return () => {
       live = false;
     };
-  }, [client, showView]);
+  }, [client, showView, spineAvailable]);
 
   function continueExisting() {
     if (!guard) return;
@@ -211,7 +215,10 @@ export function ParticipantExperience({
   }
   /** A conflict reported only at create time: show the same choice, keeping what was typed. */
   async function raiseLateGuard() {
-    const probe = await probeExisting({ sample: () => client.current(), spine: readSpineCurrent });
+    const probe = await probeExisting({
+      sample: () => client.current(),
+      spine: () => (spineAvailable ? readSpineCurrent() : Promise.resolve(null)),
+    });
     // A leftover the server still counts is also resolved by ending the old session.
     const existing = probe.existing ?? { kind: "sample" as const, phase: "attention" as const };
     setGuard({ probe, existing, late: true });

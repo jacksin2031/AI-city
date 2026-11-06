@@ -67,7 +67,7 @@ async function prepareNewParticipant(page: Page, name: string, answer = false) {
   await page.getByRole("button", { name: "写真を使わずにカスタマイズ" }).click();
   await page.getByRole("radio", { name: "むらさき" }).check();
   await page.getByRole("radio", { name: "星" }).check();
-  await page.getByRole("radio", { name: "はる" }).check();
+  await page.getByRole("radio", { name: /かえで（好奇心いっぱい）/ }).check();
   await page.getByRole("button", { name: "このキャラクターで進む" }).click();
   await expect(page.getByRole("radio")).toHaveCount(3);
   if (answer) {
@@ -186,13 +186,15 @@ test("AI questionnaire offers three choices and sends only the entertainment res
   // the earlier participant's name or card, and resumed by an explicit choice.
   const guard = page.getByTestId("existing-guard");
   await expect(guard).toBeVisible();
-  await expect(guard).toContainText("街に公開されているキャラクターがあります");
+  await expect(guard).toContainText(
+    /公開前の確認待ちの参加があります|街に公開されているキャラクターがあります/,
+  );
   await expect(page.getByText("スマホのAIスタイル：ひらめき探検家（娯楽用）")).toHaveCount(0);
   await guard.getByRole("button", { name: "自分の参加を続ける" }).click();
   await expect(page.getByText("スマホのAIスタイル：ひらめき探検家（娯楽用）")).toBeVisible();
   expect(Date.now() - submittedAt).toBeGreaterThanOrEqual(3400);
   await page.getByRole("button", { name: "参加を中止して情報を削除" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/join$/);
 });
 
 test("the three role entry points have no hyperlinks between them", async ({
@@ -505,7 +507,7 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
   }
 });
 
-test("actual Node restart preserves signed visitor identity and publication but requires device login again", async () => {
+test("actual Node restart preserves signed visitor identity, publication and admin session", async () => {
   test.setTimeout(90000);
   const app = fileURLToPath(new URL("../../apps/web/", import.meta.url));
   const require = createRequire(new URL("../../apps/web/package.json", import.meta.url));
@@ -612,8 +614,9 @@ test("actual Node restart preserves signed visitor identity and publication but 
     const restored = await call("/api/visitor/jobs/current", cookie);
     expect(restored.status).toBe(200);
     expect((await restored.json()).publication).toBe("PUBLISHED");
-    expect((await call("/api/link/admin", admin)).status).toBe(401);
-    const nextAdmin = await login();
+    // Admin/tablet sessions now survive Cloud Run process restarts (Issue #58 P9).
+    expect((await call("/api/link/admin", admin)).status).toBe(200);
+    const nextAdmin = admin;
     expect(
       (await (await call("/api/link/admin", nextAdmin)).json()).snapshot.residents,
     ).toHaveLength(1);

@@ -37,6 +37,7 @@ export default async function Join({
     return (
       <ParticipantExperience
         spineLocal={spineLocal || (spineCloud && uploadAllowed)}
+        spineAvailable={spineLocal || spineCloud}
         photoHref={photoFlow ? "/join" : "/join/spine"}
         presetOnly={mode === "sample"}
       />
