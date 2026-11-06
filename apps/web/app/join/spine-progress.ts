@@ -5,7 +5,8 @@ import type { SpineTaskView } from "@ai-city/contracts/spine";
  * it holds low while the job waits in the queue, then rises slowly while it runs and never claims
  * completion until the character is actually published.
  */
-export const TYPICAL_RUN_SECONDS = 15 * 60;
+// Measured: one character takes about 7 minutes once its turn comes (6 sequential image calls).
+export const TYPICAL_RUN_SECONDS = 7 * 60;
 
 export type ProgressView = {
   percent: number;

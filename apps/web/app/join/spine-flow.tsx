@@ -467,7 +467,7 @@ export function SpineParticipantFlow() {
                       {progress.label}　<strong>{progress.percent}%</strong>
                     </p>
                     <p className="pf-fine">
-                      進み具合は目安です。混み具合により15〜30分ほどかかることがあります。
+                      進み具合は目安です。1人あたり5〜10分ほどかかり、順番待ちがあるとさらに時間がかかります。
                     </p>
                     <div className="pf-tip">
                       <strong>待っている間に、平板で街を体験できます</strong>
