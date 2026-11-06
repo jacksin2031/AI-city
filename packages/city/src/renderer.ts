@@ -25,6 +25,12 @@ import {
 import { characterDataUrl, illustrationPalette } from "./illustrations";
 import { LANDMARKS, type Landmark } from "./landmarks";
 import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
+import {
+  cityPixelRatio,
+  cityShadowMapSize,
+  shouldDegradeCityQuality,
+  shouldDrawCharacter,
+} from "./render-performance";
 import { SCENE_RESIDENT_LIMIT } from "./roster";
 import {
   type Actor,
@@ -76,7 +82,13 @@ type Entry = {
   welcomeUntil: number;
   hopUntil: number;
   facing: Direction;
-  animated?: { source: AnimatedCharacter; texture: THREE.CanvasTexture; version: string };
+  animated?: {
+    source: AnimatedCharacter;
+    texture: THREE.CanvasTexture;
+    version: string;
+    lastDrawnAt: number;
+    lastAnimation: string;
+  };
 };
 
 const directions: Direction[] = ["front", "left", "back", "right"];
@@ -213,7 +225,7 @@ export async function createDevelopmentCity(
     antialias: true,
     powerPreference: "high-performance",
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(cityPixelRatio(window.devicePixelRatio || 1));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.AgXToneMapping;
   renderer.toneMappingExposure = 1.25;
@@ -324,7 +336,11 @@ function startCity(
   const sun = new THREE.DirectionalLight();
   const sunDirection = new THREE.Vector3();
   sun.castShadow = true;
-  sun.shadow.mapSize.set(4096, 4096);
+  const shadowSize = cityShadowMapSize(
+    parent.clientWidth || window.innerWidth,
+    renderer.capabilities.maxTextureSize,
+  );
+  sun.shadow.mapSize.set(shadowSize, shadowSize);
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.6;
   scene.add(sun, sun.target);
@@ -493,7 +509,13 @@ function startCity(
     if (!source) return undefined;
     const texture = new THREE.CanvasTexture(source.canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
-    return { source, texture, version: resident.avatarVersion };
+    return {
+      source,
+      texture,
+      version: resident.avatarVersion,
+      lastDrawnAt: Number.NEGATIVE_INFINITY,
+      lastAnimation: "",
+    };
   }
 
   function sync(addedIds: string[] = []) {
@@ -774,7 +796,8 @@ function startCity(
     placeCamera(shown);
     updateBuildingFade(buildingFade, shown.centerX, shown.centerY, shown.zoom);
     buildingFade.pulse.value = moving ? 0.3 + 0.25 * (1 + Math.sin(now * 4)) : 0.45;
-    parent.dataset.cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
+    const cameraZoom = String(Math.round((shown.zoom / DEFAULT_ZOOM) * 100) / 100);
+    if (parent.dataset.cameraZoom !== cameraZoom) parent.dataset.cameraZoom = cameraZoom;
     audioClock += seconds;
     if (audioClock >= 0.1 && audio.isPlaying()) {
       audioClock = 0;
@@ -857,18 +880,32 @@ function startCity(
       entry.group.position.copy(toThree(entry.actor.x, entry.actor.y, ground)).add(nearer);
       if (entry.animated) {
         const direction = presenting ? "front" : entry.facing;
-        entry.animated.source.advance(
-          animationFor(entry.actor.action, direction, presenting),
-          direction,
-          moving ? seconds : 0,
-        );
-        entry.animated.texture.needsUpdate = true;
+        const animation = animationFor(entry.actor.action, direction, presenting);
+        const animationKey = `${animation}:${direction}`;
+        if (
+          shouldDrawCharacter(
+            entry.animated.lastDrawnAt,
+            entry.animated.lastAnimation,
+            animationKey,
+            now,
+            moving,
+          )
+        ) {
+          const elapsed = Number.isFinite(entry.animated.lastDrawnAt)
+            ? Math.min(0.1, Math.max(0, now - entry.animated.lastDrawnAt))
+            : 0;
+          entry.animated.source.advance(animation, direction, moving ? elapsed : 0);
+          entry.animated.texture.needsUpdate = true;
+          entry.animated.lastDrawnAt = now;
+          entry.animated.lastAnimation = animationKey;
+        }
       }
       const texture = entry.animated?.texture ?? characters.get(textureFor(entry, presenting));
       for (const sprite of [entry.sprite, entry.ghost]) {
         if (texture && sprite.material.map !== texture) {
+          // Switching between loaded textures does not change the shader defines.
+          if (!sprite.material.map) sprite.material.needsUpdate = true;
           sprite.material.map = texture;
-          sprite.material.needsUpdate = true;
         }
         sprite.scale.set(
           size * characterAspect(entry.animated?.source.canvas) * pop,
@@ -1013,12 +1050,13 @@ function startCity(
   // frame rate, so the page around the city stays responsive.
   let frameBudget = FRAME_SECONDS;
   let quality = 3;
-  let lastRender = previous;
-  let slow = 0;
+  let qualityWindowStarted = previous;
+  let qualityWindowFrames = 0;
   let rendered = 0;
   function degrade() {
     quality--;
-    slow = 0;
+    qualityWindowStarted = performance.now();
+    qualityWindowFrames = 0;
     if (quality === 2) {
       renderer.shadowMap.enabled = false;
       sun.castShadow = false;
@@ -1038,7 +1076,10 @@ function startCity(
   const gpu = debugInfo ? String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)) : "";
   if (/SwiftShader|llvmpipe|softpipe|Software/i.test(gpu)) while (quality > 0) degrade();
   function loop(time: number) {
-    if (destroyed) return;
+    if (destroyed || document.hidden) {
+      raf = 0;
+      return;
+    }
     raf = requestAnimationFrame(loop);
     pending += Math.min(0.1, (time - previous) / 1000);
     previous = time;
@@ -1046,20 +1087,43 @@ function startCity(
     const seconds = pending;
     pending = 0;
     now += seconds;
-    // Ignore the first frames, which compile shaders.
-    if (++rendered > 20 && quality > 0) {
-      slow = time - lastRender > frameBudget * 3000 ? slow + 1 : Math.max(0, slow - 1);
-      if (slow >= 8) degrade();
+    // Ignore shader compilation, then judge sustained throughput over three seconds.
+    // Single rAF delays on 60/120 Hz displays must not trigger quality reductions.
+    rendered++;
+    if (rendered === 20) {
+      qualityWindowStarted = time;
+      qualityWindowFrames = 0;
+    } else if (rendered > 20 && quality > 0) {
+      qualityWindowFrames++;
+      if (time - qualityWindowStarted >= 3000) {
+        if (shouldDegradeCityQuality(time - qualityWindowStarted, qualityWindowFrames, frameBudget))
+          degrade();
+        qualityWindowStarted = time;
+        qualityWindowFrames = 0;
+      }
     }
-    lastRender = time;
     update(seconds);
     renderer.render(scene, camera);
   }
+  function onVisibilityChange() {
+    if (document.hidden) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    } else if (!destroyed && raf === 0) {
+      // No catch-up simulation or false GPU slowdown after a hidden tab resumes.
+      previous = performance.now();
+      pending = 0;
+      qualityWindowStarted = previous;
+      qualityWindowFrames = 0;
+      raf = requestAnimationFrame(loop);
+    }
+  }
+  document.addEventListener("visibilitychange", onVisibilityChange);
   sync();
   update(0);
   renderer.render(scene, camera);
   options.onReady?.();
-  raf = requestAnimationFrame(loop);
+  if (!document.hidden) raf = requestAnimationFrame(loop);
 
   return {
     setResidents(next, addedIds = []) {
@@ -1136,6 +1200,7 @@ function startCity(
       destroyed = true;
       audio.destroy();
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       resizer.disconnect();
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
