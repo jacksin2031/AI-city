@@ -79,3 +79,21 @@ export const SpineAdminViewSchema = z.strictObject({
   repairs: z.array(SpineRepairEntrySchema).max(20),
 });
 export type SpineAdminView = z.infer<typeof SpineAdminViewSchema>;
+
+export const SPINE_PARTS = ["hair", "handLeft", "handRight", "footLeft", "footRight"] as const;
+export type SpinePart = (typeof SPINE_PARTS)[number];
+
+/** dx/dy are fractions of the character's height; scale multiplies the part's bones. */
+export const SpineAdjustmentSchema = z.strictObject({
+  version: z.literal(1),
+  // partialRecord: every part is optional (zod 4 `record` over an enum requires all keys).
+  parts: z.partialRecord(
+    z.enum(SPINE_PARTS),
+    z.strictObject({
+      dx: z.number().min(-0.15).max(0.15),
+      dy: z.number().min(-0.15).max(0.15),
+      scale: z.number().min(0.5).max(1.5),
+    }),
+  ),
+});
+export type SpineAdjustment = z.infer<typeof SpineAdjustmentSchema>;

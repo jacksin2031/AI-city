@@ -47,5 +47,6 @@ export {
   sceneResidentCount,
 } from "./roster";
 export type { CityAction, Direction } from "./simulation";
+export { applySpineAdjustment, SPINE_PART_BONES } from "./spine-adjustment";
 export { fetchSpineBundle, prepareSpineBundle } from "./spine-bundle";
 export { clampSpeechToViewport } from "./viewport";

@@ -1,3 +1,4 @@
+import type { SpineAdjustment } from "@ai-city/contracts/spine";
 import {
   AnimationState,
   AnimationStateData,
@@ -8,6 +9,7 @@ import {
 } from "@esotericsoftware/spine-canvas";
 import type { AnimatedCharacter } from "./animated-character";
 import type { Direction } from "./simulation";
+import { applySpineAdjustment } from "./spine-adjustment";
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -58,6 +60,7 @@ export function createSpinePlayer(
   canvas: HTMLCanvasElement,
   guard: (skeleton: Skeleton, direction: Direction) => void,
   skinName: string,
+  adjustment?: SpineAdjustment,
 ): AnimatedCharacter {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("SPINE_CANVAS_UNAVAILABLE");
@@ -84,6 +87,8 @@ export function createSpinePlayer(
   const bounds = unionMovementBounds(data, skinName, guard, skeleton.getBoundsRect());
   const extent = Math.max(bounds.width, bounds.height);
   if (!Number.isFinite(extent) || extent <= 0) throw new Error("SPINE_EMPTY_BOUNDS");
+  // Framing deliberately ignores the adjustment: the figure must not rescale or shift in the
+  // frame while a slider moves; the adjusted part may simply reach outside the fixed frame.
   const scale = 220 / extent;
   const centerX = bounds.x + bounds.width / 2;
   const centerY = bounds.y + bounds.height / 2;
@@ -100,6 +105,7 @@ export function createSpinePlayer(
       state.update(dt);
       state.apply(skeleton);
       guard(skeleton, direction);
+      applySpineAdjustment(skeleton, adjustment, bounds.height);
       skeleton.updateWorldTransform(Physics.update);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, 256, 256);
