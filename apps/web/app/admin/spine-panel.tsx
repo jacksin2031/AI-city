@@ -8,10 +8,12 @@ import type { SpineAdminAction, SpineAdminTask, SpineAdminView } from "@ai-city/
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { adjustmentKey, bundleKey } from "./spine-keys";
 import { describeState, formatSince } from "./spine-labels";
+import { createLimiter } from "./spine-limiter";
 
 type Bundle = Awaited<ReturnType<typeof fetchSpineBundle>>;
 type Preview = NonNullable<SpineAdminTask["preview"]>;
 
+const thumbnailLimit = createLimiter(3);
 const POLL_MS = 10_000;
 const PART_LABELS: Record<SpinePart, string> = {
   hair: "髪",
@@ -108,19 +110,32 @@ function Thumbnail({ preview }: { preview: Preview }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const { bundle } = useBundle(preview.bundle, visible);
+  const descriptor = useRef(preview.bundle);
+  descriptor.current = preview.bundle;
   const adjustment = useRef(preview.adjustment);
   adjustment.current = preview.adjustment;
+  const bundleId = bundleKey(preview.bundle);
   const adjustmentId = adjustmentKey(preview.adjustment);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: adjustmentId stands for the adjustment's content
+  // Short-lived: fetch, draw once, dispose at once, keep only the data URL. Polls that deliver
+  // equal keys do not re-run this.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the ids stand for the descriptor and adjustment content
   useEffect(() => {
-    if (!bundle) return;
-    try {
-      setUrl(drawStill(bundle, adjustment.current));
-    } catch {
-      // A thumbnail that cannot be drawn stays blank.
-    }
-  }, [bundle, adjustmentId]);
+    if (!visible) return;
+    const controller = new AbortController();
+    void thumbnailLimit(async () => {
+      if (controller.signal.aborted) return;
+      let bundle: Bundle | undefined;
+      try {
+        bundle = await fetchSpineBundle(descriptor.current, controller.signal);
+        if (!controller.signal.aborted) setUrl(drawStill(bundle, adjustment.current));
+      } catch {
+        // A thumbnail that cannot load or draw stays blank.
+      } finally {
+        bundle?.dispose();
+      }
+    });
+    return () => controller.abort();
+  }, [visible, bundleId, adjustmentId]);
   return (
     <span className="spine-thumb" ref={holder} aria-hidden="true">
       {url && <img src={url} alt="" />}
