@@ -1,6 +1,7 @@
 "use client";
 import type { DeviceAdmin } from "@ai-city/contracts/device-link";
 import { useState } from "react";
+import { residentDetailRows } from "./resident-details";
 
 export default function ManagedResidents({
   residents,
@@ -155,6 +156,18 @@ export default function ManagedResidents({
                 />
                 <strong>{resident.nickname}</strong>
               </label>
+              <details className="resident-details">
+                <summary>{resident.nickname}の詳細</summary>
+                <dl>
+                  {residentDetailRows(resident).map((row) => (
+                    <div key={row.label}>
+                      <dt>{row.label}</dt>
+                      <dd className={row.absent ? "muted" : undefined}>{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="muted">写真とアンケートの回答は表示しません。</p>
+              </details>
               {removeId === resident.residentId ? (
                 <div>
                   <p>この住民を街から削除しますか？</p>

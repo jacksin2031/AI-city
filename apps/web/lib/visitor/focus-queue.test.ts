@@ -151,4 +151,36 @@ describe("reliable visitor focus requests", () => {
       }),
     ).rejects.toBeDefined();
   });
+  it("returns the saved profile and keeps real traits when a later save carries none", async () => {
+    const now = 100000;
+    const store = new MemoryVisitorStore();
+    const service = new VisitorService(store, () => now);
+    const session = await service.createSession(undefined, (await service.createInvitation()).code);
+    const owner = createHash("sha256").update(session.token).digest("hex");
+    const task = "spine-44444444-4444-4444-8444-444444444444";
+    await store.run(async (tx) => {
+      tx.set(`requests/spine-owner-${owner}`, { task });
+      await addSpineResident(tx, { task, owner, expiresAt: now + 60000 });
+    });
+    expect(await service.currentSpineProfile(session.token)).toBeNull();
+    const traits = [0.9, 0.45, 0.85, 0.5, 0.9, 0.55];
+    await service.setSpineProfile(session.token, {
+      nickname: "jacksin",
+      personalityLabel: "実践チャレンジャー",
+      interests: ["意外な発想に出会うこと"],
+      traits,
+    });
+    // A reloaded page that lost its answers saves only a name: the real scores must survive.
+    await service.setSpineProfile(session.token, {
+      nickname: "jacksin",
+      personalityLabel: null,
+      interests: [],
+    });
+    expect(await service.currentSpineProfile(session.token)).toEqual({
+      nickname: "jacksin",
+      personalityLabel: "実践チャレンジャー",
+      interests: ["意外な発想に出会うこと"],
+      traits,
+    });
+  });
 });

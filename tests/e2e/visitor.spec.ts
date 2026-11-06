@@ -182,6 +182,13 @@ test("AI questionnaire offers three choices and sends only the entertainment res
     answers: null,
   });
   await page.reload();
+  // A reload never reopens the earlier participation on its own: it is announced first, without
+  // the earlier participant's name or card, and resumed by an explicit choice.
+  const guard = page.getByTestId("existing-guard");
+  await expect(guard).toBeVisible();
+  await expect(guard).toContainText("街に公開されているキャラクターがあります");
+  await expect(page.getByText("スマホのAIスタイル：ひらめき探検家（娯楽用）")).toHaveCount(0);
+  await guard.getByRole("button", { name: "自分の参加を続ける" }).click();
   await expect(page.getByText("スマホのAIスタイル：ひらめき探検家（娯楽用）")).toBeVisible();
   expect(Date.now() - submittedAt).toBeGreaterThanOrEqual(3400);
   await page.getByRole("button", { name: "参加を中止して情報を削除" }).click();
@@ -330,6 +337,12 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     const current = await visitorContext.request.get("/api/visitor/jobs/current");
     const jobId = (await current.json()).job.jobId;
     await visitor.reload();
+    if (codeFree) {
+      // The earlier participation is announced first and resumed by an explicit choice.
+      const guard = visitor.getByTestId("existing-guard");
+      await expect(guard).toContainText("公開前の確認待ち");
+      await guard.getByRole("button", { name: "自分の参加を続ける" }).click();
+    }
     await expect(
       visitor.getByRole("heading", {
         name: codeFree ? "公開する内容を確認" : "サンプルを確認",
@@ -413,14 +426,23 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
         /docs\.google\.com\/forms\//,
       );
       await feedback.getByRole("button", { name: "あとで" }).click();
-      visitor.once("dialog", (dialog) => dialog.dismiss());
+      // The confirmation is on the page itself: embedded mobile browsers suppress window.confirm.
+      visitor.on("dialog", () => {
+        throw new Error("window.confirm must not be used");
+      });
       await visitor
         .getByRole("button", { name: "公開を取り消して、最初からやり直す", exact: true })
         .click();
+      const confirm = visitor.getByRole("group", { name: "最初からやり直す確認" });
+      await expect(confirm).toBeVisible();
+      await confirm.getByRole("button", { name: "やめる", exact: true }).click();
       await expect(profile).toBeVisible();
-      visitor.once("dialog", (dialog) => dialog.accept());
       await visitor
         .getByRole("button", { name: "公開を取り消して、最初からやり直す", exact: true })
+        .click();
+      await visitor
+        .getByRole("group", { name: "最初からやり直す確認" })
+        .getByRole("button", { name: "取り消して最初からやり直す", exact: true })
         .click();
       await expect(visitor.getByLabel("ニックネーム", { exact: true })).toHaveValue("");
       await expect(profile).toHaveCount(0);
