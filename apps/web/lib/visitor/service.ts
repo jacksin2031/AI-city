@@ -18,6 +18,7 @@ import {
   ParticipationViewSchema,
   type PublishRequest,
   PublishRequestSchema,
+  type SampleIdSchema,
   sampleAvatars,
 } from "@ai-city/contracts/development";
 import {
@@ -43,7 +44,8 @@ type SpineBundle = z.infer<typeof SpineBundleSchema>;
 /** Parsed admin recovery actions; the HTTP layer validates raw input before building one. */
 export type SpineAdminActionInput =
   | { action: "cancel"; task: string }
-  | { action: "requeue"; task: string; confirmCost: boolean };
+  | { action: "requeue"; task: string; confirmCost: boolean }
+  | { action: "preset"; task: string; presetId: z.infer<typeof SampleIdSchema> };
 
 export type SpineAdminDeps = { photos?: { exists(task: string): Promise<boolean> } };
 
@@ -801,6 +803,10 @@ export class VisitorService {
         await jobs.adminWithdraw(input.task);
         return { task: input.task, state: "WITHDRAWN" };
       }
+      if (input.action === "preset") {
+        await this.presetReplace(input.task, input.presetId);
+        return { task: input.task, state: "WITHDRAWN" };
+      }
       if (input.action === "requeue") {
         if (input.confirmCost !== true) throw new DevelopmentServiceError("COST_UNCONFIRMED", 400);
         // Outside the transaction by design: a later claim fails safely if the photo vanishes meanwhile.
@@ -818,6 +824,62 @@ export class VisitorService {
       throw error;
     }
     throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+  }
+
+  /** One transaction: publish a prepared character for the task's owner, then withdraw the task. */
+  private async presetReplace(task: string, presetId: z.infer<typeof SampleIdSchema>) {
+    const avatar = avatarForSample(presetId);
+    const now = this.now();
+    await this.store.run(async (tx) => {
+      const raw = await tx.get(`jobs/spine-${task}`);
+      const owner = raw?.owner;
+      if (typeof owner !== "string" || !DIGEST.safeParse(owner).success)
+        throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (raw?.state === "WITHDRAWN") throw new DevelopmentServiceError("INVALID_TRANSITION", 409);
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (state.residents.some((stored) => stored.ownerDigest === owner))
+        throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      const spineResidents = state.spineResidents.filter((entry) => entry.task !== task);
+      if (state.residents.length + 1 + spineResidents.length > MAX_ACTIVE_SESSIONS)
+        throw new DevelopmentServiceError("LOCAL_CAPACITY", 429);
+      let withdrawn: ReturnType<typeof withdrawSpineJobRecord>;
+      try {
+        withdrawn = withdrawSpineJobRecord(raw, owner, now);
+      } catch {
+        throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      }
+      const profile = await tx.get(`requests/spine-profile-${owner}`);
+      const resident = PublicResidentSchema.parse({
+        schemaVersion: 1,
+        residentId: `resident-${task}`,
+        eventId: developmentEventId,
+        nickname: typeof profile?.nickname === "string" ? profile.nickname : "ゲスト",
+        personalityLabel:
+          typeof profile?.personalityLabel === "string" ? profile.personalityLabel : "非公開",
+        interests: Array.isArray(profile?.interests) ? profile.interests : [],
+        avatarVersion: avatar.manifest.avatarVersion,
+        publicConsent: true,
+        consentVersion: 1,
+        publicState: "VISIBLE",
+      });
+      const counted = state.spineResidents.some((entry) => entry.owner === owner);
+      setDocument(tx, "meta/state", {
+        ...state,
+        // One event for the roster removal (when present) and one for the new resident.
+        eventSeq:
+          state.eventSeq + 1 + (spineResidents.length !== state.spineResidents.length ? 1 : 0),
+        joinedTotal: state.joinedTotal + (counted ? 0 : 1),
+        residents: [
+          ...state.residents,
+          { ownerDigest: owner, jobId: task, expiresAt: session.expiresAt, resident },
+        ],
+        spineResidents,
+      });
+      tx.set(`jobs/spine-${task}`, withdrawn);
+    });
   }
 
   async withdrawSpineJob(token: string, task: string): Promise<{ toolCleanupPending: boolean }> {
