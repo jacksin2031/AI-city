@@ -507,7 +507,9 @@ export function ParticipantExperience({
             )}
             {stage === "questions" && (
               <>
-                <p className="pf-step">ステップ 3 / 4 · 質問 {question + 1} / 6</p>
+                <p className="pf-step">
+                  {presetOnly ? "ステップ 2 / 3" : "ステップ 3 / 4"} · 質問 {question + 1} / 6
+                </p>
                 <fieldset className="pf-questions">
                   <legend>{questions[question]?.[0]}</legend>
                   {questions[question]?.[1].map((option, index) => (
@@ -571,7 +573,7 @@ export function ParticipantExperience({
             )}
             {stage === "confirm" && view?.preview && (
               <>
-                <p className="pf-step">ステップ 4 / 4</p>
+                <p className="pf-step">{presetOnly ? "ステップ 3 / 3" : "ステップ 4 / 4"}</p>
                 <h2>公開する内容を確認</h2>
                 <div className="pf-card">
                   <img
