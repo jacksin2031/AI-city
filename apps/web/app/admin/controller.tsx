@@ -7,6 +7,7 @@ import { useDeviceFeed } from "../device-feed";
 import { removeResidents } from "./actions";
 import PresetResidents from "./presets";
 import ManagedResidents from "./residents";
+import SpinePanel from "./spine-panel";
 
 const modes = { DEMO: "イラストの見本", LIVE: "参加者の街", MAINTENANCE: "展示を休止" } as const;
 export default function Admin({
@@ -382,6 +383,7 @@ export default function Admin({
             )}
           </section>
           <ManagedResidents residents={state.snapshot.residents} busy={busy} remove={withdraw} />
+          <SpinePanel busy={busy} />
           <details className="flow-panel">
             <summary>接続を終了する</summary>
             <p>解除したタブレットには街の情報が表示されなくなります。</p>
