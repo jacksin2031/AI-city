@@ -393,7 +393,7 @@ describe("spine admin route", () => {
       },
     };
     const call = (req: Request) =>
-      handlePersistentDeviceRequest(req, device, visitor, true, base, false, null, photos);
+      handlePersistentDeviceRequest(req, device, visitor, true, base, false, null, () => photos);
     const post = async (body: unknown, token = admin) => {
       const response = await call(request("spine-admin", token, body));
       return { response, json: (await response.json()) as Record<string, any> };
@@ -595,5 +595,36 @@ describe("spine admin route", () => {
     expect(entries).toHaveLength(50);
     expect(entries[0]).toEqual(seeded[1]);
     expect(entries[49]).toMatchObject({ action: "resetAdjust", code: "000000a3" });
+  });
+
+  it("resolves the photo dependency lazily: a throwing getter only affects requeue", async () => {
+    const t = await setup();
+    let calls = 0;
+    const getter = () => {
+      calls++;
+      throw new Error("SPINE_CLOUD_INTAKE_CONFIG");
+    };
+    const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    const admin = device.login("a".repeat(64));
+    const visitor = new VisitorService(t.store, () => 5_000);
+    const run = (req: Request) =>
+      handlePersistentDeviceRequest(req, device, visitor, true, base, false, null, getter);
+    const display = device.pair(device.createPairing(admin).code);
+    expect((await run(request("display", display))).status).toBe(200);
+    expect((await run(request("admin", admin))).status).toBe(200);
+    expect((await run(request("pairing", admin, {}))).status).toBe(200);
+    expect((await run(request("spine-admin", admin))).status).toBe(200);
+    expect(
+      (await run(request("spine-admin", admin, { action: "cancel", task: queued }))).status,
+    ).toBe(200);
+    expect(calls).toBe(0);
+    const before = JSON.stringify([...t.store.dump()]);
+    const response = await run(
+      request("spine-admin", admin, { action: "requeue", task: failed, confirmCost: true }),
+    );
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.code).toBe("CLOUD_PHOTO_UNAVAILABLE");
+    expect(calls).toBe(1);
+    expect(JSON.stringify([...t.store.dump()])).toBe(before);
   });
 });

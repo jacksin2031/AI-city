@@ -23,7 +23,7 @@ async function handle(request: Request) {
       process.env.AI_CITY_PUBLIC_ORIGIN,
       process.env.AI_CITY_LOOPBACK_PREVIEW === "1",
       getVisitorBoundary(),
-      getCloudSpine()?.photos,
+      () => getCloudSpine()?.photos,
     );
   } catch {
     return Response.json(

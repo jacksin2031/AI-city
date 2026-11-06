@@ -41,7 +41,7 @@ export async function handlePersistentDeviceRequest(
   remoteOrigin?: string,
   localBootstrap = false,
   security?: VisitorBoundary | null,
-  photos?: SpineAdminDeps["photos"],
+  photos?: () => SpineAdminDeps["photos"],
 ): Promise<Response> {
   try {
     const focusPath = new URL(request.url).pathname;
@@ -147,7 +147,15 @@ export async function handlePersistentDeviceRequest(
       if (!visitor) throw new DevelopmentServiceError("VISITORS_DISABLED", 503);
       if (action) {
         try {
-          await visitor.spineAdminAction(action, { photos });
+          await visitor.spineAdminAction(action, {
+            // Resolved only when a requeue checks the photo; a config error becomes a 503 there.
+            photos: {
+              exists: async (task) => {
+                const storage = photos?.();
+                return storage ? storage.exists(task) : false;
+              },
+            },
+          });
         } catch (error) {
           // The participant's session ending is not the administrator's session ending.
           if (error instanceof DevelopmentServiceError && error.status === 401)
