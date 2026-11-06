@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LandmarkCard } from "../landmark-card";
 import { AutumnFilter, SceneCounts, SceneLogo } from "./hud";
 import { officialSkinFor } from "./official-skin";
+import { resolveEncounterDialogue } from "./preset-dialogue";
 import { ResidentSpeech } from "./resident-speech";
 import { spineBundleKey, staleSpineVersions } from "./spine-key";
 
@@ -77,6 +78,7 @@ export function TabletCity({
   const [dialogueAvailable, setDialogueAvailable] = useState(false);
   const dialogueAllowed = useRef(dialogueEnabled);
   const dialogueReady = useRef(false);
+  const presetSequence = useRef(0);
   dialogueAllowed.current = dialogueEnabled;
   // Loaded Spine bundles live as long as the scene does, keyed by avatar version. They are
   // filled in independently of the scene so a resident leaving never rebuilds the world.
@@ -236,34 +238,40 @@ export function TabletCity({
             if (item && latest.current.active) close();
             setLandmark(item);
           },
-          onEncounter: async (residentIds, place) => {
-            if (!active || !dialogueAllowed.current || !dialogueReady.current) return null;
-            const response = await fetch("/api/link/dialogue", {
-              method: "POST",
-              credentials: "same-origin",
-              cache: "no-store",
-              headers: { "Content-Type": "application/json" },
-              signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(15_000)]),
-              body: JSON.stringify({
-                schemaVersion: 1,
-                requestId: crypto.randomUUID(),
-                eventId: latest.current.snapshot.eventId,
-                residentIds,
-                place,
-                locale: "ja-JP",
-                maxLines: 4,
-              }),
-            });
-            if (!response.ok) {
-              if (response.status === 503) {
-                dialogueReady.current = false;
-                if (active) setDialogueAvailable(false);
-              }
-              return null;
-            }
-            const result = DialogueResultSchema.parse(await response.json());
-            return dialogueAllowed.current && active ? result : null;
-          },
+          onEncounter: async (residentIds, place) =>
+            resolveEncounterDialogue({
+              residentIds,
+              place,
+              sequence: presetSequence.current++,
+              allowLive: () => dialogueAllowed.current && dialogueReady.current,
+              isActive: () => active && !lifetime.signal.aborted,
+              requestLive: async () => {
+                const response = await fetch("/api/link/dialogue", {
+                  method: "POST",
+                  credentials: "same-origin",
+                  cache: "no-store",
+                  headers: { "Content-Type": "application/json" },
+                  signal: AbortSignal.any([lifetime.signal, AbortSignal.timeout(15_000)]),
+                  body: JSON.stringify({
+                    schemaVersion: 1,
+                    requestId: crypto.randomUUID(),
+                    eventId: latest.current.snapshot.eventId,
+                    residentIds,
+                    place,
+                    locale: "ja-JP",
+                    maxLines: 4,
+                  }),
+                });
+                if (!response.ok) {
+                  if (response.status === 503) {
+                    dialogueReady.current = false;
+                    if (active) setDialogueAvailable(false);
+                  }
+                  throw new Error("Live dialogue unavailable; use reviewed preset");
+                }
+                return DialogueResultSchema.parse(await response.json());
+              },
+            }),
           onClearSelection: () => {
             if (active && latest.current.active) close();
           },
@@ -461,10 +469,10 @@ export function TabletCity({
         {tools && (
           <p className="tablet-dialogue-status">
             {!dialogueEnabled
-              ? "架空の住民：AI会話は停止中"
+              ? "架空の住民：定型会話中（AI生成オフ）"
               : dialogueAvailable
-                ? "架空の住民：AI会話の接続設定あり"
-                : "架空の住民：AI会話は未設定"}
+                ? "架空の住民：AI会話オン（定型会話も利用）"
+                : "架空の住民：定型会話中（AI未接続）"}
           </p>
         )}
         <p className="canvas-failure" role="alert">

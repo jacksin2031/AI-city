@@ -233,7 +233,11 @@ export default function Admin({
                     expectedRevision: state.control.revision,
                     dialogueEnabled: enabled,
                   });
-                  setNotice(enabled ? "AI会話をオンにしました。" : "AI会話をオフにしました。");
+                  setNotice(
+                    enabled
+                      ? "AI会話をオンにしました。定型会話も利用できます。"
+                      : "AI会話をオフにしました。定型会話は続きます。",
+                  );
                   return next;
                 })
               }
@@ -241,8 +245,8 @@ export default function Admin({
               {state.control.dialogueEnabled ? "AI会話をオフにする" : "AI会話をオンにする"}
             </button>
             <p className="muted">
-              架空の住民同士のAI会話を切り替えます。オンでもAIサービスの接続設定が必要です。
-              オフでは新しい会話リクエストを停止します。独立した会話生成Workerは停止しません。
+              架空の住民同士の即時AI生成を切り替えます。オンでもAIサービスの接続設定が必要です。
+              オフでも街の定型会話（48種類）は続き、平板からAI生成APIを呼び出しません。独立した会話生成Workerは停止しません。
             </p>
           </section>
           <section className="flow-panel">
