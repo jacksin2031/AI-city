@@ -19,6 +19,7 @@ import { LocalPhoto } from "./local-photo";
 import { ParticipantCard } from "./participant-card";
 import { computeStyle, questions } from "./questions";
 import { traitValues } from "./trait-values";
+import { presetIdForAvatar, usePresetPortraits } from "./use-preset-portraits";
 import { useReliableFocus } from "./use-reliable-focus";
 import "./participant.css";
 
@@ -45,13 +46,16 @@ type Stage =
 export function ParticipantExperience({
   spineLocal = false,
   photoHref = "/join/spine",
+  presetOnly = false,
 }: {
   spineLocal?: boolean;
   photoHref?: string;
+  /** Join as a prepared character: no name, no photo, straight to choosing a character. */
+  presetOnly?: boolean;
 }) {
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
   const focusRequest = useReliableFocus(client);
-  const [stage, setStage] = useState<Stage>("name");
+  const [stage, setStage] = useState<Stage>(presetOnly ? "custom" : "name");
   const [initializing, setInitializing] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -59,6 +63,16 @@ export function ParticipantExperience({
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackShown, setFeedbackShown] = useState(false);
   const [nickname, setNickname] = useState("");
+  // Joining as a prepared character reuses the nickname already entered on the previous page.
+  useEffect(() => {
+    if (!presetOnly) return;
+    try {
+      const saved = sessionStorage.getItem("ai-city-nickname")?.trim().slice(0, 80);
+      if (saved) setNickname(saved);
+    } catch {
+      // No stored nickname: the character's own name is used.
+    }
+  }, [presetOnly]);
   const [sample, setSample] = useState<CreateJobRequest["sampleId"]>("aoi");
   const [color, setColor] = useState<(typeof colors)[number]>(colors[0]);
   const [mark, setMark] = useState<(typeof marks)[number]>(marks[0]);
@@ -70,6 +84,8 @@ export function ParticipantExperience({
   const [photoConsent, setPhotoConsent] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState("");
+  const portraits = usePresetPortraits();
+  const chosen = PRESET_CHARACTERS.find((item) => item.id === sample);
   const localPhoto = useRef<LocalPhoto | null>(null);
   localPhoto.current ??= new LocalPhoto({
     create: (file) => URL.createObjectURL(file),
@@ -183,7 +199,7 @@ export function ParticipantExperience({
       const next = await client.createJob({
         eventId: "fixture-event",
         requestId: requestId.current,
-        nickname: nickname.trim(),
+        nickname: nickname.trim() || (presetOnly ? (chosen?.name ?? "ゲスト") : ""),
         sampleId: sample,
         aiStyle,
         scenario: "SUCCESS",
@@ -224,26 +240,12 @@ export function ParticipantExperience({
       setBusy(false);
     }
   }
-  async function remove() {
-    if (!view) return;
-    setBusy(true);
-    setError("");
-    try {
-      const next = await client.remove(view.job.jobId);
-      setView(next);
-      setStage("removed");
-    } catch {
-      setError("削除できませんでした。接続を確認してください。");
-    } finally {
-      setBusy(false);
-    }
-  }
   async function leave() {
     setBusy(true);
     setError("");
     try {
       await client.closeSession();
-      window.location.assign("/");
+      window.location.assign("/join");
     } catch {
       setError("参加情報を削除できませんでした。もう一度お試しください。");
       setBusy(false);
@@ -258,6 +260,11 @@ export function ParticipantExperience({
     setError("");
     try {
       await client.closeSession();
+      try {
+        sessionStorage.removeItem("ai-city-nickname");
+      } catch {
+        // Nothing stored.
+      }
       window.location.assign("/join");
     } catch {
       setError("削除できませんでした。通信を確認してもう一度お試しください。");
@@ -265,6 +272,11 @@ export function ParticipantExperience({
     }
   }
   const dashboard = stage === "published";
+  // A prepared character is drawn from its official Spine skin; anything else keeps the illustration.
+  const portraitFor = (avatarVersion: string) => {
+    const id = presetIdForAvatar(avatarVersion);
+    return (id ? portraits[id] : undefined) ?? characterDataUrl(avatarVersion);
+  };
   return (
     <main className={`pf-page${dashboard ? " pf-page-dashboard" : ""}`}>
       {!dashboard && (
@@ -322,9 +334,6 @@ export function ParticipantExperience({
                 >
                   次へ
                 </button>
-                <Link className="pf-back" href="/">
-                  最初に戻る
-                </Link>
               </>
             )}
             {stage === "photo" && (
@@ -415,23 +424,36 @@ export function ParticipantExperience({
             )}
             {stage === "custom" && (
               <>
-                <p className="pf-step">ステップ 2 / 4</p>
-                <h2>サンプルをカスタマイズ</h2>
-                <p>街に表示するサンプルと、スマホの色・マークを選びます。</p>
+                <p className="pf-step">{presetOnly ? "ステップ 1 / 3" : "ステップ 2 / 4"}</p>
+                <h2>{presetOnly ? "キャラクターを選ぶ" : "サンプルをカスタマイズ"}</h2>
+                <p>
+                  {presetOnly
+                    ? nickname.trim()
+                      ? `${nickname.trim()}さん、用意されたキャラクターから選んでください。写真は使いません。`
+                      : "用意されたキャラクターから選びます。写真は使いません。"
+                    : "街に表示するサンプルと、スマホの色・マークを選びます。"}
+                </p>
                 <div className={`pf-avatar pf-${color.id}`} aria-hidden="true">
                   {mark.symbol}
                 </div>
-                <fieldset className="pf-options">
-                  <legend>街に表示するサンプル</legend>
+                <fieldset className="pf-options pf-characters">
+                  <legend>街に表示するキャラクター</legend>
                   {PRESET_CHARACTERS.map((item) => (
-                    <label key={item.id}>
+                    <label key={item.id} className="pf-character">
                       <input
                         type="radio"
                         name="sample"
                         checked={sample === item.id}
                         onChange={() => setSample(item.id)}
                       />
-                      {item.name}（{item.personality}）
+                      {portraits[item.id] ? (
+                        <img src={portraits[item.id]} alt="" width="72" height="72" />
+                      ) : (
+                        <span className="pf-character-empty" aria-hidden="true" />
+                      )}
+                      <span>
+                        {item.name}（{item.personality}）
+                      </span>
                     </label>
                   ))}
                 </fieldset>
@@ -476,14 +498,18 @@ export function ParticipantExperience({
                 >
                   このキャラクターで進む
                 </button>
-                <button className="pf-back" type="button" onClick={() => setStage("photo")}>
-                  戻る
-                </button>
+                {!presetOnly && (
+                  <button className="pf-back" type="button" onClick={() => setStage("photo")}>
+                    戻る
+                  </button>
+                )}
               </>
             )}
             {stage === "questions" && (
               <>
-                <p className="pf-step">ステップ 3 / 4 · 質問 {question + 1} / 6</p>
+                <p className="pf-step">
+                  {presetOnly ? "ステップ 2 / 3" : "ステップ 3 / 4"} · 質問 {question + 1} / 6
+                </p>
                 <fieldset className="pf-questions">
                   <legend>{questions[question]?.[0]}</legend>
                   {questions[question]?.[1].map((option, index) => (
@@ -547,17 +573,17 @@ export function ParticipantExperience({
             )}
             {stage === "confirm" && view?.preview && (
               <>
-                <p className="pf-step">ステップ 4 / 4</p>
+                <p className="pf-step">{presetOnly ? "ステップ 3 / 3" : "ステップ 4 / 4"}</p>
                 <h2>公開する内容を確認</h2>
                 <div className="pf-card">
                   <img
-                    src={characterDataUrl(view.preview.avatarVersion)}
+                    src={portraitFor(view.preview.avatarVersion)}
                     alt="街に表示するサンプル"
                     width="96"
                     height="128"
                   />
                   <strong>{view.preview.nickname}</strong>
-                  <p>仮のイラスト・写真からの生成ではありません</p>
+                  <p>用意されたキャラクター・写真からの生成ではありません</p>
                   <p>
                     {Object.values(aiStyleLabels).includes(view.preview.personalityLabel)
                       ? "スマホのAIスタイル"
@@ -619,7 +645,7 @@ export function ParticipantExperience({
                 </header>
                 <ParticipantCard
                   name={view.preview.nickname}
-                  avatarSrc={characterDataUrl(view.preview.avatarVersion)}
+                  avatarSrc={portraitFor(view.preview.avatarVersion)}
                   tone={hasDecoration ? color.id : "green"}
                   decoration={
                     hasDecoration
@@ -650,17 +676,9 @@ export function ParticipantExperience({
                   </p>
                   {focusRequest.message && <p role="status">{focusRequest.message}</p>}
                 </section>
-                <div className="pf-actions">
-                  <button className="pf-back" type="button" disabled={busy} onClick={remove}>
-                    公開を取り消す
-                  </button>
-                  <button className="pf-back" type="button" disabled={busy} onClick={leave}>
-                    参加情報を削除して終了
-                  </button>
-                  <button className="pf-back" type="button" disabled={busy} onClick={restart}>
-                    やり直す
-                  </button>
-                </div>
+                <button className="pf-back" type="button" disabled={busy} onClick={restart}>
+                  公開を取り消して、最初からやり直す
+                </button>
                 {feedbackVisible && (
                   <section
                     className="pf-feedback"

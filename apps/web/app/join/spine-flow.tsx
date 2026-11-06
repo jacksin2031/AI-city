@@ -218,12 +218,44 @@ export function SpineParticipantFlow() {
       setBusy(false);
     }
   }
+  /** Withdraw the character, delete the participation and start again from the first page. */
+  async function restartAll() {
+    if (!job) return;
+    if (
+      !window.confirm(
+        "公開を取り消し、送信した写真の消去を依頼して、最初からやり直しますか？参加情報も削除されます。",
+      )
+    )
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      if (job.state !== "WITHDRAWN")
+        SpineWithdrawalResponseSchema.parse(
+          await request(`spine/jobs/${encodeURIComponent(job.task)}/withdraw`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          }),
+        );
+      await client.closeSession();
+      try {
+        sessionStorage.removeItem("ai-city-nickname");
+      } catch {
+        // Nothing stored.
+      }
+      window.location.assign("/join");
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "取り消せませんでした。");
+      setBusy(false);
+    }
+  }
   async function leave() {
     setBusy(true);
     setError("");
     try {
       await client.closeSession();
-      window.location.assign("/");
+      window.location.assign("/join");
     } catch {
       setError("参加情報を削除できませんでした。もう一度お試しください。");
       setBusy(false);
@@ -312,9 +344,6 @@ export function SpineParticipantFlow() {
                 >
                   次へ
                 </button>
-                <Link className="pf-back" href="/">
-                  最初に戻る
-                </Link>
               </>
             )}
             {stage === "upload" && (
@@ -411,7 +440,18 @@ export function SpineParticipantFlow() {
                   <p>
                     写真は送らず、用意されたキャラクターで参加できます。待ち時間はほとんどなく、そのまま質問に進めます。あなた専用のキャラクターは作られません。
                   </p>
-                  <Link className="pf-back" href="/join?mode=sample">
+                  <Link
+                    className="pf-back"
+                    href="/join?mode=sample"
+                    onClick={() => {
+                      // Carry the nickname from step 1 over, without putting it in the URL.
+                      try {
+                        sessionStorage.setItem("ai-city-nickname", nickname.trim());
+                      } catch {
+                        // Without storage the next page falls back to the character's name.
+                      }
+                    }}
+                  >
                     写真なしで、用意されたキャラクターで参加する
                   </Link>
                 </div>
@@ -568,14 +608,9 @@ export function SpineParticipantFlow() {
                   </p>
                   {focusRequest.message && <p role="status">{focusRequest.message}</p>}
                 </section>
-                <div className="pf-actions">
-                  <button className="pf-back" type="button" disabled={busy} onClick={withdraw}>
-                    公開を取り消し、写真の消去を依頼
-                  </button>
-                  <button className="pf-back" type="button" disabled={busy} onClick={leave}>
-                    参加情報を削除して終了
-                  </button>
-                </div>
+                <button className="pf-back" type="button" disabled={busy} onClick={restartAll}>
+                  参加を取り消して、最初からやり直す
+                </button>
               </>
             )}
             {stage === "closed" && (

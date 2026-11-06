@@ -11,6 +11,8 @@ export const PRESET_CHARACTERS = [
     avatarVersion: "fixture-sora-v1",
     personality: "散歩が好き",
     interest: "音楽",
+    /** Entertainment trait values (0 to 1), in the order of the phone hexagon. */
+    traits: [0.5, 0.6, 0.8, 0.7, 0.6, 0.7],
   },
   {
     id: "kaede",
@@ -19,6 +21,8 @@ export const PRESET_CHARACTERS = [
     avatarVersion: "fixture-haru-v1",
     personality: "好奇心いっぱい",
     interest: "本",
+    /** Entertainment trait values (0 to 1), in the order of the phone hexagon. */
+    traits: [0.6, 0.8, 0.5, 0.7, 0.95, 0.5],
   },
   {
     id: "minato",
@@ -27,6 +31,8 @@ export const PRESET_CHARACTERS = [
     avatarVersion: "fixture-sora-v1",
     personality: "のんびり屋",
     interest: "カフェ",
+    /** Entertainment trait values (0 to 1), in the order of the phone hexagon. */
+    traits: [0.4, 0.5, 0.7, 0.6, 0.5, 0.8],
   },
   {
     id: "hinata",
@@ -35,6 +41,8 @@ export const PRESET_CHARACTERS = [
     avatarVersion: "fixture-haru-v1",
     personality: "街を探検中",
     interest: "散歩",
+    /** Entertainment trait values (0 to 1), in the order of the phone hexagon. */
+    traits: [0.8, 0.6, 0.7, 0.5, 0.9, 0.7],
   },
   {
     id: "yui",
@@ -43,6 +51,8 @@ export const PRESET_CHARACTERS = [
     avatarVersion: "fixture-sora-v1",
     personality: "音楽好き",
     interest: "楽器",
+    /** Entertainment trait values (0 to 1), in the order of the phone hexagon. */
+    traits: [0.5, 0.7, 0.6, 0.9, 0.6, 0.7],
   },
   {
     id: "ren",
@@ -51,6 +61,8 @@ export const PRESET_CHARACTERS = [
     avatarVersion: "fixture-haru-v1",
     personality: "おだやか",
     interest: "ゲーム",
+    /** Entertainment trait values (0 to 1), in the order of the phone hexagon. */
+    traits: [0.55, 0.5, 0.6, 0.6, 0.55, 0.5],
   },
 ] as const;
 export const DevicePresetIdSchema = z.enum(["aoi", "kaede", "minato", "hinata", "yui", "ren"]);

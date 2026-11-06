@@ -26,3 +26,15 @@ describe("prepared sample characters", () => {
     expect(SampleIdSchema.safeParse("haru").success).toBe(false);
   });
 });
+
+describe("prepared character hexagons", () => {
+  it("give every character six trait values between 0 and 1", () => {
+    for (const preset of PRESET_CHARACTERS) {
+      expect(preset.traits).toHaveLength(6);
+      for (const value of preset.traits) {
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+});

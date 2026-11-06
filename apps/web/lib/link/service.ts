@@ -223,6 +223,7 @@ export class DeviceLinkService {
       consentVersion: 1,
       personalityLabel: preset.personality,
       interests: [preset.interest],
+      traits: [...preset.traits],
       publicState: "VISIBLE" as const,
     }));
     const avatars = [...snapshot.avatars];
