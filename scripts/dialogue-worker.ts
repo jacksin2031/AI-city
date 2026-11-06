@@ -18,6 +18,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  CHAT_WORKER_HEARTBEAT_INTERVAL_MS,
+  CHAT_WORKER_HEARTBEAT_PATH,
+  type ChatWorkerPhase,
+} from "../apps/web/lib/link/chat-worker-health";
 import { parseLines } from "../apps/web/lib/link/dialogue-lines";
 import { PRESET_CHARACTERS } from "../packages/contracts/src/device-link";
 
@@ -59,6 +64,16 @@ const roster: Fictional[] = [
 
 const db = new Firestore({ projectId: project });
 const collection = () => db.collection(`visitorExhibitions/${namespace}/dialogues`);
+const heartbeatDoc = db.doc(`visitorExhibitions/${namespace}/${CHAT_WORKER_HEARTBEAT_PATH}`);
+let phase: ChatWorkerPhase = "IDLE";
+let lastGeneratedAt: number | null = null;
+async function heartbeat(active = true) {
+  try {
+    await heartbeatDoc.set({ seenAt: Date.now(), active, phase, lastGeneratedAt });
+  } catch {
+    console.error("[dialogue] heartbeat write failed");
+  }
+}
 
 function prompt(a: Fictional, b: Fictional) {
   const who = (r: Fictional, label: string) =>
@@ -131,12 +146,20 @@ async function tick() {
       const existing = (await collection().doc(key).get()).data();
       if (existing && Date.now() - (existing.createdAt ?? 0) < TTL_MS) continue;
       const work = await mkdtemp(join(tmpdir(), "ai-city-dialogue-"));
+      phase = "GENERATING";
+      await heartbeat();
       try {
         const lines = parseLines(await runCodex(work, prompt(a, b)), a.id, b.id);
         if (!lines) throw new Error("no usable dialogue");
         await collection().doc(key).set({ lines, source: "codex", createdAt: Date.now() });
+        lastGeneratedAt = Date.now();
+        phase = "IDLE";
         console.log(`[dialogue] ${key} (${lines.length} lines)`);
+      } catch (error) {
+        phase = "ERROR";
+        throw error;
       } finally {
+        await heartbeat();
         await rm(work, { recursive: true, force: true });
       }
       return true;
@@ -148,15 +171,26 @@ async function tick() {
 console.log(
   `[dialogue] project=${project} namespace=${namespace} pairs=${(roster.length * (roster.length - 1)) / 2} ttl=${TTL_MS / 1000}s`,
 );
-let running = true;
-while (running) {
-  const worked = await tick().catch((error) => {
-    console.error(`[dialogue] error: ${error?.name ?? "Error"}`);
-    return false;
-  });
-  if (once) {
-    running = false;
-    break;
+// A generation can take up to six minutes: keep the liveness signal fresh while waiting.
+const heartbeatTimer = setInterval(() => void heartbeat(), CHAT_WORKER_HEARTBEAT_INTERVAL_MS);
+heartbeatTimer.unref();
+await heartbeat();
+try {
+  let running = true;
+  while (running) {
+    const worked = await tick().catch((error) => {
+      phase = "ERROR";
+      console.error(`[dialogue] error: ${error?.name ?? "Error"}`);
+      return false;
+    });
+    if (once) {
+      running = false;
+      break;
+    }
+    await new Promise((resolve) => setTimeout(resolve, worked ? IDLE_MS : CHAT_IDLE_MS));
   }
-  await new Promise((resolve) => setTimeout(resolve, worked ? IDLE_MS : CHAT_IDLE_MS));
+} finally {
+  clearInterval(heartbeatTimer);
+  await heartbeat(false);
+  await db.terminate();
 }

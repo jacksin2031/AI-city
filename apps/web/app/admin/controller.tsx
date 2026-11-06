@@ -5,6 +5,7 @@ import type { DeviceAdmin } from "@ai-city/contracts/device-link";
 import { type FormEvent, useEffect, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 import { removeResidents } from "./actions";
+import ChatWorkerStatus from "./chat-worker-status";
 import PresetResidents from "./presets";
 import ManagedResidents from "./residents";
 import SpinePanel from "./spine-panel";
@@ -248,6 +249,7 @@ export default function Admin({
               架空の住民同士の即時AI生成を切り替えます。オンでもAIサービスの接続設定が必要です。
               オフでも街の定型会話（48種類）は続き、平板からAI生成APIを呼び出しません。独立した会話生成Workerは停止しません。
             </p>
+            <ChatWorkerStatus />
           </section>
           <section className="flow-panel">
             <h2>タブレットをつなぐ</h2>

@@ -66,7 +66,10 @@ test("phone admin photo panel: offline worker, cost confirmation and no horizont
   });
   await openAdmin(page, request);
   await expect(page.getByText(/Worker 停止？ 最終確認/)).toBeVisible();
-  await expect(page.locator(".spine-worker")).toHaveCSS("color", "rgb(138, 28, 28)");
+  await expect(page.locator(".spine-worker").filter({ hasText: /Worker 停止？/ })).toHaveCSS(
+    "color",
+    "rgb(138, 28, 28)",
+  );
   const rows = page.locator(".spine-row");
   await expect(rows.first()).toContainText("aaaa1111");
   await expect(rows.nth(1)).toContainText("bbbb2222");
