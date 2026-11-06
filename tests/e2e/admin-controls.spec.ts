@@ -185,6 +185,10 @@ test("mobile manager toggles AI dialogue through the existing revisioned control
   await page.getByRole("button", { name: "管理画面に接続", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "AI会話の設定" })).toBeVisible();
+  // New services start with live AI enabled; presets remain usable independently.
+  const initial = await (await page.request.get("/api/link/admin")).json();
+  expect(initial.control.dialogueEnabled).toBe(true);
+  await expect(page.getByRole("button", { name: "AI会話をオフにする" })).toBeVisible();
   await page.getByRole("button", { name: "AI会話をオフにする" }).click();
   await expect(page.getByText("AI会話をオフにしました。")).toBeVisible();
   const disabled = await (await page.request.get("/api/link/admin")).json();
@@ -234,13 +238,17 @@ test("AI dialogue switch reaches a paired tablet without recreating its city can
       .evaluate((canvas) => canvas.setAttribute("data-dialogue-test", "same-canvas"));
 
     await admin.getByRole("button", { name: "AI会話をオフにする" }).click();
-    await expect(tablet.getByText("架空の住民：AI会話は停止中", { exact: true })).toBeVisible();
+    await expect(
+      tablet.getByText("架空の住民：定型会話中（AI生成オフ）", { exact: true }),
+    ).toBeVisible();
     await expect(
       tablet.locator('section.tablet-city canvas[data-dialogue-test="same-canvas"]'),
     ).toHaveCount(1);
 
     await admin.getByRole("button", { name: "AI会話をオンにする" }).click();
-    await expect(tablet.getByText("架空の住民：AI会話は停止中", { exact: true })).toHaveCount(0);
+    await expect(
+      tablet.getByText("架空の住民：定型会話中（AI生成オフ）", { exact: true }),
+    ).toHaveCount(0);
     await expect(
       tablet.locator('section.tablet-city canvas[data-dialogue-test="same-canvas"]'),
     ).toHaveCount(1);

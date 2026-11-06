@@ -370,6 +370,7 @@ function startCity(
   let exchange: {
     ids: [string, string];
     lines: DialogueResult["lines"];
+    source: DialogueResult["source"];
     startedAt: number;
   } | null = null;
   let dialoguePending = false;
@@ -903,7 +904,7 @@ function startCity(
       const currentLine = exchange?.lines[lineIndex];
       const speech = conversing
         ? currentLine?.residentId === id
-          ? `AI：${currentLine.text}`
+          ? `${exchange?.source === "PRESET" ? "定型" : "AI"}：${currentLine.text}`
           : ""
         : entry.actor.action === "talk"
           ? preset
@@ -991,11 +992,11 @@ function startCity(
               !presentation &&
               !ids.includes(selectedId ?? "") &&
               result?.safety === "PASSED" &&
-              result.source === "LIVE" &&
+              (result.source === "LIVE" || result.source === "PRESET") &&
               ids.every((id) => entries.has(id)) &&
               result.lines.every((line) => ids.includes(line.residentId))
             )
-              exchange = { ids, lines: result.lines, startedAt: now };
+              exchange = { ids, lines: result.lines, source: result.source, startedAt: now };
           })
           .catch(() => {})
           .finally(() => {
