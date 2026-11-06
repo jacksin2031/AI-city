@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import {
   type PublicResident,
   PublicResidentSchema,
+  type SpineAdjustment,
   type SpineBundleSchema,
 } from "@ai-city/contracts";
 import {
@@ -28,6 +29,7 @@ import {
 } from "@ai-city/contracts/spine";
 import { z } from "zod";
 import { DevelopmentServiceError } from "../development/service";
+import { buildAdminView } from "../spine/admin-view";
 import {
   makeCloudSpineJob,
   makeSpineJob,
@@ -36,6 +38,7 @@ import {
   SpineJobs,
   withdrawSpineJobRecord,
 } from "../spine/jobs";
+import { appendRepairLog } from "../spine/repair-log";
 import { removeSpineResident, SpineRosterEntrySchema } from "../spine/roster-index";
 import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
 
@@ -46,7 +49,9 @@ type SpineBundle = z.infer<typeof SpineBundleSchema>;
 export type SpineAdminActionInput =
   | { action: "cancel"; task: string }
   | { action: "requeue"; task: string; confirmCost: boolean }
-  | { action: "preset"; task: string; presetId: z.infer<typeof SampleIdSchema> };
+  | { action: "preset"; task: string; presetId: z.infer<typeof SampleIdSchema> }
+  | { action: "adjust"; task: string; adjustment: SpineAdjustment }
+  | { action: "resetAdjust"; task: string };
 
 export type SpineAdminDeps = { photos?: { exists(task: string): Promise<boolean> } };
 
@@ -791,34 +796,56 @@ export class VisitorService {
     });
   }
 
+  /** The admin recovery overview, built on the service clock. */
+  spineAdminView() {
+    return buildAdminView(this.store, this.now());
+  }
+
   /** Admin recovery of one Spine task. Requeue spends model budget again, so it needs confirmCost. */
   async spineAdminAction(
     input: SpineAdminActionInput,
     deps: SpineAdminDeps = {},
-  ): Promise<{ task: string; state: "QUEUED" | "WITHDRAWN" }> {
+  ): Promise<{ task: string; state: "QUEUED" | "WITHDRAWN" | "PUBLISHED" }> {
     if (!SpineTaskIdSchema.safeParse(input.task).success)
       throw new DevelopmentServiceError("INVALID_REQUEST", 400);
     const jobs = new SpineJobs(this.store, this.now);
+    // The repair entry is written in the same transaction as the action itself.
+    const log = (tx: VisitorTransaction) =>
+      appendRepairLog(tx, input.action, input.task, this.now());
     try {
+      if (input.action === "adjust" || input.action === "resetAdjust") {
+        await jobs.setAdjustment(
+          input.task,
+          input.action === "adjust" ? input.adjustment : null,
+          log,
+        );
+        return { task: input.task, state: "PUBLISHED" };
+      }
       if (input.action === "cancel") {
-        await jobs.adminWithdraw(input.task);
+        await jobs.adminWithdraw(input.task, log);
         return { task: input.task, state: "WITHDRAWN" };
       }
       if (input.action === "preset") {
-        await this.presetReplace(input.task, input.presetId);
+        await this.presetReplace(input.task, input.presetId, log);
         return { task: input.task, state: "WITHDRAWN" };
       }
       if (input.action === "requeue") {
         if (input.confirmCost !== true) throw new DevelopmentServiceError("COST_UNCONFIRMED", 400);
         // Outside the transaction by design: a later claim fails safely if the photo vanishes meanwhile.
-        if (!deps.photos || !(await deps.photos.exists(input.task)))
-          throw new DevelopmentServiceError("PHOTO_GONE", 409);
-        await jobs.requeue(input.task);
+        let present = false;
+        try {
+          present = deps.photos ? await deps.photos.exists(input.task) : false;
+        } catch {
+          throw new DevelopmentServiceError("CLOUD_PHOTO_UNAVAILABLE", 503);
+        }
+        if (!present) throw new DevelopmentServiceError("PHOTO_GONE", 409);
+        await jobs.requeue(input.task, log);
         return { task: input.task, state: "QUEUED" };
       }
     } catch (error) {
       if (error instanceof DevelopmentServiceError) throw error;
       const message = error instanceof Error ? error.message : "";
+      if (error instanceof z.ZodError) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
       if (message === "NOT_FOUND") throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
       if (message === "INVALID_TRANSITION" || message === "NOT_CLOUD_PHOTO")
         throw new DevelopmentServiceError("INVALID_TRANSITION", 409);
@@ -828,7 +855,11 @@ export class VisitorService {
   }
 
   /** One transaction: publish a prepared character for the task's owner, then withdraw the task. */
-  private async presetReplace(task: string, presetId: z.infer<typeof SampleIdSchema>) {
+  private async presetReplace(
+    task: string,
+    presetId: z.infer<typeof SampleIdSchema>,
+    log: (tx: VisitorTransaction) => Promise<void>,
+  ) {
     const avatar = avatarForSample(presetId);
     const now = this.now();
     await this.store.run(async (tx) => {
@@ -880,6 +911,7 @@ export class VisitorService {
         spineResidents,
       });
       tx.set(`jobs/spine-${task}`, withdrawn);
+      await log(tx);
     });
   }
 

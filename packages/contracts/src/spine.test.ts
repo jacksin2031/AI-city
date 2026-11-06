@@ -61,3 +61,30 @@ describe("spine adjustment contract", () => {
     expect(bad({ version: 1, parts: { hair: { ...part, extra: 1 } } })).toBe(false);
   });
 });
+
+describe("SpineAdminActionSchema", () => {
+  const task = "spine-12345678-1234-4123-8123-123456789abc";
+  it("accepts each action and rejects unsafe variants", async () => {
+    const { SpineAdminActionSchema } = await import("./spine");
+    const ok = [
+      { action: "cancel", task },
+      { action: "requeue", task, confirmCost: true },
+      { action: "preset", task, presetId: "aoi" },
+      { action: "adjust", task, adjustment: { version: 1, parts: {} } },
+      { action: "resetAdjust", task },
+    ];
+    for (const value of ok) expect(SpineAdminActionSchema.safeParse(value).success).toBe(true);
+    const bad = [
+      { action: "requeue", task },
+      { action: "requeue", task, confirmCost: false },
+      { action: "preset", task, presetId: "nobody" },
+      { action: "cancel", task, extra: 1 },
+      {
+        action: "adjust",
+        task,
+        adjustment: { version: 1, parts: { hair: { dx: Number.NaN, dy: 0, scale: 1 } } },
+      },
+    ];
+    for (const value of bad) expect(SpineAdminActionSchema.safeParse(value).success).toBe(false);
+  });
+});

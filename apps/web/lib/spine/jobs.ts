@@ -468,13 +468,20 @@ export class SpineJobs {
     });
   }
   /** Saves (or with null clears) the display adjustment; only a published task has one. */
-  async setAdjustment(task: string, adjustment: SpineAdjustment | null): Promise<void> {
+  async setAdjustment(
+    task: string,
+    adjustment: SpineAdjustment | null,
+    inTransaction?: (tx: VisitorTransaction) => Promise<void>,
+  ): Promise<void> {
     const path = this.path(task);
     const value = adjustment === null ? null : SpineAdjustmentSchema.parse(adjustment);
     await this.store.run(async (tx) => {
-      const record = recordSchema.parse(await tx.get(path));
+      const found = recordSchema.safeParse(await tx.get(path));
+      if (!found.success) throw new Error("NOT_FOUND");
+      const record = found.data;
       if (record.state !== "PUBLISHED") throw new Error("INVALID_TRANSITION");
       tx.set(path, recordSchema.parse({ ...record, adjustment: value }));
+      await inTransaction?.(tx);
     });
   }
   /** The public transport must check this on every request; it is not a storage URL. */
@@ -565,7 +572,7 @@ export class SpineJobs {
    * photo still exists. The live budget counter is deliberately not decremented, so a re-run is
    * counted again when it is next claimed.
    */
-  async requeue(task: string) {
+  async requeue(task: string, inTransaction?: (tx: VisitorTransaction) => Promise<void>) {
     const path = this.path(task);
     return this.store.run(async (tx) => {
       const found = recordSchema.safeParse(await tx.get(path));
@@ -581,10 +588,11 @@ export class SpineJobs {
       if (record.photoStorage !== "CLOUD_PRIVATE") throw new Error("NOT_CLOUD_PHOTO");
       tx.delete(`requests/spine-live-${task}`);
       tx.set(path, recordSchema.parse(next));
+      await inTransaction?.(tx);
     });
   }
   /** Admin cancel: the participant withdrawal path, acting for the owner stored in the record. */
-  async adminWithdraw(task: string) {
+  async adminWithdraw(task: string, inTransaction?: (tx: VisitorTransaction) => Promise<void>) {
     const path = this.path(task);
     return this.store.run(async (tx) => {
       const raw = await tx.get(path);
@@ -594,6 +602,7 @@ export class SpineJobs {
       const next = withdrawSpineJobRecord(parsed.data, parsed.data.owner, this.now());
       await removeSpineResident(tx, task);
       tx.set(path, next);
+      await inTransaction?.(tx);
     });
   }
 }

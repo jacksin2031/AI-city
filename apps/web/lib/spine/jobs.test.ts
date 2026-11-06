@@ -248,6 +248,12 @@ describe("Spine adjustment storage", () => {
   const raw = (store: MemoryVisitorStore) =>
     store.run(async (tx) => (await tx.get("jobs/spine-task1")) as Record<string, unknown>);
 
+  it("reports a missing task as NOT_FOUND, not a validation error", async () => {
+    const jobs = new SpineJobs(new MemoryVisitorStore());
+    await expect(jobs.setAdjustment("ghost", adjustment)).rejects.toThrow("NOT_FOUND");
+    await expect(jobs.setAdjustment("ghost", null)).rejects.toThrow("NOT_FOUND");
+  });
+
   it("saves, replaces and clears an adjustment on a published task without touching state", async () => {
     const { store, jobs } = await published();
     const before = await raw(store);

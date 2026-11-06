@@ -40,7 +40,10 @@ export async function buildAdminView(store: VisitorStore, now: number): Promise<
   let queued = 0;
   let running = 0;
   for (const { id, value } of listed) {
-    const task = SpineTaskIdSchema.safeParse(id);
+    // A job document is stored at jobs/spine-<task>, and the task id itself starts with "spine-".
+    const task = SpineTaskIdSchema.safeParse(
+      id.startsWith("spine-") ? id.slice("spine-".length) : id,
+    );
     const job = jobView.safeParse(value);
     if (!task.success || !job.success || job.data.state === "WITHDRAWN") continue;
     const { state, stateSince } = job.data;

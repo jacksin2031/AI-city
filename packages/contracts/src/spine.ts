@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DevicePresetIdSchema } from "./device-link";
 import { SpineAdjustmentSchema, SpineBundleSchema } from "./index";
 
 /** Consent must be bound server-side to a live session and a verified photo digest. */
@@ -81,5 +82,27 @@ export const SpineAdminViewSchema = z.strictObject({
   repairs: z.array(SpineRepairEntrySchema).max(20),
 });
 export type SpineAdminView = z.infer<typeof SpineAdminViewSchema>;
+
+/** The admin recovery actions. A redo spends paid model budget, so it must carry confirmCost. */
+export const SpineAdminActionSchema = z.discriminatedUnion("action", [
+  z.strictObject({ action: z.literal("cancel"), task: SpineTaskIdSchema }),
+  z.strictObject({
+    action: z.literal("requeue"),
+    task: SpineTaskIdSchema,
+    confirmCost: z.literal(true),
+  }),
+  z.strictObject({
+    action: z.literal("preset"),
+    task: SpineTaskIdSchema,
+    presetId: DevicePresetIdSchema,
+  }),
+  z.strictObject({
+    action: z.literal("adjust"),
+    task: SpineTaskIdSchema,
+    adjustment: SpineAdjustmentSchema,
+  }),
+  z.strictObject({ action: z.literal("resetAdjust"), task: SpineTaskIdSchema }),
+]);
+export type SpineAdminAction = z.infer<typeof SpineAdminActionSchema>;
 
 export { SPINE_PARTS, type SpineAdjustment, SpineAdjustmentSchema, type SpinePart } from "./index";

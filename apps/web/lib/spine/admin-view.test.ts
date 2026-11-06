@@ -27,7 +27,7 @@ const uuid = (n: number) => `${n.toString(16).padStart(8, "0")}-1111-4111-8111-1
 type Over = Record<string, unknown>;
 async function put(store: MemoryVisitorStore, n: number, over: Over = {}) {
   const base = makeSpineJob(owner, "c".repeat(64), consent, undefined, now - 1_000);
-  await store.run(async (tx) => tx.set(`jobs/spine-${uuid(n)}`, { ...base, ...over }));
+  await store.run(async (tx) => tx.set(`jobs/spine-spine-${uuid(n)}`, { ...base, ...over }));
 }
 const running = (since?: number) => ({
   state: "RUNNING",
@@ -98,7 +98,7 @@ describe("buildAdminView", () => {
     const base = makeSpineJob(owner, "c".repeat(64), consent, undefined, 0);
     const { stateSince: _drop, ...legacy } = base;
     await store.run(async (tx) =>
-      tx.set(`jobs/spine-${uuid(9)}`, { ...legacy, state: "RUNNING", worker: "w1" }),
+      tx.set(`jobs/spine-spine-${uuid(9)}`, { ...legacy, state: "RUNNING", worker: "w1" }),
     );
     const [t] = (await buildAdminView(store, now)).tasks;
     expect(t?.stateSince).toBeNull();
