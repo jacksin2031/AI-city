@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { photoUploadAllowedForPages } from "../../lib/visitor/runtime";
 import { ParticipantExperience } from "./participant-experience";
 import { ParticipationFlow } from "./participation-flow";
 import { SpineParticipantFlow } from "./spine-flow";
@@ -27,12 +28,15 @@ export default async function Join({
   // Photo-to-character flow: hosted when cloud intake is on; locally only when asked for explicitly.
   const photoFlow =
     codeFree && (spineCloud || (spineLocal && process.env.AI_CITY_SPINE_FLOW === "1"));
+  // The administrator's runtime switch gates hosted (cloud) photo intake only; fail closed.
+  const uploadAllowed = spineCloud ? await photoUploadAllowedForPages() : true;
   // "?mode=sample" is the no-photo path: a prepared sample character with a short wait.
-  if (photoFlow && mode !== "sample") return <SpineParticipantFlow />;
+  if (photoFlow && mode !== "sample")
+    return <SpineParticipantFlow initialUploadAllowed={uploadAllowed} />;
   if (codeFree)
     return (
       <ParticipantExperience
-        spineLocal={spineLocal || spineCloud}
+        spineLocal={spineLocal || (spineCloud && uploadAllowed)}
         photoHref={photoFlow ? "/join" : "/join/spine"}
         presetOnly={mode === "sample"}
       />

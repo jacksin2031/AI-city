@@ -6,6 +6,7 @@ import {
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
 import {
+  PhotoUploadPublicSettingsSchema,
   SpineCreatedResponseSchema,
   SpineCurrentResponseSchema,
   type SpineTaskView,
@@ -16,6 +17,7 @@ import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } f
 import { CityScene } from "./city-scene";
 import { LocalPhoto } from "./local-photo";
 import { ParticipantCard } from "./participant-card";
+import { PhotoUploadPaused } from "./photo-upload-paused";
 import { photoPreparationMessage, prepareUploadPhoto } from "./prepare-photo";
 import { computeStyle, questions } from "./questions";
 import { attentionMessages, estimateProgress } from "./spine-progress";
@@ -34,12 +36,28 @@ const TRANSPARENT_PORTRAIT =
 type Stage = "name" | "upload" | "questions" | "progress" | "done" | "closed";
 const MAX_PHOTO = 8 * 1024 * 1024;
 
+const UPLOAD_POLL_MS = 10_000;
+
 class RequestFailure extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: string,
   ) {
     super(message);
+  }
+}
+/** Public, session-less read. Anything unreadable counts as "not allowed" (fail closed). */
+async function readUploadAllowed(): Promise<boolean> {
+  try {
+    const response = await fetch("/api/visitor/photo-upload-settings", {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (!response.ok) return false;
+    return PhotoUploadPublicSettingsSchema.parse(await response.json()).allowed;
+  } catch {
+    return false;
   }
 }
 async function request(path: string, init?: RequestInit) {
@@ -53,6 +71,7 @@ async function request(path: string, init?: RequestInit) {
     throw new RequestFailure(
       response.status,
       body?.error?.message ?? "操作できませんでした。しばらくしてからお試しください。",
+      body?.error?.code,
     );
   return body;
 }
@@ -62,7 +81,13 @@ async function request(path: string, init?: RequestInit) {
  * while the character is made. The photo is sent as soon as it is confirmed, so generation runs
  * while the participant answers the questions.
  */
-export function SpineParticipantFlow() {
+export function SpineParticipantFlow({
+  initialUploadAllowed = true,
+}: {
+  /** Server-read state at page load; polling and the backend keep it current afterwards. */
+  initialUploadAllowed?: boolean;
+}) {
+  const [uploadAllowed, setUploadAllowed] = useState(initialUploadAllowed);
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
   const focusRequest = useReliableFocus(client);
   const [stage, setStage] = useState<Stage>("name");
@@ -138,6 +163,34 @@ export function SpineParticipantFlow() {
     };
   }, [refresh]);
 
+  // Until a photo is on its way, follow the administrator's switch while the page stays open.
+  const preUpload = stage === "name" || stage === "upload";
+  useEffect(() => {
+    if (!preUpload) return;
+    let live = true;
+    const check = async () => {
+      const allowed = await readUploadAllowed();
+      if (!live) return;
+      setUploadAllowed(allowed);
+      if (!allowed) {
+        // Drop the local photo and the consents: they must be given again after a restart.
+        discardPhoto();
+        setProcessing(false);
+        setUpload(false);
+        setPublication(false);
+      }
+    };
+    const timer = setInterval(() => void check(), UPLOAD_POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      live = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [preUpload, discardPhoto]);
   // Poll while the character is being made; it keeps running if the participant is still answering.
   const state = job?.state;
   useEffect(() => {
@@ -197,6 +250,15 @@ export function SpineParticipantFlow() {
     setBusy(true);
     setError("");
     try {
+      // Last look before anything leaves the device; the server enforces the same switch.
+      if (!uploadAllowed || !(await readUploadAllowed())) {
+        setUploadAllowed(false);
+        discardPhoto();
+        setProcessing(false);
+        setUpload(false);
+        setPublication(false);
+        return;
+      }
       await client.createSession();
       const created = SpineCreatedResponseSchema.parse(
         await request("spine/jobs", {
@@ -214,6 +276,15 @@ export function SpineParticipantFlow() {
       discardPhoto();
       setStage("questions");
     } catch (failure) {
+      if (failure instanceof RequestFailure && failure.code === "PHOTO_UPLOAD_DISABLED") {
+        // Switched off mid-flow: nothing was stored. Show the paused page, not an error.
+        setUploadAllowed(false);
+        discardPhoto();
+        setProcessing(false);
+        setUpload(false);
+        setPublication(false);
+        return;
+      }
       setError(
         failure instanceof RequestFailure || failure instanceof DevelopmentApiError
           ? failure.message
@@ -344,7 +415,20 @@ export function SpineParticipantFlow() {
           <p role="status">参加情報を確認しています。</p>
         ) : (
           <>
-            {stage === "name" && (
+            {preUpload && !uploadAllowed && (
+              <PhotoUploadPaused
+                onNavigate={() => {
+                  // Carry any typed nickname over to the sample flow, without putting it in the URL.
+                  try {
+                    if (nickname.trim())
+                      sessionStorage.setItem("ai-city-nickname", nickname.trim());
+                  } catch {
+                    // Without storage the sample flow falls back to the character's name.
+                  }
+                }}
+              />
+            )}
+            {stage === "name" && uploadAllowed && (
               <>
                 <p className="pf-step">{stepLabel(1)}</p>
                 <h2>ニックネームを教えてください</h2>
@@ -370,7 +454,7 @@ export function SpineParticipantFlow() {
                 </button>
               </>
             )}
-            {stage === "upload" && (
+            {stage === "upload" && uploadAllowed && (
               <>
                 <p className="pf-step">{stepLabel(2)}</p>
                 <h2>写真をアップロード</h2>

@@ -43,6 +43,14 @@ export function getSpineJobs(): SpineJobs | null {
   if (!getVisitorService()) return null;
   return state.aiCityVisitors?.store ? new SpineJobs(state.aiCityVisitors.store) : null;
 }
+/** Server-side read for pages. Fails closed: an unreadable setting never opens photo upload. */
+export async function photoUploadAllowedForPages(): Promise<boolean> {
+  try {
+    return (await getVisitorService()?.photoUploadAllowed()) ?? false;
+  } catch {
+    return false;
+  }
+}
 export function getVisitorBoundary(): VisitorBoundary | null {
   getVisitorService();
   return state.aiCityVisitors?.security ?? null;
