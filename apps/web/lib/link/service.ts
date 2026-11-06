@@ -132,6 +132,7 @@ export class DeviceLinkService {
   }
   /** Attach shared persistence. Without a store the controller stays process-local. */
   attachStore(store: VisitorStore | null) {
+    if (this.store === store) return;
     this.store = store;
     this.loadedAt = Number.NEGATIVE_INFINITY;
   }
