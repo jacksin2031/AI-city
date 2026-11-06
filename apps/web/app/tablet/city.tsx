@@ -15,15 +15,12 @@ import {
 } from "@ai-city/city";
 import { DialogueResultSchema } from "@ai-city/contracts";
 import type { CitySnapshot } from "@ai-city/contracts/development";
-import { PRESET_CHARACTERS } from "@ai-city/contracts/device-link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LandmarkCard } from "../landmark-card";
 import { AutumnFilter, SceneCounts, SceneLogo } from "./hud";
+import { officialSkinFor } from "./official-skin";
 import { ResidentSpeech } from "./resident-speech";
 
-const sampleSkins: Record<string, string> = Object.fromEntries(
-  PRESET_CHARACTERS.map((preset) => [preset.id, preset.officialSkin]),
-);
 export function TabletCity({
   snapshot,
   motion,
@@ -50,9 +47,7 @@ export function TabletCity({
   const [presentation, setPresentation] = useState(() => updatePresentation(null, snapshot));
   const view = useMemo(() => updatePresentation(presentation, snapshot), [presentation, snapshot]);
   const residents = view.roster.residents;
-  const hasPresetResidents = residents.some((resident) =>
-    resident.residentId.startsWith("preset-"),
-  );
+  const hasPresetResidents = residents.some((resident) => officialSkinFor(resident) !== null);
   // Which Spine bundles the current roster needs. Residents come and go, so this list changes
   // often — it must only top up the loaded bundles, never restart the scene.
   const spineDescriptors: Array<{
@@ -180,11 +175,8 @@ export function TabletCity({
                 bundlePlayers += 1;
                 return player;
               }
-              const preset =
-                /^preset-([a-z]+)(?:-\d+)?$/.exec(resident.residentId) ??
-                /^sample-([a-z]+)-v1$/.exec(resident.avatarVersion);
-              if (assets && preset?.[1] && sampleSkins[preset[1]])
-                return assets.create(sampleSkins[preset[1]]);
+              const skin = officialSkinFor(resident);
+              if (assets && skin) return assets.create(skin);
               // A participant's own character is still loading: never borrow the sample figure.
               if (
                 latest.current.snapshot.avatars.some(
