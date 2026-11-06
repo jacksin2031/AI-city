@@ -662,7 +662,7 @@ export class VisitorService {
       delete entries[task];
       tx.set(
         `jobs/spine-${task}`,
-        makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation),
+        makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation, now),
       );
       tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
       return { task, state: "QUEUED" as const };
@@ -746,7 +746,7 @@ export class VisitorService {
     const now = this.now();
     // Validate consent before entering the transaction; the server supplies its timestamp.
     const recordedConsent = { ...consent, recordedAt: new Date(now).toISOString() };
-    makeSpineJob(owner, photoSha256, recordedConsent);
+    makeSpineJob(owner, photoSha256, recordedConsent, undefined, now);
     return this.store.run(async (tx) => {
       const state = await readState(tx);
       const session = parseSession(await tx.get(`sessions/${owner}`));
@@ -773,7 +773,7 @@ export class VisitorService {
       if (acknowledged.changed) setDocument(tx, "meta/state", acknowledged.state);
       tx.set(
         `jobs/spine-${task}`,
-        makeSpineJob(owner, photoSha256, recordedConsent, session.expiresAt),
+        makeSpineJob(owner, photoSha256, recordedConsent, session.expiresAt, now),
       );
       tx.set(`requests/spine-owner-${owner}`, { task });
       return { task, state: "QUEUED" as const };
@@ -793,7 +793,7 @@ export class VisitorService {
       if (!validSession(session, owner, state, now))
         throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
       if (!raw || raw.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
-      const withdrawn = withdrawSpineJobRecord(raw, owner);
+      const withdrawn = withdrawSpineJobRecord(raw, owner, now);
       await removeSpineResident(tx, task);
       tx.set(`jobs/spine-${task}`, withdrawn);
       return { toolCleanupPending: withdrawn.toolCleanupPending };
@@ -1622,7 +1622,7 @@ export class VisitorService {
         const raw = await tx.get(`jobs/spine-${spine.task}`);
         if (!raw || raw.owner !== spine.owner)
           throw new DevelopmentServiceError("STORAGE_INVALID", 500);
-        const withdrawn = withdrawSpineJobRecord(raw, spine.owner);
+        const withdrawn = withdrawSpineJobRecord(raw, spine.owner, now);
         await removeSpineResident(tx, spine.task);
         tx.set(`jobs/spine-${spine.task}`, withdrawn);
         return success(undefined);

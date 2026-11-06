@@ -86,8 +86,8 @@ export function makeSpineJob(
   owner: string,
   photoSha256: string,
   consent: SpineConsent,
-  sessionExpiresAt?: number,
-  now: number = Date.now(),
+  sessionExpiresAt: number | undefined,
+  now: number,
 ) {
   return recordSchema.parse({
     owner: digest.parse(owner),
@@ -112,7 +112,7 @@ export function makeCloudSpineJob(
   consent: SpineConsent,
   expiresAt: number,
   generation: string,
-  now: number = Date.now(),
+  now: number,
 ) {
   return recordSchema.parse({
     ...makeSpineJob(owner, photoSha256, consent, expiresAt, now),
@@ -121,7 +121,7 @@ export function makeCloudSpineJob(
   });
 }
 
-export function withdrawSpineJobRecord(value: unknown, owner: string, now: number = Date.now()) {
+export function withdrawSpineJobRecord(value: unknown, owner: string, now: number) {
   digest.parse(owner);
   const record = recordSchema.parse(value);
   if (record.owner !== owner) throw new Error("NOT_FOUND");

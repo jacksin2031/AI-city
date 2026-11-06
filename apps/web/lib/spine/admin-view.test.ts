@@ -84,6 +84,16 @@ describe("buildAdminView", () => {
     expect(t?.needsAttention).toBe(false);
   });
 
+  it("drops the preview of a corrupt bundle without failing the view", async () => {
+    const store = new MemoryVisitorStore();
+    await put(store, 1, { state: "PUBLISHED", worker: "w1", bundle: { skeleton: "bad" } });
+    await put(store, 2, { state: "PUBLISHED", worker: "w1", bundle });
+    const view = await buildAdminView(store, now);
+    expect(view.tasks).toHaveLength(2);
+    expect(view.tasks.find((t) => t.code === "00000001")?.preview).toBeNull();
+    expect(view.tasks.find((t) => t.code === "00000002")?.preview).toEqual({ bundle });
+  });
+
   it("reports an offline worker when there is no heartbeat", async () => {
     const view = await buildAdminView(new MemoryVisitorStore(), now);
     expect(view.worker).toEqual({ online: false, lastSeenAt: null });

@@ -1,3 +1,4 @@
+import { SpineBundleSchema } from "@ai-city/contracts";
 import {
   type SpineAdminTask,
   type SpineAdminView,
@@ -46,14 +47,15 @@ export async function buildAdminView(store: VisitorStore, now: number): Promise<
     if (state === "RUNNING") running++;
     const stuck =
       state === "RUNNING" && stateSince !== undefined && now - stateSince > STUCK_AFTER_MS;
-    const preview = state === "PUBLISHED" && job.data.bundle ? { bundle: job.data.bundle } : null;
+    const bundle = state === "PUBLISHED" ? SpineBundleSchema.safeParse(job.data.bundle) : null;
+    const preview = bundle?.success ? { bundle: bundle.data } : null;
     tasks.push({
       task: task.data,
       code: task.data.slice("spine-".length, "spine-".length + 8),
       state,
       stateSince: stateSince === undefined ? null : new Date(stateSince).toISOString(),
       needsAttention: ATTENTION_STATES.has(state) || stuck,
-      preview: preview as SpineAdminTask["preview"],
+      preview,
     });
   }
   // Attention first; stable otherwise.
