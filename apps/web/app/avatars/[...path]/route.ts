@@ -16,7 +16,12 @@ export async function GET(request: Request) {
       cloud ?? (await getLocalSpineStorage()),
       cloud ? process.env.AI_CITY_PUBLIC_ORIGIN : undefined,
     );
-  } catch {
+  } catch (error) {
+    const code =
+      error instanceof Error && /^(SPINE_[A-Z_]+|CLOUD_ASSET_[A-Z_]+)$/.test(error.message)
+        ? error.message
+        : "UNEXPECTED";
+    console.error(`[spine-asset] initialization failed: ${code}`);
     return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 }

@@ -133,7 +133,12 @@ export function SpineParticipantFlow() {
   // Poll while the character is being made; it keeps running if the participant is still answering.
   const state = job?.state;
   useEffect(() => {
-    if (!state || !["QUEUED", "RUNNING", "PREPARED"].includes(state)) return;
+    // Keep checking while an operator reviews or requeues a failed attempt.
+    if (
+      !state ||
+      !["QUEUED", "RUNNING", "PREPARED", "REQUIRES_REVIEW", "FAILED", "UNKNOWN"].includes(state)
+    )
+      return;
     const timer = setInterval(() => void refresh(), 5000);
     return () => clearInterval(timer);
   }, [state, refresh]);
@@ -581,10 +586,20 @@ export function SpineParticipantFlow() {
                   <h1>{nickname.trim() ? `${nickname.trim()}さん、` : ""}街へようこそ</h1>
                   <p>キャラクターが完成し、展示の街に公開されました。</p>
                 </header>
+                {portrait.unavailable && (
+                  <div role="alert" className="pf-error">
+                    <p>
+                      キャラクターの公開データは保存されていますが、画像を読み込めませんでした。時間をおいて再読み込みしてください。
+                    </p>
+                    <button className="pf-back" type="button" onClick={portrait.retry}>
+                      キャラクター画像を再読み込み
+                    </button>
+                  </div>
+                )}
                 {answered && (
                   <ParticipantCard
                     name={nickname.trim() || "ゲスト"}
-                    avatarSrc={portrait ?? TRANSPARENT_PORTRAIT}
+                    avatarSrc={portrait.image ?? TRANSPARENT_PORTRAIT}
                     tone="green"
                     decoration={null}
                     isStyle
