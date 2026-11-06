@@ -35,7 +35,7 @@ import {
   type SpineProfile,
   saveDraft,
 } from "./spine-profile";
-import { attentionMessages, estimateProgress } from "./spine-progress";
+import { attentionMessages, describeProgress, PROGRESS_STEPS } from "./spine-progress";
 import { traitValues } from "./trait-values";
 import { useReliableFocus } from "./use-reliable-focus";
 import { useSpinePortrait } from "./use-spine-portrait";
@@ -129,8 +129,6 @@ export function SpineParticipantFlow({
   const [photoPreparing, setPhotoPreparing] = useState(false);
   const photoSelection = useRef(0);
   const [job, setJob] = useState<SpineTaskView | null>(null);
-  const [runningSince, setRunningSince] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
   const localPhoto = useRef<LocalPhoto | null>(null);
   localPhoto.current ??= new LocalPhoto({
     create: (file) => URL.createObjectURL(file),
@@ -233,7 +231,6 @@ export function SpineParticipantFlow({
     profileSent.current = false;
     setSavedProfile(null);
     setQuestionsDone(false);
-    setRunningSince(null);
     setJob(null);
     setError("");
     setGuard(null);
@@ -286,15 +283,6 @@ export function SpineParticipantFlow({
     const timer = setInterval(() => void refresh(), 5000);
     return () => clearInterval(timer);
   }, [state, refresh]);
-  useEffect(() => {
-    if (state === "RUNNING") setRunningSince((previous) => previous ?? Date.now());
-    else if (state !== undefined) setRunningSince(null);
-  }, [state]);
-  useEffect(() => {
-    if (stage !== "progress") return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [stage]);
   useEffect(() => {
     if (state === "PUBLISHED" && questionsDone && stage === "progress") setStage("done");
   }, [state, questionsDone, stage]);
@@ -447,10 +435,7 @@ export function SpineParticipantFlow({
     }
   }
 
-  const progress = estimateProgress(
-    job?.state ?? "QUEUED",
-    runningSince ? (now - runningSince) / 1000 : 0,
-  );
+  const progress = describeProgress(job?.state ?? "QUEUED");
   const style = computeStyle(answers);
   const answered = answers.some((answer) => answer !== null);
   const styleLabel = aiStyleLabels[style];
@@ -575,7 +560,7 @@ export function SpineParticipantFlow({
                 <p>写真をもとに、あなた専用のキャラクターを作ります。</p>
                 <p className="pf-tip" role="note">
                   <strong>キャラクターの制作には時間がかかります。</strong>
-                  1人あたり5〜10分ほど、順番待ちがあるとさらに長くなります。すぐに参加したい場合は、下の「写真なしで参加」もお選びいただけます。
+                  混雑状況により、完成までの時間は変わります。すぐに参加したい場合は、下の「写真なしで参加」もお選びいただけます。
                 </p>
                 <div className="pf-note">
                   <strong>送信される写真について</strong>
@@ -765,27 +750,24 @@ export function SpineParticipantFlow({
             {stage === "progress" && (
               <section className="pf-progress" aria-live="polite">
                 <p className="pf-step">{stepLabel(4)}</p>
-                <h2>
-                  {progress.phase === "attention" ? "確認が必要です" : "キャラクターを作っています"}
-                </h2>
+                <h2>{progress.heading}</h2>
                 {progress.phase !== "attention" ? (
                   <>
-                    <div
-                      className="pf-bar"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={progress.percent}
-                      aria-label="キャラクター制作の進み具合（目安）"
-                    >
-                      <span style={{ width: `${progress.percent}%` }} />
-                    </div>
+                    <ol className="pf-steps" aria-label="キャラクター制作の状況">
+                      {PROGRESS_STEPS.map((name, index) => (
+                        <li
+                          key={name}
+                          aria-current={progress.step === index + 1 ? "step" : undefined}
+                          data-reached={progress.step !== null && progress.step >= index + 1}
+                        >
+                          {name}
+                        </li>
+                      ))}
+                    </ol>
                     <p className="pf-bar-text">
-                      {progress.label}　<strong>{progress.percent}%</strong>
+                      <strong>{progress.label}</strong>
                     </p>
-                    <p className="pf-fine">
-                      進み具合は目安です。1人あたり5〜10分ほどかかり、順番待ちがあるとさらに時間がかかります。
-                    </p>
+                    <p className="pf-fine">{progress.detail}</p>
                     <div className="pf-tip">
                       <strong>待っている間に、平板で街を体験できます</strong>
                       <ul>

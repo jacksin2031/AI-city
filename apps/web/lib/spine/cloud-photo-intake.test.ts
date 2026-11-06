@@ -37,6 +37,7 @@ describe("cloud photo admission orchestration", () => {
       state: "QUEUED",
       photoStorage: "CLOUD_PRIVATE",
       photoGeneration: "123",
+      queuedAt: expect.any(Number),
     });
   });
   it("keeps an unknown upload outcome pending cleanup without queueing", async () => {

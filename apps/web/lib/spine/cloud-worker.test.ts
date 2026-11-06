@@ -269,3 +269,146 @@ describe("concurrent workers in one process", () => {
     expect(executions).toBe(1);
   });
 });
+
+describe("worker skip reasons and diagnostics", () => {
+  it("reports a withdrawn job as WITHDRAWN once its cleanup is finished, and never runs it", async () => {
+    const f = await fixture();
+    await withdrawCloudPhoto(f.service, f.c.photoApi, f.c.assetApi, f.token, f.task);
+    const execute = vi.fn();
+    const first = await poll(f, execute as never);
+    const second = await poll(f, execute as never);
+    expect(first.claimed + second.claimed).toBe(0);
+    expect(second.skipped).toEqual({ WITHDRAWN: 1 });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("reports a bad digest without processing it and does not retry on later passes", async () => {
+    const f = await fixture();
+    f.c.photos.set(f.task, new Uint8Array([1, 2, 3]));
+    const execute = vi.fn();
+    for (let pass = 0; pass < 3; pass++) {
+      const summary = await poll(f, execute as never);
+      expect(summary.skipped).toEqual({ BAD_PHOTO_DIGEST: 1 });
+    }
+    expect(execute).not.toHaveBeenCalled();
+    expect(await f.storage.read(f.task, "photo.png", 1000)).toBeNull();
+  });
+
+  it("reports PHOTO_MISSING and leaves the job queued", async () => {
+    const f = await fixture();
+    f.c.photos.delete(f.task);
+    const execute = vi.fn();
+    expect((await poll(f, execute as never)).skipped).toEqual({ PHOTO_MISSING: 1 });
+    expect(await f.jobs.cloudQueuedForWorker(f.task)).not.toBeNull();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("classifies storage failures without stopping the pass, and still serves the next person", async () => {
+    const f = await fixture();
+    const png = await sharp({ create: { width: 4, height: 4, channels: 3, background: "green" } })
+      .png()
+      .toBuffer();
+    const other = await f.service.createOpenSession();
+    const second = await submitCloudPhoto(f.service, f.c.photoApi, other.token, png, consent);
+    const flaky = {
+      ...f.c.photoApi,
+      read: async (task: string, max: number, generation?: string) => {
+        if (task === f.task) throw new Error("CLOUD_PHOTO_GENERATION_CHANGED");
+        return f.c.photoApi.read(task, max, generation);
+      },
+    };
+    const execute = vi.fn(async (task: string) => ({
+      status: "APPROVED" as const,
+      candidate: await candidate(task),
+    }));
+    const summary = await pollCloudSpineTasks(
+      {
+        jobs: f.jobs,
+        storage: f.storage,
+        photos: flaky,
+        assets: f.c.assetApi,
+        listTasks: async () => [f.task, second.task],
+        execute: execute as never,
+      },
+      1,
+    );
+    expect(summary.skipped).toEqual({ PHOTO_GENERATION_CHANGED: 1 });
+    expect(summary.claimed).toBe(1);
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute.mock.calls[0]?.[0]).toBe(second.task);
+  });
+
+  it("does not let an unexpected error escape, and echoes no free-form error text", async () => {
+    const f = await fixture();
+    const broken = {
+      ...f.c.photoApi,
+      read: async () => {
+        throw new Error(`secret detail ${f.task}`);
+      },
+    };
+    const summary = await pollCloudSpineTasks(
+      {
+        jobs: f.jobs,
+        storage: f.storage,
+        photos: broken,
+        assets: f.c.assetApi,
+        listTasks: async () => [f.task],
+        execute: vi.fn() as never,
+      },
+      1,
+    );
+    expect(summary.skipped).toEqual({ PHOTO_UNAVAILABLE: 1 });
+    expect(JSON.stringify(summary)).not.toContain(f.task);
+    expect(JSON.stringify(summary)).not.toContain("secret");
+  });
+
+  it("reports NOT_QUEUED for a job that is past the queue, and never re-runs it", async () => {
+    const f = await fixture();
+    const output = await candidate(f.task);
+    const execute = vi.fn(async () => ({ status: "APPROVED" as const, candidate: output }));
+    await poll(f, execute as never);
+    await poll(f, execute as never); // finishes the post-publication cleanup
+    const later = await poll(f, execute as never);
+    expect(later.skipped).toEqual({ NOT_QUEUED: 1 });
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("names why admission is refused", async () => {
+    const f = await fixture();
+    expect(await f.jobs.inspectCloudQueue("spine-missing")).toEqual({
+      queued: null,
+      reason: "RECORD_MISSING",
+    });
+    expect(await f.jobs.inspectCloudQueue(f.task)).toMatchObject({ queued: { generation: "7" } });
+  });
+
+  it("keeps task ids out of the summary", async () => {
+    const f = await fixture();
+    f.c.photos.set(f.task, new Uint8Array([9]));
+    const summary = await poll(f, vi.fn() as never);
+    expect(JSON.stringify(summary)).not.toContain(f.task);
+    expect(summary.listing).toBeUndefined();
+  });
+
+  it("passes listing counts through", async () => {
+    const f = await fixture();
+    const summary = await pollCloudSpineTasks(
+      {
+        jobs: f.jobs,
+        storage: f.storage,
+        photos: f.c.photoApi,
+        assets: f.c.assetApi,
+        listTasks: async () => ({
+          tasks: [],
+          settled: 3,
+          byState: { WITHDRAWN: 3 },
+          oldestQueuedSeconds: null,
+          oldestRunningSeconds: null,
+        }),
+        execute: vi.fn() as never,
+      },
+      1,
+    );
+    expect(summary.listing).toMatchObject({ listed: 3, settled: 3 });
+  });
+});
