@@ -63,6 +63,16 @@ export function ParticipantExperience({
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackShown, setFeedbackShown] = useState(false);
   const [nickname, setNickname] = useState("");
+  // Joining as a prepared character reuses the nickname already entered on the previous page.
+  useEffect(() => {
+    if (!presetOnly) return;
+    try {
+      const saved = sessionStorage.getItem("ai-city-nickname")?.trim().slice(0, 80);
+      if (saved) setNickname(saved);
+    } catch {
+      // No stored nickname: the character's own name is used.
+    }
+  }, [presetOnly]);
   const [sample, setSample] = useState<CreateJobRequest["sampleId"]>("aoi");
   const [color, setColor] = useState<(typeof colors)[number]>(colors[0]);
   const [mark, setMark] = useState<(typeof marks)[number]>(marks[0]);
@@ -189,7 +199,7 @@ export function ParticipantExperience({
       const next = await client.createJob({
         eventId: "fixture-event",
         requestId: requestId.current,
-        nickname: presetOnly ? (chosen?.name ?? "ゲスト") : nickname.trim(),
+        nickname: nickname.trim() || (presetOnly ? (chosen?.name ?? "ゲスト") : ""),
         sampleId: sample,
         aiStyle,
         scenario: "SUCCESS",
@@ -430,7 +440,9 @@ export function ParticipantExperience({
                 <h2>{presetOnly ? "キャラクターを選ぶ" : "サンプルをカスタマイズ"}</h2>
                 <p>
                   {presetOnly
-                    ? "用意されたキャラクターから選びます。名前の入力や写真は不要です。"
+                    ? nickname.trim()
+                      ? `${nickname.trim()}さん、用意されたキャラクターから選んでください。写真は使いません。`
+                      : "用意されたキャラクターから選びます。写真は使いません。"
                     : "街に表示するサンプルと、スマホの色・マークを選びます。"}
                 </p>
                 <div className={`pf-avatar pf-${color.id}`} aria-hidden="true">

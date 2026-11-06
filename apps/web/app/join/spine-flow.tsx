@@ -411,7 +411,18 @@ export function SpineParticipantFlow() {
                   <p>
                     写真は送らず、用意されたキャラクターで参加できます。待ち時間はほとんどなく、そのまま質問に進めます。あなた専用のキャラクターは作られません。
                   </p>
-                  <Link className="pf-back" href="/join?mode=sample">
+                  <Link
+                    className="pf-back"
+                    href="/join?mode=sample"
+                    onClick={() => {
+                      // Carry the nickname from step 1 over, without putting it in the URL.
+                      try {
+                        sessionStorage.setItem("ai-city-nickname", nickname.trim());
+                      } catch {
+                        // Without storage the next page falls back to the character's name.
+                      }
+                    }}
+                  >
                     写真なしで、用意されたキャラクターで参加する
                   </Link>
                 </div>
