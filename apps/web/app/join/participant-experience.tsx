@@ -423,7 +423,9 @@ export function ParticipantExperience({
             )}
             {stage === "custom" && (
               <>
-                <p className="pf-step">{presetOnly ? "ステップ 1 / 3" : "ステップ 2 / 4"}</p>
+                {/* The photo step is skipped when only prepared characters are offered, but the
+                    numbering stays 1-4 so the name step and the later steps agree. */}
+                <p className="pf-step">ステップ 2 / 4</p>
                 <h2>{presetOnly ? "キャラクターを選ぶ" : "サンプルをカスタマイズ"}</h2>
                 <p>
                   {presetOnly
@@ -445,11 +447,13 @@ export function ParticipantExperience({
                         checked={sample === item.id}
                         onChange={() => setSample(item.id)}
                       />
-                      {portraits[item.id] ? (
-                        <img src={portraits[item.id]} alt="" width="72" height="72" />
-                      ) : (
-                        <span className="pf-character-empty" aria-hidden="true" />
-                      )}
+                      {/* The portrait is drawn after the Spine skin loads; the placeholder holds
+                          the same 1:1 box so the card never jumps or shows an empty gap. */}
+                      <span className="pf-character-frame" aria-hidden="true">
+                        {portraits[item.id] && (
+                          <img src={portraits[item.id]} alt="" width="72" height="72" />
+                        )}
+                      </span>
                       <span>
                         {item.name}（{item.personality}）
                       </span>
@@ -506,9 +510,7 @@ export function ParticipantExperience({
             )}
             {stage === "questions" && (
               <>
-                <p className="pf-step">
-                  {presetOnly ? "ステップ 2 / 3" : "ステップ 3 / 4"} · 質問 {question + 1} / 6
-                </p>
+                <p className="pf-step">ステップ 3 / 4 · 質問 {question + 1} / 6</p>
                 <fieldset className="pf-questions">
                   <legend>{questions[question]?.[0]}</legend>
                   {questions[question]?.[1].map((option, index) => (
@@ -572,7 +574,7 @@ export function ParticipantExperience({
             )}
             {stage === "confirm" && view?.preview && (
               <>
-                <p className="pf-step">{presetOnly ? "ステップ 3 / 3" : "ステップ 4 / 4"}</p>
+                <p className="pf-step">ステップ 4 / 4</p>
                 <h2>公開する内容を確認</h2>
                 <div className="pf-card">
                   <img

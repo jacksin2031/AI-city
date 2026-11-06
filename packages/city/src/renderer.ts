@@ -25,6 +25,7 @@ import {
 import { characterDataUrl, illustrationPalette } from "./illustrations";
 import { LANDMARKS, type Landmark } from "./landmarks";
 import { type MaterialSpecs, mergeCity, updateBuildingFade } from "./materials";
+import { type PickTarget, pickResident } from "./picking";
 import { SCENE_RESIDENT_LIMIT } from "./roster";
 import {
   type Actor,
@@ -577,7 +578,14 @@ function startCity(
 
   // —— Input: drag to pan, pinch or wheel to zoom, tap a resident to select ——
   const pointers = new Map<number, { x: number; y: number }>();
-  let drag: { x: number; y: number; moved: boolean; from: SceneCamera } | null = null;
+  let drag: {
+    x: number;
+    y: number;
+    moved: boolean;
+    from: SceneCamera;
+    /** Who was under the finger on touch-down; residents keep walking before release. */
+    grabbed: string | null;
+  } | null = null;
   let pinch: { distance: number; zoom: number } | null = null;
   const toScreen = (event: PointerEvent | WheelEvent) => {
     const bounds = canvas.getBoundingClientRect();
@@ -591,14 +599,47 @@ function startCity(
     tourGlide = null;
   };
   const raycaster = new THREE.Raycaster();
+  /** Smallest tap target, in CSS pixels, so a distant or moving resident is still easy to hit. */
+  const MIN_TAP_PX = 56;
+  const toSceneScreen = (world: THREE.Vector3) => {
+    const projected = world.clone().project(camera);
+    return {
+      x: ((projected.x + 1) / 2) * SCREEN.width,
+      y: ((1 - projected.y) / 2) * SCREEN.height,
+    };
+  };
+  function residentTargets(): PickTarget[] {
+    camera.updateMatrixWorld();
+    const targets: PickTarget[] = [];
+    for (const [id, entry] of entries) {
+      if (!entry.ghost.visible || entry.leaveAt > 0) continue;
+      const { x: sx, y: sy } = entry.ghost.scale;
+      if (sx <= 0 || sy <= 0) continue;
+      // The sprite is anchored near its feet, standing on the group position.
+      const { x, z } = entry.group.position;
+      const baseY = entry.group.position.y + entry.ghost.position.y;
+      const bottom = toSceneScreen(new THREE.Vector3(x, baseY, z));
+      const top = toSceneScreen(new THREE.Vector3(x, baseY + sy, z));
+      const height = Math.abs(bottom.y - top.y);
+      targets.push({
+        id,
+        x: bottom.x,
+        y: (bottom.y + top.y) / 2,
+        width: height * (sx / sy),
+        height,
+      });
+    }
+    return targets;
+  }
   function residentAt(point: { x: number; y: number }) {
-    raycaster.setFromCamera(
-      new THREE.Vector2((point.x / SCREEN.width) * 2 - 1, -(point.y / SCREEN.height) * 2 + 1),
-      camera,
-    );
-    const ghosts = [...entries.values()].filter((entry) => entry.ghost.visible).map((e) => e.ghost);
-    const hit = raycaster.intersectObjects(ghosts, false)[0];
-    return hit ? (hit.object.userData.residentId as string) : null;
+    const bounds = canvas.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return null;
+    return pickResident(residentTargets(), point, {
+      minWidth: (MIN_TAP_PX * SCREEN.width) / bounds.width,
+      minHeight: (MIN_TAP_PX * SCREEN.height) / bounds.height,
+      // Buildings keep their own taps: the enlarged area only applies on open ground.
+      exactOnly: landmarkAt(point) !== null,
+    });
   }
   function landmarkAt(point: { x: number; y: number }): Landmark | null {
     raycaster.setFromCamera(
@@ -621,7 +662,7 @@ function startCity(
       if (drag) drag.moved = true;
       return;
     }
-    drag = { ...point, moved: false, from: view };
+    drag = { ...point, moved: false, from: view, grabbed: residentAt(point) };
   }
   function onPointerMove(event: PointerEvent) {
     if (!pointers.has(event.pointerId)) return;
@@ -650,7 +691,8 @@ function startCity(
     pointers.delete(event.pointerId);
     if (pointers.size < 2) pinch = null;
     if (drag && !drag.moved && !pointers.size) {
-      const id = residentAt(point);
+      // A resident who walked on between touch and release is still the one that was tapped.
+      const id = residentAt(point) ?? drag.grabbed;
       const entry = id ? entries.get(id) : undefined;
       if (id && entry) {
         buildingFade.selected.value = 0;

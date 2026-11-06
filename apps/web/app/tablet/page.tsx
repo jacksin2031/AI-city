@@ -3,10 +3,13 @@ import { createDeviceClient } from "@ai-city/contracts/device-client";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 import { TabletCity } from "./city";
+import { pairingCodeProblem } from "./pairing-code";
 export default function Tablet() {
   const feed = useDeviceFeed("display");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [codeHidden, setCodeHidden] = useState(false);
+  const [codeError, setCodeError] = useState("");
   const [fullscreenError, setFullscreenError] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   // Operator aids (fullscreen, pickers, status lines) stay off the public screen unless asked for.
@@ -98,6 +101,12 @@ export default function Tablet() {
   }, []);
   async function pair(event: FormEvent) {
     event.preventDefault();
+    const problem = pairingCodeProblem(code);
+    if (problem) {
+      setCodeError(problem);
+      return;
+    }
+    setCodeError("");
     setBusy(true);
     try {
       await feed.api.current.pair(code);
@@ -126,20 +135,44 @@ export default function Tablet() {
         {feed.loading ? (
           <p role="status">接続を確認しています。</p>
         ) : (
-          <form className="flow-panel" onSubmit={pair}>
-            <label className="field">
-              8桁の接続コード
-              <input
-                inputMode="numeric"
-                autoComplete="off"
-                pattern="[0-9]{8}"
-                minLength={8}
-                maxLength={8}
-                required
-                value={code}
-                onChange={(event) => setCode(event.target.value.replace(/[^0-9]/g, ""))}
-              />
-            </label>
+          <form className="flow-panel" onSubmit={pair} noValidate>
+            <div className="field">
+              <label htmlFor="pairing-code">8桁の接続コード</label>
+              <div className="code-input">
+                <input
+                  id="pairing-code"
+                  type={codeHidden ? "password" : "text"}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  maxLength={32}
+                  aria-invalid={codeError ? true : undefined}
+                  aria-describedby={codeError ? "pairing-code-error" : "pairing-code-hint"}
+                  value={code}
+                  onChange={(event) => {
+                    setCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 8));
+                    setCodeError("");
+                  }}
+                />
+                <button
+                  type="button"
+                  className="secondary"
+                  aria-pressed={codeHidden}
+                  onClick={() => setCodeHidden((hidden) => !hidden)}
+                >
+                  {codeHidden ? "コードを表示" : "コードを隠す"}
+                </button>
+              </div>
+              <span id="pairing-code-hint" className="muted">
+                コードは3分間・1回だけ使えます。
+              </span>
+              {codeError && (
+                <span id="pairing-code-error" role="alert" className="flow-error">
+                  {codeError}
+                </span>
+              )}
+            </div>
             <button type="submit" disabled={busy}>
               街に接続
             </button>
