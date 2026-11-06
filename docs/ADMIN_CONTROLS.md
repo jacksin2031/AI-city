@@ -52,13 +52,13 @@ Owner：A / Main。基于现有 `/admin`、ADMIN cookie 与 device-link API 扩�
 
 ### 修复动作
 
-| 按钮 | 效果 | 费用 |
-|---|---|---|
-| 取り消す | 先弹确认（「取り消しを確定」/「やめる」）。确认后撤回任务并开始照片清理，无法撤销。对已是 WITHDRAWN 的任务再次取消返回 409（`INVALID_TRANSITION`），界面按错误显示。 | 无 |
-| 作り直す | 仅 UNKNOWN / REQUIRES_REVIEW / FAILED / RUNNING 可用，且仅限云端照片（CLOUD_PRIVATE）。必须通过费用确认（「費用を了承して作り直す」，请求带 `confirmCost: true`，未带返回 400 `COST_UNCONFIRMED`）。仅当原照片仍存在时才可执行。执行后任务回到 QUEUED，重置 liveIntent / worker / toolFlow 并删除 `requests/spine-live-<task>`；实时预算计数不回退，Worker 再次领取时重新计入 `meta/spine-live-budget`。 | 会调用付费外部 AI，受实时预算约束 |
-| 見本キャラクターに変更 | 从 6 个预置角色中选一个，用该参加者自己已公开的资料（昵称等）发布，没有资料则用「ゲスト」；随后撤回原任务。参加者会话已结束返回 409 `SESSION_REQUIRED`；该参加者已有居民返回 409 `ACTIVE_JOB_EXISTS`。 | 无 |
-| 位置调整（5 个部位 × 上下/左右/大きさ） | 部位：髪、左手、右手、左足、右足。`dx`/`dy` 范围为角色高度的 ±0.15（步进 0.01），`scale` 范围 0.5–1.5（步进 0.05）。调整值作为独立字段保存在任务记录旁，已发布的 bundle 文件不被修改。仅对 PUBLISHED 任务有意义。 | 无 |
-| 元に戻す | 删除该调整值，恢复原样。 | 无 |
+| 按钮                                    | 效果                                                                                                                                                                                                                                                                                                                                                                                                     | 费用                              |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 取り消す                                | 先弹确认（「取り消しを確定」/「やめる」）。确认后撤回任务并开始照片清理，无法撤销。对已是 WITHDRAWN 的任务再次取消返回 409（`INVALID_TRANSITION`），界面按错误显示。                                                                                                                                                                                                                                     | 无                                |
+| 作り直す                                | 仅 UNKNOWN / REQUIRES_REVIEW / FAILED / RUNNING 可用，且仅限云端照片（CLOUD_PRIVATE）。必须通过费用确认（「費用を了承して作り直す」，请求带 `confirmCost: true`，未带返回 400 `COST_UNCONFIRMED`）。仅当原照片仍存在时才可执行。执行后任务回到 QUEUED，重置 liveIntent / worker / toolFlow 并删除 `requests/spine-live-<task>`；实时预算计数不回退，Worker 再次领取时重新计入 `meta/spine-live-budget`。 | 会调用付费外部 AI，受实时预算约束 |
+| 見本キャラクターに変更                  | 从 6 个预置角色中选一个，用该参加者自己已公开的资料（昵称等）发布，没有资料则用「ゲスト」；随后撤回原任务。参加者会话已结束返回 409 `SESSION_REQUIRED`；该参加者已有居民返回 409 `ACTIVE_JOB_EXISTS`。                                                                                                                                                                                                   | 无                                |
+| 位置调整（5 个部位 × 上下/左右/大きさ） | 部位：髪、左手、右手、左足、右足。`dx`/`dy` 范围为角色高度的 ±0.15（步进 0.01），`scale` 范围 0.5–1.5（步进 0.05）。调整值作为独立字段保存在任务记录旁，已发布的 bundle 文件不被修改。仅对 PUBLISHED 任务有意义。                                                                                                                                                                                        | 无                                |
+| 元に戻す                                | 删除该调整值，恢复原样。                                                                                                                                                                                                                                                                                                                                                                                 | 无                                |
 
 作り直す 在照片已不存在、或照片存储未接入（离线 mock / 未启用云端收件）时都返回 `PHOTO_GONE`，界面统一显示「再生成できません（写真が残っていない、または未接続）」，不声称照片已被删除。
 
@@ -76,22 +76,22 @@ Owner：A / Main。基于现有 `/admin`、ADMIN cookie 与 device-link API 扩�
 - 仅 GET、POST；带查询字符串返回 400；需要 ADMIN cookie（`authorizeParticipant`）并通过来源校验（`validateRequestOrigin`）。响应均为 `Cache-Control: no-store`。
 - 错误体为 `{ mode: "MOCK", error: { code, message } }`，`message` 为固定日语文案。
 
-| code | HTTP | 说明 |
-|---|---|---|
-| `INVALID_REQUEST` | 400 | schema 或查询字符串不合法（含未知 presetId、超范围调整值） |
-| `COST_UNCONFIRMED` | 400 | 作り直す 未带费用确认 |
-| `PAIR_REQUIRED` | 401 | 无有效管理会话 |
-| `ADMIN_REQUIRED`、`LOCAL_ONLY` | 403 | 非 ADMIN 角色 / 来源不合法 |
-| `JOB_NOT_FOUND` | 404 | 任务不存在（含调整时记录缺失） |
-| `PHOTO_GONE` | 409 | 照片不存在或未接入 |
-| `INVALID_TRANSITION` | 409 | 当前状态不允许（含重复取消、非云端照片） |
-| `SESSION_REQUIRED` | 409 | 参加者会话已结束（服务内部 401 被改映射为 409，避免被当作管理员会话过期） |
-| `ACTIVE_JOB_EXISTS` | 409 | 参加者已有居民 |
-| `LOCAL_CAPACITY` | 429 | 街的容量已满 |
-| `RATE_LIMITED` / `CAPACITY` | 429 | 设备链接层限流 |
-| `CLOUD_PHOTO_UNAVAILABLE` | 503 | 照片存储暂不可用 |
-| `VISITORS_DISABLED` | 503 | 未启用访客存储（离线 mock） |
-| `STORE_UNAVAILABLE` | 503 | 其他未知错误 |
+| code                           | HTTP | 说明                                                                      |
+| ------------------------------ | ---- | ------------------------------------------------------------------------- |
+| `INVALID_REQUEST`              | 400  | schema 或查询字符串不合法（含未知 presetId、超范围调整值）                |
+| `COST_UNCONFIRMED`             | 400  | 作り直す 未带费用确认                                                     |
+| `PAIR_REQUIRED`                | 401  | 无有效管理会话                                                            |
+| `ADMIN_REQUIRED`、`LOCAL_ONLY` | 403  | 非 ADMIN 角色 / 来源不合法                                                |
+| `JOB_NOT_FOUND`                | 404  | 任务不存在（含调整时记录缺失）                                            |
+| `PHOTO_GONE`                   | 409  | 照片不存在或未接入                                                        |
+| `INVALID_TRANSITION`           | 409  | 当前状态不允许（含重复取消、非云端照片）                                  |
+| `SESSION_REQUIRED`             | 409  | 参加者会话已结束（服务内部 401 被改映射为 409，避免被当作管理员会话过期） |
+| `ACTIVE_JOB_EXISTS`            | 409  | 参加者已有居民                                                            |
+| `LOCAL_CAPACITY`               | 429  | 街的容量已满                                                              |
+| `RATE_LIMITED` / `CAPACITY`    | 429  | 设备链接层限流                                                            |
+| `CLOUD_PHOTO_UNAVAILABLE`      | 503  | 照片存储暂不可用                                                          |
+| `VISITORS_DISABLED`            | 503  | 未启用访客存储（离线 mock）                                               |
+| `STORE_UNAVAILABLE`            | 503  | 其他未知错误                                                              |
 
 ### 隐私
 

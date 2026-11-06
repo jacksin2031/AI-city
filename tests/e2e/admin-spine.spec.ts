@@ -177,8 +177,12 @@ test("an older poll cannot bring back a cancelled task after the POST succeeds",
   let reads = 0;
   let releasePoll = () => {};
   let signalPoll = () => {};
-  const pollStarted = new Promise<void>((resolve) => { signalPoll = resolve; });
-  const holdPoll = new Promise<void>((resolve) => { releasePoll = resolve; });
+  const pollStarted = new Promise<void>((resolve) => {
+    signalPoll = resolve;
+  });
+  const holdPoll = new Promise<void>((resolve) => {
+    releasePoll = resolve;
+  });
   await page.route("**/api/link/spine-admin", async (route) => {
     if (route.request().method() === "POST") {
       await route.fulfill({ json: after });
