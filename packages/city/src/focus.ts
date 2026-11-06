@@ -166,7 +166,8 @@ export function projectResident(actor: Placed, camera: SceneCamera, scale: numbe
 
 export function speechBounds(pose: SceneTransform, kind: ScenePresentation["kind"]) {
   const width = kind === "profile" ? 420 : 312;
-  const height = kind === "profile" ? 220 : 100;
+  // Tall enough for the nickname, activity, two chip rows and the note beside the hexagon.
+  const height = kind === "profile" ? 246 : 100;
   return {
     x: Math.max(8, Math.min(952 - width, pose.x - width / 2)),
     y: Math.max(8, pose.y - pose.scale * 128 - 12 - height),

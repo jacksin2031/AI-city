@@ -145,7 +145,7 @@ export function ResidentSpeech({
                 <h2>{resident.nickname}</h2>
                 <p className="tablet-card-activity">
                   <span aria-hidden="true" />
-                  いま：{anchor.activity}
+                  <span className="tablet-card-activity-text">いま：{anchor.activity}</span>
                 </p>
                 <dl>
                   <div>
