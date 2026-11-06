@@ -129,7 +129,20 @@ describe("reliable visitor focus requests", () => {
       nickname: "jacksin",
       personalityLabel: "実践チャレンジャー",
       interests: ["意外な発想に出会うこと"],
+      traits: [0.9, 0.45, 0.85, 0.5, 0.9, 0.55],
     });
+    for (const traits of [
+      [0.5, 0.5],
+      [2, 0, 0, 0, 0, 0],
+    ])
+      await expect(
+        service.setSpineProfile(session.token, {
+          nickname: "jacksin",
+          personalityLabel: null,
+          interests: [],
+          traits,
+        }),
+      ).rejects.toBeDefined();
     await expect(
       service.setSpineProfile(session.token, {
         nickname: "",

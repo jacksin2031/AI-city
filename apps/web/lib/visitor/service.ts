@@ -914,6 +914,7 @@ export class VisitorService {
           ),
         personalityLabel: z.string().trim().min(1).max(80).nullable(),
         interests: z.array(z.string().trim().min(1).max(32)).max(3),
+        traits: z.array(z.number().min(0).max(1)).length(6).optional(),
       })
       .parse(input);
     const now = this.now();
@@ -1564,6 +1565,7 @@ export class VisitorService {
             personalityLabel:
               typeof profile?.personalityLabel === "string" ? profile.personalityLabel : "非公開",
             interests: Array.isArray(profile?.interests) ? profile.interests : [],
+            ...(Array.isArray(profile?.traits) ? { traits: profile.traits } : {}),
             publicState: "VISIBLE",
           }),
         );

@@ -253,6 +253,7 @@ export function SpineParticipantFlow() {
         nickname: nickname.trim() || "ゲスト",
         personalityLabel: answered ? styleLabel : null,
         interests: interest ? [interest] : [],
+        traits: traitValues(answers, styleLabel),
       }),
     }).catch(() => {
       // The city keeps the anonymous card; a later change on this page sends it again.
