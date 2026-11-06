@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SpineBundleSchema } from "./index";
 
 /** Consent must be bound server-side to a live session and a verified photo digest. */
 export const SpinePhotoConsentSchema = z.strictObject({
@@ -50,3 +51,31 @@ export const SpineWorkerStatusSchema = z.strictObject({
   lastSeenAt: z.iso.datetime().nullable(),
 });
 export type SpineWorkerStatus = z.infer<typeof SpineWorkerStatusSchema>;
+
+export const SpineRepairEntrySchema = z.strictObject({
+  at: z.iso.datetime(),
+  action: z.enum(["cancel", "requeue", "preset", "adjust", "resetAdjust"]),
+  code: z.string().length(8),
+});
+export type SpineRepairEntry = z.infer<typeof SpineRepairEntrySchema>;
+
+export const SpineAdminTaskSchema = z.strictObject({
+  task: SpineTaskIdSchema,
+  code: z.string().length(8),
+  state: SpineTaskStateSchema,
+  stateSince: z.iso.datetime().nullable(),
+  needsAttention: z.boolean(),
+  /** Only PUBLISHED tasks; the bundle descriptor is already public to tablets. */
+  preview: z.strictObject({ bundle: SpineBundleSchema }).nullable(),
+});
+export type SpineAdminTask = z.infer<typeof SpineAdminTaskSchema>;
+
+export const SpineAdminViewSchema = z.strictObject({
+  worker: SpineWorkerStatusSchema,
+  queued: z.number().int(),
+  running: z.number().int(),
+  tasks: z.array(SpineAdminTaskSchema).max(200),
+  truncated: z.boolean(),
+  repairs: z.array(SpineRepairEntrySchema).max(20),
+});
+export type SpineAdminView = z.infer<typeof SpineAdminViewSchema>;

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { VisitorService } from "../visitor/service";
 import { MemoryVisitorStore } from "../visitor/test-store";
-import { SpineJobs } from "./jobs";
+import { makeSpineJob, SpineJobs } from "./jobs";
 
 const owner = "a".repeat(64);
 const other = "b".repeat(64);
@@ -65,6 +65,31 @@ function candidate() {
     reviewApproved: true,
   };
 }
+
+describe("Spine job stateSince", () => {
+  it("stamps creation and every state change with the injected clock", async () => {
+    let now = 1_000;
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, () => now);
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    expect((await jobs.get("task1", owner)).stateSince).toBe(1_000);
+    now = 2_000;
+    expect((await jobs.claim("task1", "worker1")).stateSince).toBe(2_000);
+    now = 3_000;
+    expect((await jobs.markUnknown("task1", "worker1")).stateSince).toBe(3_000);
+    now = 4_000;
+    expect((await jobs.withdraw("task1", owner)).stateSince).toBe(4_000);
+  });
+  it("stamps new jobs at creation and still parses records without it", async () => {
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, () => 7_000);
+    const record = makeSpineJob(owner, "c".repeat(64), consent, undefined, 5_000);
+    expect(record.stateSince).toBe(5_000);
+    const { stateSince: _drop, ...legacy } = record;
+    await store.run(async (tx) => tx.set("jobs/spine-old", legacy));
+    expect((await jobs.get("old", owner)).state).toBe("QUEUED");
+  });
+});
 
 describe("Spine jobs transaction boundary", () => {
   it("binds job to owner and prevents duplicate claims", async () => {
