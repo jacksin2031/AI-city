@@ -8,6 +8,7 @@ import { VisitorService } from "../visitor/service";
 import { MemoryVisitorStore } from "../visitor/test-store";
 import { submitCloudPhoto, withdrawCloudPhoto } from "./cloud-photo-intake";
 import { pollCloudSpineTasks } from "./cloud-worker";
+import { HEARTBEAT_PATH } from "./heartbeat";
 import { SpineJobs } from "./jobs";
 import { LocalSpineStorage } from "./local-storage";
 import { readPublishedSpineAsset } from "./published-assets";
@@ -63,6 +64,7 @@ async function fixture() {
   roots.push(root);
   const storage = await LocalSpineStorage.open(root);
   const store = new MemoryVisitorStore();
+  await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
   const service = new VisitorService(store);
   const jobs = new SpineJobs(store);
   const { token } = await service.createOpenSession();
@@ -190,6 +192,7 @@ describe("concurrent workers in one process", () => {
     roots.push(root);
     const storage = await LocalSpineStorage.open(root);
     const store = new MemoryVisitorStore();
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const service = new VisitorService(store);
     const jobs = new SpineJobs(store);
     const c = cloud();

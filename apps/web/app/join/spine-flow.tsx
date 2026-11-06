@@ -527,7 +527,7 @@ export function SpineParticipantFlow({
                 }}
               />
             )}
-            {stage === "name" && uploadAllowed && (
+            {stage === "name" && (
               <>
                 <p className="pf-step">{stepLabel(1)}</p>
                 <h2>ニックネームを教えてください</h2>

@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { HEARTBEAT_PATH } from "../spine/heartbeat";
 import { SpineJobs } from "../spine/jobs";
 import { VisitorService } from "./service";
 import { MemoryVisitorStore } from "./test-store";
@@ -17,6 +18,7 @@ describe("cloud photo upload reservation", () => {
     const store = new MemoryVisitorStore();
     const now = Date.parse("2026-11-05T00:00:00Z");
     const service = new VisitorService(store, () => now);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: now, running: 0 }));
     const { token, expiresAt } = await service.createOpenSession();
     const id = task();
     expect(await service.reserveCloudPhotoUpload(token, id, "a".repeat(64), consent)).toEqual({
@@ -36,6 +38,7 @@ describe("cloud photo upload reservation", () => {
     const store = new MemoryVisitorStore();
     let now = Date.parse("2026-11-05T00:00:00Z");
     const service = new VisitorService(store, () => now);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: now, running: 0 }));
     const { token } = await service.createOpenSession();
     await expect(
       service.reserveCloudPhotoUpload(token, task(), "a".repeat(64), {
@@ -55,6 +58,7 @@ describe("cloud photo upload reservation", () => {
   it("allows only one reservation for a session, including concurrent requests", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const result = await Promise.allSettled([
       service.reserveCloudPhotoUpload(token, task(), "a".repeat(64), consent),
@@ -66,6 +70,7 @@ describe("cloud photo upload reservation", () => {
   it("prevents a local job and cloud reservation from claiming the same session", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     await service.reserveCloudPhotoUpload(token, task(), "a".repeat(64), consent);
     await expect(
@@ -75,6 +80,7 @@ describe("cloud photo upload reservation", () => {
   it("rejects cloud admission when a local task is already active", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     await service.createSpineJob(token, task(), "a".repeat(64), consent);
     await expect(
@@ -84,6 +90,7 @@ describe("cloud photo upload reservation", () => {
   it("fails closed if the durable reservation index is malformed", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     await store.run(async (tx) =>
       tx.set("meta/cloud-photo-uploads", { schemaVersion: 1, entries: "bad" }),
@@ -95,6 +102,7 @@ describe("cloud photo upload reservation", () => {
   it("cancels an unstarted reservation and permanently fences the task ID", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const id = task();
     await service.reserveCloudPhotoUpload(token, id, "a".repeat(64), consent);
@@ -113,6 +121,7 @@ describe("cloud photo upload reservation", () => {
   it("keeps an upload already started pending cleanup after cancellation", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const id = task();
     await service.reserveCloudPhotoUpload(token, id, "a".repeat(64), consent);
@@ -130,7 +139,9 @@ describe("cloud photo upload reservation", () => {
     ).rejects.toMatchObject({ code: "ACTIVE_JOB_EXISTS" });
   });
   it("does not let a different visitor cancel a reservation", async () => {
-    const service = new VisitorService(new MemoryVisitorStore());
+    const store = new MemoryVisitorStore();
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
+    const service = new VisitorService(store);
     const first = await service.createOpenSession();
     const second = await service.createOpenSession();
     const id = task();
@@ -141,7 +152,9 @@ describe("cloud photo upload reservation", () => {
     });
   });
   it("serializes cancellation with upload intent and never permits a second start", async () => {
-    const service = new VisitorService(new MemoryVisitorStore());
+    const store = new MemoryVisitorStore();
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
+    const service = new VisitorService(store);
     const { token } = await service.createOpenSession();
     const id = task();
     await service.reserveCloudPhotoUpload(token, id, "a".repeat(64), consent);
@@ -159,6 +172,7 @@ describe("cloud photo upload reservation", () => {
   it("promotes a verified upload to one cloud-backed queued job", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const id = task();
     await service.reserveCloudPhotoUpload(token, id, "a".repeat(64), consent);
@@ -179,6 +193,7 @@ describe("cloud photo upload reservation", () => {
   it("refuses mismatched, invalid or cancelled uploads", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const id = task();
     await service.reserveCloudPhotoUpload(token, id, "a".repeat(64), consent);
@@ -198,6 +213,7 @@ describe("cloud photo upload reservation", () => {
   it("cannot queue a cancelled upload when completion races cancellation", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const id = task();
     await service.reserveCloudPhotoUpload(token, id, "a".repeat(64), consent);

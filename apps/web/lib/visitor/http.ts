@@ -134,7 +134,7 @@ export async function handleVisitorRequest(
       if (request.method !== "GET") throw new DevelopmentServiceError("NOT_FOUND", 404);
       return json(
         PhotoUploadPublicSettingsSchema.parse({
-          allowed: Boolean(spineCloud) && (await service.photoUploadAllowed()),
+          allowed: Boolean(spineCloud) && (await service.photoUploadReady()),
         }),
       );
     }
@@ -170,7 +170,7 @@ export async function handleVisitorRequest(
       // Refuse before the body is read or any photo is stored. The cloud reservation re-checks
       // inside its transaction to close the race with an administrator turning uploads off.
       // Local loopback intake is an isolated private test and is not gated.
-      if (spineCloud && !(await service.photoUploadAllowed()))
+      if (spineCloud && !(await service.photoUploadReady()))
         throw new DevelopmentServiceError("PHOTO_UPLOAD_DISABLED", 403);
       const bytes = await readPhoto(request);
       try {

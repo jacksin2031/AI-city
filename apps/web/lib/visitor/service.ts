@@ -35,6 +35,7 @@ import {
 } from "../link/chat-worker-health";
 import { addSpineTaskIndex, SPINE_TASK_INDEX_PATH } from "../spine/admin-index";
 import { buildAdminView } from "../spine/admin-view";
+import { evaluateWorker, HEARTBEAT_PATH } from "../spine/heartbeat";
 import {
   makeCloudSpineJob,
   makeSpineJob,
@@ -82,6 +83,11 @@ function photoUploadAllowedFrom(raw: StoredDocument | null): boolean {
   if (raw === null) return true;
   const parsed = PhotoUploadSettingsDocSchema.safeParse(raw);
   return parsed.success && parsed.data.allowUpload;
+}
+/** A missing, stale or invalid Spine heartbeat must close new hosted photo admission. */
+function spineWorkerConnected(raw: StoredDocument | null, now: number): boolean {
+  const beat = z.object({ seenAt: z.number(), running: z.number() }).safeParse(raw);
+  return beat.success && evaluateWorker(beat.data, now).online;
 }
 const DIGEST = z.string().regex(/^[a-f0-9]{64}$/);
 const CloudPhotoReservationsSchema = z.strictObject({
@@ -600,6 +606,7 @@ export class VisitorService {
       const rawIndex = await tx.get("meta/cloud-photo-uploads");
       // Read inside the admitting transaction, so turning uploads off cannot lose a race.
       const rawSetting = await tx.get(PHOTO_UPLOAD_SETTINGS_PATH);
+      const workerBeat = await tx.get(HEARTBEAT_PATH);
       const parsed = CloudPhotoReservationsSchema.safeParse(
         rawIndex ?? { schemaVersion: 1, entries: {} },
       );
@@ -611,7 +618,7 @@ export class VisitorService {
           : null;
       if (!validSession(session, owner, state, now))
         throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
-      if (!photoUploadAllowedFrom(rawSetting))
+      if (!photoUploadAllowedFrom(rawSetting) || !spineWorkerConnected(workerBeat, now))
         throw new DevelopmentServiceError("PHOTO_UPLOAD_DISABLED", 403);
       if (
         target ||
@@ -826,6 +833,15 @@ export class VisitorService {
   /** Whether new photo submissions are admitted. Throws when the store is unreadable (fail closed). */
   async photoUploadAllowed(): Promise<boolean> {
     return photoUploadAllowedFrom(await this.store.run((tx) => tx.get(PHOTO_UPLOAD_SETTINGS_PATH)));
+  }
+
+  /** Public effective gate: operator toggle AND a fresh heartbeat; neither alone is enough. */
+  async photoUploadReady(): Promise<boolean> {
+    return this.store.run(async (tx) => {
+      const setting = await tx.get(PHOTO_UPLOAD_SETTINGS_PATH);
+      const beat = await tx.get(HEARTBEAT_PATH);
+      return photoUploadAllowedFrom(setting) && spineWorkerConnected(beat, this.now());
+    });
   }
 
   /** Admin only. Affects new admissions; queued jobs and published residents are untouched. */

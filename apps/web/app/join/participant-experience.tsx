@@ -62,12 +62,12 @@ export function ParticipantExperience({
   /** True when Spine jobs exist, even if the administrator has paused new photo uploads. */
   spineAvailable?: boolean;
   photoHref?: string;
-  /** Join as a prepared character: no name, no photo, straight to choosing a character. */
+  /** Join with a prepared character, while always collecting a participant nickname first. */
   presetOnly?: boolean;
 }) {
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
   const focusRequest = useReliableFocus(client);
-  const [stage, setStage] = useState<Stage>(presetOnly ? "custom" : "name");
+  const [stage, setStage] = useState<Stage>("name");
   const [initializing, setInitializing] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -197,7 +197,7 @@ export function ParticipantExperience({
       setNickname("");
       setAnswers(Array(6).fill(null));
       setQuestion(0);
-      setStage(presetOnly ? "custom" : "name");
+      setStage("name");
       try {
         sessionStorage.removeItem("ai-city-nickname");
       } catch {
@@ -408,7 +408,7 @@ export function ParticipantExperience({
                   className="pf-primary"
                   type="button"
                   disabled={!nickname.trim()}
-                  onClick={() => setStage("photo")}
+                  onClick={() => setStage(presetOnly ? "custom" : "photo")}
                 >
                   次へ
                 </button>
