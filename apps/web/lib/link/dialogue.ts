@@ -229,20 +229,29 @@ export async function handleDialogueRequest(
       .map((part) => part.trim())
       .find((part) => part.startsWith("ai-city-link="))
       ?.slice("ai-city-link=".length);
-    const snapshot = device.display(token).snapshot;
+    const currentDisplay = device.display(token);
+    const snapshot = currentDisplay.snapshot;
     if (request.method === "GET")
       return Response.json(
-        { available: Boolean(snapshot && dialogue.available()) },
+        {
+          available: Boolean(
+            snapshot && currentDisplay.control.dialogueEnabled && dialogue.available(),
+          ),
+        },
         { headers: { "Cache-Control": "no-store" } },
       );
     if (request.method !== "POST" || !snapshot)
       throw new DeviceLinkError("DIALOGUE_UNAVAILABLE", 503);
+    if (!currentDisplay.control.dialogueEnabled)
+      throw new DeviceLinkError("DIALOGUE_DISABLED", 503);
     const input = DialogueRequestSchema.parse(await readJsonBody(request));
     const result = await dialogue.generate(input, snapshot.residents);
     // Recheck authorization, mode and selected presets after the asynchronous model call.
-    const current = device.display(token).snapshot;
+    const refreshed = device.display(token);
+    const current = refreshed.snapshot;
     if (
       !current ||
+      !refreshed.control.dialogueEnabled ||
       input.residentIds.some(
         (id) => !current.residents.some((resident) => resident.residentId === id),
       )

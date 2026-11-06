@@ -62,6 +62,7 @@ export class DeviceLinkService {
       revision: 0,
       displayMode: "LIVE",
       motionEnabled: true,
+      dialogueEnabled: true,
       updatedAt: new Date(now()).toISOString(),
     };
   }
@@ -271,6 +272,7 @@ export class DeviceLinkService {
       ...this.control,
       ...(input.displayMode === undefined ? {} : { displayMode: input.displayMode }),
       ...(input.motionEnabled === undefined ? {} : { motionEnabled: input.motionEnabled }),
+      ...(input.dialogueEnabled === undefined ? {} : { dialogueEnabled: input.dialogueEnabled }),
       revision: this.control.revision + 1,
       updatedAt: new Date(this.now()).toISOString(),
     };

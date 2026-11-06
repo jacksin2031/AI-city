@@ -25,6 +25,7 @@ import { spineBundleKey, staleSpineVersions } from "./spine-key";
 export function TabletCity({
   snapshot,
   motion,
+  dialogueEnabled,
   sample,
   focus,
   reliableFocus,
@@ -34,6 +35,7 @@ export function TabletCity({
 }: {
   snapshot: CitySnapshot;
   motion: boolean;
+  dialogueEnabled: boolean;
   sample: boolean;
   focus: { id: string; residentId: string; expiresAt: number } | null;
   reliableFocus: { requestId: string; residentId: string } | null;
@@ -73,6 +75,9 @@ export function TabletCity({
   const [spineBundles, setSpineBundles] = useState(0);
   const [landmark, setLandmark] = useState<Landmark | null>(null);
   const [dialogueAvailable, setDialogueAvailable] = useState(false);
+  const dialogueAllowed = useRef(dialogueEnabled);
+  const dialogueReady = useRef(false);
+  dialogueAllowed.current = dialogueEnabled;
   // Loaded Spine bundles live as long as the scene does, keyed by avatar version. They are
   // filled in independently of the scene so a resident leaving never rebuilds the world.
   const bundleAssets = useRef(new Map<string, Awaited<ReturnType<typeof fetchSpineBundle>>>());
@@ -81,6 +86,43 @@ export function TabletCity({
   const playerKeys = useRef(new Map<string, string>());
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
+  // Recheck dialogue availability on toggle without recreating the 3D city scene.
+  useEffect(() => {
+    if (!dialogueEnabled) {
+      dialogueReady.current = false;
+      setDialogueAvailable(false);
+      return;
+    }
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    async function check() {
+      let available = false;
+      try {
+        const response = await fetch("/api/link/dialogue", {
+          credentials: "same-origin",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const value: unknown = response.ok ? await response.json() : null;
+        available = Boolean(
+          value && typeof value === "object" && "available" in value && value.available === true,
+        );
+      } catch {
+        // A failed probe is not evidence that the dialogue provider is available.
+      } finally {
+        if (!controller.signal.aborted) {
+          dialogueReady.current = available;
+          setDialogueAvailable(available);
+          timer = setTimeout(() => void check(), 10_000);
+        }
+      }
+    }
+    void check();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [dialogueEnabled]);
   const select = useCallback((id: string) => {
     setLandmark(null);
     city.current?.selectLandmark(null);
@@ -115,22 +157,8 @@ export function TabletCity({
     setFailed(false);
     setSpineBundles(0);
     let active = true;
-    let aiEnabled = false;
     const lifetime = new AbortController();
     let sampleAssets: Awaited<ReturnType<typeof loadChibiDemo>> | undefined;
-    void fetch("/api/link/dialogue", {
-      credentials: "same-origin",
-      cache: "no-store",
-      signal: lifetime.signal,
-    })
-      .then(async (response) => (response.ok ? response.json() : null))
-      .then((value: unknown) => {
-        aiEnabled = Boolean(
-          value && typeof value === "object" && "available" in value && value.available === true,
-        );
-        if (active) setDialogueAvailable(aiEnabled);
-      })
-      .catch(() => {});
     const media = matchMedia("(prefers-reduced-motion: reduce)");
     const applyMotion = () => {
       const enabled = latest.current.motion && !media.matches;
@@ -209,7 +237,7 @@ export function TabletCity({
             setLandmark(item);
           },
           onEncounter: async (residentIds, place) => {
-            if (!aiEnabled || !active) return null;
+            if (!active || !dialogueAllowed.current || !dialogueReady.current) return null;
             const response = await fetch("/api/link/dialogue", {
               method: "POST",
               credentials: "same-origin",
@@ -228,12 +256,13 @@ export function TabletCity({
             });
             if (!response.ok) {
               if (response.status === 503) {
-                aiEnabled = false;
+                dialogueReady.current = false;
                 if (active) setDialogueAvailable(false);
               }
               return null;
             }
-            return DialogueResultSchema.parse(await response.json());
+            const result = DialogueResultSchema.parse(await response.json());
+            return dialogueAllowed.current && active ? result : null;
           },
           onClearSelection: () => {
             if (active && latest.current.active) close();
@@ -431,7 +460,11 @@ export function TabletCity({
         <SceneCounts participants={totalParticipants ?? residents.length} inScene={inScene} />
         {tools && (
           <p className="tablet-dialogue-status">
-            {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}
+            {!dialogueEnabled
+              ? "架空の住民：AI会話は停止中"
+              : dialogueAvailable
+                ? "架空の住民：AI会話の接続設定あり"
+                : "架空の住民：AI会話は未設定"}
           </p>
         )}
         <p className="canvas-failure" role="alert">

@@ -219,6 +219,33 @@ export default function Admin({
             </p>
           </section>
           <section className="flow-panel">
+            <h2>AI会話の設定</h2>
+            <p role="status">現在：{state.control.dialogueEnabled ? "オン" : "オフ"}</p>
+            <button
+              type="button"
+              className={state.control.dialogueEnabled ? "secondary" : ""}
+              aria-pressed={state.control.dialogueEnabled}
+              disabled={busy}
+              onClick={() =>
+                void run(async (api) => {
+                  const enabled = !state.control.dialogueEnabled;
+                  const next = await api.update({
+                    expectedRevision: state.control.revision,
+                    dialogueEnabled: enabled,
+                  });
+                  setNotice(enabled ? "AI会話をオンにしました。" : "AI会話をオフにしました。");
+                  return next;
+                })
+              }
+            >
+              {state.control.dialogueEnabled ? "AI会話をオフにする" : "AI会話をオンにする"}
+            </button>
+            <p className="muted">
+              架空の住民同士のAI会話を切り替えます。オンでもAIサービスの接続設定が必要です。
+              オフでは新しい会話リクエストを停止します。独立した会話生成Workerは停止しません。
+            </p>
+          </section>
+          <section className="flow-panel">
             <h2>タブレットをつなぐ</h2>
             <p>タブレットで専用の展示画面を開き、コードを入力します。</p>
             <button

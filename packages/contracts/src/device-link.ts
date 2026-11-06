@@ -80,6 +80,8 @@ export const DeviceControlSchema = z.strictObject({
   revision: z.number().int().nonnegative(),
   displayMode: CityModeEventSchema.shape.mode,
   motionEnabled: z.boolean(),
+  /** Controls fictional resident AI conversations on the paired display. */
+  dialogueEnabled: z.boolean().default(true),
   updatedAt: z.iso.datetime(),
 });
 export const DeviceUpdateSchema = z
@@ -87,8 +89,14 @@ export const DeviceUpdateSchema = z
     expectedRevision: z.number().int().nonnegative(),
     displayMode: CityModeEventSchema.shape.mode.optional(),
     motionEnabled: z.boolean().optional(),
+    dialogueEnabled: z.boolean().optional(),
   })
-  .refine((value) => value.displayMode !== undefined || value.motionEnabled !== undefined);
+  .refine(
+    (value) =>
+      value.displayMode !== undefined ||
+      value.motionEnabled !== undefined ||
+      value.dialogueEnabled !== undefined,
+  );
 export const DeviceLoginSchema = z.strictObject({ key: z.string().min(1).max(256) });
 export const DevicePairSchema = z.strictObject({ code: z.string().regex(/^\d{8}$/) });
 export const DevicePairingSchema = z.strictObject({
@@ -132,5 +140,6 @@ export const deviceControlFixture: DeviceControl = {
   revision: 0,
   displayMode: "DEMO",
   motionEnabled: true,
+  dialogueEnabled: true,
   updatedAt: "2026-10-19T00:00:00.000Z",
 };

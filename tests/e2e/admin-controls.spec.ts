@@ -168,3 +168,84 @@ test("resident search, sorting and selection survive partial withdrawal without 
     }
   }
 });
+
+test("mobile manager toggles AI dialogue through the existing revisioned control API", async ({
+  page,
+  request,
+}) => {
+  const origin = process.env.AI_CITY_E2E_ORIGIN || "http://127.0.0.1:3000";
+  const bootstrap = await request.post("/api/link/bootstrap", {
+    data: {},
+    headers: { origin },
+  });
+  const { key } = await bootstrap.json();
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/admin");
+  await page.getByLabel("管理キー", { exact: true }).fill(key);
+  await page.getByRole("button", { name: "管理画面に接続", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "AI会話の設定" })).toBeVisible();
+  await page.getByRole("button", { name: "AI会話をオフにする" }).click();
+  await expect(page.getByText("AI会話をオフにしました。")).toBeVisible();
+  const disabled = await (await page.request.get("/api/link/admin")).json();
+  expect(disabled.control.dialogueEnabled).toBe(false);
+  await expect(page.getByRole("button", { name: "AI会話をオンにする" })).toBeVisible();
+
+  const stale = await page.request.post("/api/link/control", {
+    data: { expectedRevision: disabled.control.revision - 1, dialogueEnabled: true },
+    headers: { origin },
+  });
+  expect(stale.status()).toBe(409);
+  await page.getByRole("button", { name: "AI会話をオンにする" }).click();
+  await expect(page.getByText("AI会話をオンにしました。")).toBeVisible();
+  const enabled = await (await page.request.get("/api/link/admin")).json();
+  expect(enabled.control.dialogueEnabled).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("AI dialogue switch reaches a paired tablet without recreating its city canvas", async ({
+  browser,
+  request,
+}) => {
+  test.setTimeout(65_000);
+  const origin = process.env.AI_CITY_E2E_ORIGIN || "http://127.0.0.1:3000";
+  const { key } = await (
+    await request.post("/api/link/bootstrap", { data: {}, headers: { origin } })
+  ).json();
+  const adminContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const tabletContext = await browser.newContext({
+    viewport: { width: 1024, height: 768 },
+    reducedMotion: "reduce",
+  });
+  try {
+    const admin = await adminContext.newPage();
+    const tablet = await tabletContext.newPage();
+    await admin.goto("/admin");
+    await admin.getByLabel("管理キー", { exact: true }).fill(key);
+    await admin.getByRole("button", { name: "管理画面に接続" }).click();
+    await tablet.goto("/tablet?tools=1");
+    await admin.getByRole("button", { name: "タブレットの接続コードを発行" }).click();
+    const code = (await admin.getByTestId("pair-code").textContent())?.trim() ?? "";
+    await tablet.getByLabel("8桁の接続コード").fill(code);
+    await tablet.getByRole("button", { name: "街に接続" }).click();
+    await expect(tablet.locator("section.tablet-city canvas")).toHaveCount(1);
+    await tablet
+      .locator("section.tablet-city canvas")
+      .evaluate((canvas) => canvas.setAttribute("data-dialogue-test", "same-canvas"));
+
+    await admin.getByRole("button", { name: "AI会話をオフにする" }).click();
+    await expect(tablet.getByText("架空の住民：AI会話は停止中", { exact: true })).toBeVisible();
+    await expect(
+      tablet.locator('section.tablet-city canvas[data-dialogue-test="same-canvas"]'),
+    ).toHaveCount(1);
+
+    await admin.getByRole("button", { name: "AI会話をオンにする" }).click();
+    await expect(tablet.getByText("架空の住民：AI会話は停止中", { exact: true })).toHaveCount(0);
+    await expect(
+      tablet.locator('section.tablet-city canvas[data-dialogue-test="same-canvas"]'),
+    ).toHaveCount(1);
+  } finally {
+    await adminContext.close();
+    await tabletContext.close();
+  }
+});
