@@ -14,6 +14,7 @@ import {
 import { SpineAdminActionSchema } from "@ai-city/contracts/spine";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
+import { evaluateChatWorkerHeartbeat } from "../link/chat-worker-health";
 import { handleLinkRequest } from "../link/http";
 import { DeviceLinkError, type DeviceLinkService } from "../link/service";
 import type { VisitorBoundary } from "./credentials";
@@ -45,6 +46,24 @@ export async function handlePersistentDeviceRequest(
 ): Promise<Response> {
   try {
     const focusPath = new URL(request.url).pathname;
+    if (enabled && focusPath === "/api/link/chat-worker") {
+      validateRequestOrigin(request, remoteOrigin);
+      if (new URL(request.url).search) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+      if (request.method !== "GET") throw new DeviceLinkError("NOT_FOUND", 404);
+      const token = request.headers
+        .get("cookie")
+        ?.split(";")
+        .map((part) => part.trim())
+        .find((part) => part.startsWith("ai-city-link="))
+        ?.slice("ai-city-link=".length);
+      device.authorizeParticipant(token);
+      return Response.json(
+        visitor
+          ? await visitor.chatWorkerStatus()
+          : evaluateChatWorkerHeartbeat(null, Date.now(), false),
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     if (
       enabled &&
       ((request.method === "GET" && focusPath === "/api/link/focus-next") ||

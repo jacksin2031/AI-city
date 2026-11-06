@@ -29,6 +29,10 @@ import {
 } from "@ai-city/contracts/spine";
 import { z } from "zod";
 import { DevelopmentServiceError } from "../development/service";
+import {
+  CHAT_WORKER_HEARTBEAT_PATH,
+  evaluateChatWorkerHeartbeat,
+} from "../link/chat-worker-health";
 import { buildAdminView } from "../spine/admin-view";
 import {
   makeCloudSpineJob,
@@ -794,6 +798,12 @@ export class VisitorService {
       tx.set(`requests/spine-owner-${owner}`, { task });
       return { task, state: "QUEUED" as const };
     });
+  }
+
+  /** Admin-only summary: the Worker writes its own heartbeat; a stale beat is offline. */
+  async chatWorkerStatus() {
+    const beat = await this.store.run((tx) => tx.get(CHAT_WORKER_HEARTBEAT_PATH));
+    return evaluateChatWorkerHeartbeat(beat, this.now());
   }
 
   /** The admin recovery overview, built on the service clock. */

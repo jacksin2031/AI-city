@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LocalParticipationService } from "../development/service";
+import { CHAT_WORKER_HEARTBEAT_PATH } from "../link/chat-worker-health";
 import { DeviceLinkService } from "../link/service";
 import { makeCloudSpineJob } from "../spine/jobs";
 import { createVisitorBoundary } from "./credentials";
@@ -20,6 +21,90 @@ function request(path: string, token?: string, body?: unknown) {
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
 }
+describe("ChatWorker status is read-only and restricted to admins", () => {
+  it("denies anonymous and tablet sessions before any storage reads", async () => {
+    const store = new MemoryVisitorStore();
+    const visitor = new VisitorService(store);
+    const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    const admin = device.login("a".repeat(64));
+    const display = device.pair(device.createPairing(admin).code);
+    const check = (requestValue: Request) =>
+      handlePersistentDeviceRequest(requestValue, device, visitor, true, base);
+
+    expect((await check(request("chat-worker"))).status).toBe(401);
+    expect((await check(request("chat-worker", display))).status).toBe(403);
+    expect(store.dump().size).toBe(0);
+
+    const initial = await check(request("chat-worker", admin));
+    expect(initial.status).toBe(200);
+    expect(initial.headers.get("cache-control")).toBe("no-store");
+    expect(await initial.json()).toEqual({
+      configured: true,
+      online: false,
+      phase: null,
+      lastSeenAt: null,
+      lastGeneratedAt: null,
+    });
+
+    expect((await check(request("chat-worker?test=1", admin))).status).toBe(400);
+    expect((await check(request("chat-worker", admin, {}))).status).toBe(404);
+    const foreign = new Request(`${base}/api/link/chat-worker`, {
+      headers: {
+        host: "exhibit.example",
+        origin: "https://evil.example",
+        cookie: `ai-city-link=${admin}`,
+      },
+    });
+    expect((await check(foreign)).status).not.toBe(200);
+  });
+
+  it("reflects the stored ChatWorker heartbeat and disconnects after it goes stale", async () => {
+    const time = Date.parse("2026-11-06T12:00:00.000Z");
+    const store = new MemoryVisitorStore();
+    const visitor = new VisitorService(store, () => time);
+    const device = new DeviceLinkService(new LocalParticipationService(), "b".repeat(64));
+    const admin = device.login("b".repeat(64));
+    await store.run(async (tx) => {
+      tx.set(CHAT_WORKER_HEARTBEAT_PATH, {
+        seenAt: time - 20_000,
+        phase: "GENERATING",
+        active: true,
+        lastGeneratedAt: time - 80_000,
+        privateInfo: "never expose me",
+      });
+    });
+    const response = await handlePersistentDeviceRequest(
+      request("chat-worker", admin),
+      device,
+      visitor,
+      true,
+      base,
+    );
+    expect(response.status).toBe(200);
+    const status = await response.json();
+    expect(status.online).toBe(true);
+    expect(status.phase).toBe("GENERATING");
+    expect(status.lastGeneratedAt).toBe(new Date(time - 80_000).toISOString());
+    expect(status.privateInfo).toBeUndefined();
+    const stale = new VisitorService(store, () => time + 150_000);
+    expect((await stale.chatWorkerStatus()).online).toBe(false);
+  });
+
+  it("says unconfigured when the persistent visitor service is disabled", async () => {
+    const device = new DeviceLinkService(new LocalParticipationService(), "c".repeat(64));
+    const admin = device.login("c".repeat(64));
+    const response = await handlePersistentDeviceRequest(
+      request("chat-worker", admin),
+      device,
+      null,
+      true,
+      base,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ configured: false, online: false });
+  });
+});
+
 describe("persistent snapshot device authorization", () => {
   it("returns no focus for an authorized display when visitors are disabled", async () => {
     const device = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
