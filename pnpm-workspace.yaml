@@ -1,6 +1,13 @@
 packages:
   - apps/*
   - packages/*
+# Replace the vulnerable transitive glob 10 dependency (and its minimatch 9).
+# Node 24 supports glob 14; validate affected tooling and emulator commands after install.
+overrides:
+  glob@10.5.0: 14.0.3
+  # Vulnerable SDK-only transitive versions; keep other grpc-js versions unchanged.
+  "@grpc/grpc-js@1.9.16": 1.14.7
+  re2js@2.8.6: 2.8.7
 allowBuilds:
   "@firebase/util": true
   protobufjs: true
