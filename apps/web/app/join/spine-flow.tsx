@@ -16,6 +16,7 @@ import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } f
 import { CityScene } from "./city-scene";
 import { LocalPhoto } from "./local-photo";
 import { ParticipantCard } from "./participant-card";
+import { photoPreparationMessage, prepareUploadPhoto } from "./prepare-photo";
 import { computeStyle, questions } from "./questions";
 import { attentionMessages, estimateProgress } from "./spine-progress";
 import { traitValues } from "./trait-values";
@@ -78,6 +79,8 @@ export function SpineParticipantFlow() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState("");
+  const [photoPreparing, setPhotoPreparing] = useState(false);
+  const photoSelection = useRef(0);
   const [job, setJob] = useState<SpineTaskView | null>(null);
   const [runningSince, setRunningSince] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -88,17 +91,22 @@ export function SpineParticipantFlow() {
   });
 
   const discardPhoto = useCallback(() => {
+    photoSelection.current++;
     localPhoto.current?.clear();
     setPhotoUrl(null);
     setPhotoFile(null);
+    setPhotoPreparing(false);
     setPhotoError("");
   }, []);
   useEffect(() => {
-    const discard = () => localPhoto.current?.clear();
+    const discard = () => {
+      photoSelection.current++;
+      localPhoto.current?.clear();
+    };
     window.addEventListener("pagehide", discard);
     return () => {
       window.removeEventListener("pagehide", discard);
-      localPhoto.current?.clear();
+      discard();
     };
   }, []);
 
@@ -156,18 +164,32 @@ export function SpineParticipantFlow() {
   }, [state, questionsDone, stage]);
 
   async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0];
+    const original = event.currentTarget.files?.[0];
     event.currentTarget.value = "";
-    if (!file || !localPhoto.current) return;
+    if (!original || !localPhoto.current) return;
+    const selection = ++photoSelection.current;
+    localPhoto.current.clear();
     setPhotoUrl(null);
     setPhotoFile(null);
     setPhotoError("");
-    const result = await localPhoto.current.select(file);
-    if (result.status === "ready") {
-      setPhotoUrl(result.url);
-      setPhotoFile(file);
-    } else if (result.status === "too-large") setPhotoError("写真は8 MB以下を選んでください。");
-    else if (result.status === "invalid") setPhotoError("JPEG・PNG・WebPの写真を選んでください。");
+    setPhotoPreparing(true);
+    try {
+      // Phone camera formats, including supported HEIC photos, are converted on-device.
+      const file = await prepareUploadPhoto(original);
+      if (selection !== photoSelection.current) return;
+      const result = await localPhoto.current.select(file);
+      if (selection !== photoSelection.current) return;
+      if (result.status === "ready") {
+        setPhotoUrl(result.url);
+        setPhotoFile(file);
+      } else if (result.status !== "cancelled") {
+        setPhotoError("写真を読み取れませんでした。別の写真を選んでください。");
+      }
+    } catch (failure) {
+      if (selection === photoSelection.current) setPhotoError(photoPreparationMessage(failure));
+    } finally {
+      if (selection === photoSelection.current) setPhotoPreparing(false);
+    }
   }
 
   async function sendPhoto() {
@@ -395,7 +417,8 @@ export function SpineParticipantFlow() {
                     写真を選ぶ
                     <input
                       type="file"
-                      accept="image/jpeg,image/png,image/webp"
+                      accept="image/*"
+                      disabled={busy || photoPreparing}
                       onChange={choosePhoto}
                     />
                   </label>
@@ -403,12 +426,14 @@ export function SpineParticipantFlow() {
                     写真を撮る
                     <input
                       type="file"
-                      accept="image/jpeg,image/png,image/webp"
+                      accept="image/*"
                       capture="user"
+                      disabled={busy || photoPreparing}
                       onChange={choosePhoto}
                     />
                   </label>
                 </div>
+                {photoPreparing && <p role="status">写真を送信用に調整しています…</p>}
                 {photoError && (
                   <p role="alert" className="pf-error">
                     {photoError}
@@ -432,7 +457,9 @@ export function SpineParticipantFlow() {
                 <button
                   className="pf-primary"
                   type="button"
-                  disabled={busy || !photoFile || !processing || !upload || !publication}
+                  disabled={
+                    busy || photoPreparing || !photoFile || !processing || !upload || !publication
+                  }
                   onClick={() => void sendPhoto()}
                 >
                   {busy ? "送信しています…" : "写真を送信して次へ"}

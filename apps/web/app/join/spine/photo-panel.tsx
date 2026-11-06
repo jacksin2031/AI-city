@@ -7,7 +7,8 @@ import {
   SpineWithdrawalResponseSchema,
 } from "@ai-city/contracts/spine";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
+import { photoPreparationMessage, prepareUploadPhoto } from "../prepare-photo";
 
 const labels: Record<SpineTaskView["state"], string> = {
   QUEUED: "準備待ちです。",
@@ -55,6 +56,8 @@ export function SpinePhotoPanel({
   );
   const [invitation, setInvitation] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreparing, setPhotoPreparing] = useState(false);
+  const photoSelection = useRef(0);
   const [processing, setProcessing] = useState(false);
   const [upload, setUpload] = useState(false);
   const [publication, setPublication] = useState(false);
@@ -99,6 +102,30 @@ export function SpinePhotoPanel({
       setError(failure instanceof Error ? failure.message : "参加を開始できませんでした。");
     } finally {
       setBusy(false);
+    }
+  }
+  useEffect(
+    () => () => {
+      photoSelection.current++;
+    },
+    [],
+  );
+
+  async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const original = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!original) return;
+    const selection = ++photoSelection.current;
+    setPhoto(null);
+    setError("");
+    setPhotoPreparing(true);
+    try {
+      const prepared = await prepareUploadPhoto(original);
+      if (photoSelection.current === selection) setPhoto(prepared);
+    } catch (failure) {
+      if (photoSelection.current === selection) setError(photoPreparationMessage(failure));
+    } finally {
+      if (photoSelection.current === selection) setPhotoPreparing(false);
     }
   }
   async function submit() {
@@ -199,13 +226,26 @@ export function SpinePhotoPanel({
         (!job || (job.state === "WITHDRAWN" && job.photoCleanup === "COMPLETE")) && (
           <section className="flow-panel">
             <label className="field">
-              写真（JPEG・PNG・WebP、8 MB以内）{" "}
+              アルバムから写真を選ぶ
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+                accept="image/*"
+                disabled={busy || photoPreparing}
+                onChange={(event) => void choosePhoto(event)}
               />
             </label>
+            <label className="field">
+              カメラで写真を撮る
+              <input
+                type="file"
+                accept="image/*"
+                capture="user"
+                disabled={busy || photoPreparing}
+                onChange={(event) => void choosePhoto(event)}
+              />
+            </label>
+            {photoPreparing && <p role="status">写真を送信用に調整しています…</p>}
+            {photo && <p role="status">送信する写真を準備しました。</p>}
             <label className="check">
               <input
                 type="checkbox"
@@ -234,6 +274,7 @@ export function SpinePhotoPanel({
               type="button"
               disabled={
                 busy ||
+                photoPreparing ||
                 !photo ||
                 photo.size > 8 * 1024 * 1024 ||
                 !processing ||
