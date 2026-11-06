@@ -69,7 +69,28 @@ describe("buildAdminView", () => {
     expect(t?.code).toBe("000000a1");
     expect(t?.stateSince).toBe(new Date(now - 1_000).toISOString());
     expect(t?.preview).toBeNull();
-    expect(view.tasks.find((x) => x.state === "PUBLISHED")?.preview).toEqual({ bundle });
+    expect(view.tasks.find((x) => x.state === "PUBLISHED")?.preview).toEqual({
+      bundle,
+      adjustment: null,
+    });
+  });
+
+  it("shows the saved adjustment in the preview and ignores a corrupt one", async () => {
+    const store = new MemoryVisitorStore();
+    const adjustment = { version: 1, parts: { hair: { dx: 0, dy: 0.1, scale: 1 } } };
+    await put(store, 1, { state: "PUBLISHED", worker: "w1", bundle, adjustment });
+    await put(store, 2, {
+      state: "PUBLISHED",
+      worker: "w1",
+      bundle,
+      adjustment: { version: 1, parts: { hair: { dx: 9, dy: 0, scale: 1 } } },
+    });
+    const view = await buildAdminView(store, now);
+    expect(view.tasks.find((t) => t.code === "00000001")?.preview).toEqual({ bundle, adjustment });
+    expect(view.tasks.find((t) => t.code === "00000002")?.preview).toEqual({
+      bundle,
+      adjustment: null,
+    });
   });
 
   it("reports unknown stateSince for legacy records and never flags them stuck", async () => {
@@ -91,7 +112,10 @@ describe("buildAdminView", () => {
     const view = await buildAdminView(store, now);
     expect(view.tasks).toHaveLength(2);
     expect(view.tasks.find((t) => t.code === "00000001")?.preview).toBeNull();
-    expect(view.tasks.find((t) => t.code === "00000002")?.preview).toEqual({ bundle });
+    expect(view.tasks.find((t) => t.code === "00000002")?.preview).toEqual({
+      bundle,
+      adjustment: null,
+    });
   });
 
   it("reports an offline worker when there is no heartbeat", async () => {
@@ -125,6 +149,8 @@ describe("buildAdminView", () => {
       expect("bundle" in task).toBe(false);
     }
     expect(text.match(/"bundle"/g)).toHaveLength(1);
+    for (const task of view.tasks)
+      if (task.preview) expect(Object.keys(task.preview).sort()).toEqual(["adjustment", "bundle"]);
   });
 
   it("truncates to 200 tasks", async () => {

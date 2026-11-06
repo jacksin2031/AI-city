@@ -1,4 +1,4 @@
-import { SpineBundleSchema } from "@ai-city/contracts";
+import { type SpineAdjustment, SpineAdjustmentSchema, SpineBundleSchema } from "@ai-city/contracts";
 import { SpinePhotoConsentSchema, SpineTaskStateSchema } from "@ai-city/contracts/spine";
 import { z } from "zod";
 import type { VisitorStore, VisitorTransaction } from "../visitor/store";
@@ -28,6 +28,8 @@ const recordSchema = z
     publicationConsent: z.boolean(),
     worker: id.nullable(),
     bundle: SpineBundleSchema.nullable().optional(),
+    /** Admin-saved per-part tuning, applied when the tablet plays the published bundle. */
+    adjustment: SpineAdjustmentSchema.nullable().optional(),
     sessionExpiresAt: z.number().int().nonnegative().optional(),
     cleanupPending: z.boolean().optional(),
     toolCleanupPending: z.boolean().optional(),
@@ -145,6 +147,11 @@ export function withdrawSpineJobRecord(value: unknown, owner: string, now: numbe
 
 /** Public data only; caller must independently check the roster entry and live session. */
 export function publishedSpineRecord(value: unknown, owner: string, expiresAt: number) {
+  return publishedSpineView(value, owner, expiresAt)?.bundle ?? null;
+}
+
+/** Bundle plus the saved adjustment (null when none), under the same checks as above. */
+export function publishedSpineView(value: unknown, owner: string, expiresAt: number) {
   const parsed = recordSchema.safeParse(value);
   if (
     !parsed.success ||
@@ -153,7 +160,9 @@ export function publishedSpineRecord(value: unknown, owner: string, expiresAt: n
     parsed.data.sessionExpiresAt !== expiresAt
   )
     return null;
-  return parsed.data.bundle ?? null;
+  return parsed.data.bundle
+    ? { bundle: parsed.data.bundle, adjustment: parsed.data.adjustment ?? null }
+    : null;
 }
 
 async function sessionActive(
@@ -456,6 +465,16 @@ export class SpineJobs {
         });
       tx.set(path, next);
       return next;
+    });
+  }
+  /** Saves (or with null clears) the display adjustment; only a published task has one. */
+  async setAdjustment(task: string, adjustment: SpineAdjustment | null): Promise<void> {
+    const path = this.path(task);
+    const value = adjustment === null ? null : SpineAdjustmentSchema.parse(adjustment);
+    await this.store.run(async (tx) => {
+      const record = recordSchema.parse(await tx.get(path));
+      if (record.state !== "PUBLISHED") throw new Error("INVALID_TRANSITION");
+      tx.set(path, recordSchema.parse({ ...record, adjustment: value }));
     });
   }
   /** The public transport must check this on every request; it is not a storage URL. */

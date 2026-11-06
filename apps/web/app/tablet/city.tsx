@@ -20,6 +20,7 @@ import { LandmarkCard } from "../landmark-card";
 import { AutumnFilter, SceneCounts, SceneLogo } from "./hud";
 import { officialSkinFor } from "./official-skin";
 import { ResidentSpeech } from "./resident-speech";
+import { spineBundleKey, staleSpineVersions } from "./spine-key";
 
 export function TabletCity({
   snapshot,
@@ -76,6 +77,8 @@ export function TabletCity({
   // filled in independently of the scene so a resident leaving never rebuilds the world.
   const bundleAssets = useRef(new Map<string, Awaited<ReturnType<typeof fetchSpineBundle>>>());
   const bundleLifetime = useRef<AbortController | null>(null);
+  // Key each live player was built with (version + adjustment); the bundle files are shared.
+  const playerKeys = useRef(new Map<string, string>());
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
   const select = useCallback((id: string) => {
@@ -171,7 +174,14 @@ export function TabletCity({
             try {
               const bundle = bundleAssets.current.get(resident.avatarVersion);
               if (bundle) {
-                const player = bundle.create();
+                const adjustment = latest.current.snapshot.avatars.find(
+                  ({ manifest }) => manifest.avatarVersion === resident.avatarVersion,
+                )?.manifest.adjustment;
+                const player = bundle.create(adjustment);
+                playerKeys.current.set(
+                  resident.avatarVersion,
+                  spineBundleKey(resident.avatarVersion, adjustment),
+                );
                 bundlePlayers += 1;
                 return player;
               }
@@ -266,8 +276,19 @@ export function TabletCity({
       bundleLifetime.current = null;
       for (const assets of bundleAssets.current.values()) assets.dispose();
       bundleAssets.current.clear();
+      playerKeys.current.clear();
     };
   }, [select, close, sample, hasPresetResidents]);
+  // A saved adjustment arrives with the next snapshot poll: recreate only the affected
+  // players. The loaded bundle files stay as they are and the scene is not restarted.
+  useEffect(() => {
+    const stale = staleSpineVersions(playerKeys.current, snapshot.avatars).filter((version) =>
+      bundleAssets.current.has(version),
+    );
+    if (!stale.length) return;
+    for (const version of stale) playerKeys.current.delete(version);
+    city.current?.rebuildCharacters(stale);
+  }, [snapshot.avatars]);
   useEffect(() => {
     setPresentation((previous) => updatePresentation(previous, snapshot));
   }, [snapshot]);

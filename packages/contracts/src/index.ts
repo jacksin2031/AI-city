@@ -67,6 +67,24 @@ export const AvatarSpecSchema = z.strictObject({
   asymmetryIds: z.array(Id).max(8).optional(),
 });
 
+export const SPINE_PARTS = ["hair", "handLeft", "handRight", "footLeft", "footRight"] as const;
+export type SpinePart = (typeof SPINE_PARTS)[number];
+
+/** dx/dy are fractions of the character's height; scale multiplies the part's bones. */
+export const SpineAdjustmentSchema = z.strictObject({
+  version: z.literal(1),
+  // partialRecord: every part is optional (zod 4 `record` over an enum requires all keys).
+  parts: z.partialRecord(
+    z.enum(SPINE_PARTS),
+    z.strictObject({
+      dx: z.number().min(-0.15).max(0.15),
+      dy: z.number().min(-0.15).max(0.15),
+      scale: z.number().min(0.5).max(1.5),
+    }),
+  ),
+});
+export type SpineAdjustment = z.infer<typeof SpineAdjustmentSchema>;
+
 export const AvatarManifestSchema = z
   .strictObject({
     schemaVersion: z.literal(1),
@@ -93,6 +111,8 @@ export const AvatarManifestSchema = z
     // True when this asset set is a template or Fast Mode fallback, not the requested result.
     fallback: z.boolean().optional(),
     spine: SpineBundleSchema.optional(),
+    // Saved per-part tuning; deliberately outside the hashed bundle descriptor.
+    adjustment: SpineAdjustmentSchema.optional(),
   })
   .refine(
     (manifest) => manifest.directions !== undefined || manifest.spine !== undefined,

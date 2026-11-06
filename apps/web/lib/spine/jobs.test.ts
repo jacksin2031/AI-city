@@ -234,6 +234,56 @@ describe("Spine jobs transaction boundary", () => {
   });
 });
 
+describe("Spine adjustment storage", () => {
+  const adjustment = { version: 1 as const, parts: { hair: { dx: 0, dy: 0.1, scale: 1 } } };
+  async function published() {
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store);
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    await jobs.claim("task1", "worker1");
+    await jobs.markReview("task1", "worker1");
+    await jobs.publish("task1", "worker1", candidate());
+    return { store, jobs };
+  }
+  const raw = (store: MemoryVisitorStore) =>
+    store.run(async (tx) => (await tx.get("jobs/spine-task1")) as Record<string, unknown>);
+
+  it("saves, replaces and clears an adjustment on a published task without touching state", async () => {
+    const { store, jobs } = await published();
+    const before = await raw(store);
+    await jobs.setAdjustment("task1", adjustment);
+    const saved = await raw(store);
+    expect(saved.adjustment).toEqual(adjustment);
+    expect({ ...saved, adjustment: undefined }).toEqual({ ...before, adjustment: undefined });
+    expect(saved.stateSince).toBe(before.stateSince);
+    await jobs.setAdjustment("task1", null);
+    expect((await raw(store)).adjustment).toBeNull();
+    expect((await raw(store)).state).toBe("PUBLISHED");
+    expect(await jobs.publishedBundle("task1")).not.toBeNull();
+  });
+  it("refuses tasks that are not published, and unknown tasks", async () => {
+    const jobs = new SpineJobs(new MemoryVisitorStore());
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    await expect(jobs.setAdjustment("task1", adjustment)).rejects.toThrow("INVALID_TRANSITION");
+    await jobs.claim("task1", "worker1");
+    await jobs.markFailed("task1", "worker1");
+    await expect(jobs.setAdjustment("task1", adjustment)).rejects.toThrow("INVALID_TRANSITION");
+    await expect(jobs.setAdjustment("nope", null)).rejects.toThrow();
+  });
+  it("rejects an out-of-range adjustment and writes nothing", async () => {
+    const { store, jobs } = await published();
+    const before = JSON.stringify(await raw(store));
+    await expect(
+      jobs.setAdjustment("task1", { version: 1, parts: { hair: { dx: 2, dy: 0, scale: 1 } } }),
+    ).rejects.toThrow();
+    expect(JSON.stringify(await raw(store))).toBe(before);
+  });
+  it("still reads old records that have no adjustment field", async () => {
+    const { jobs } = await published();
+    expect(await jobs.publishedBundle("task1")).not.toBeNull();
+  });
+});
+
 describe("Spine admin requeue and cancel", () => {
   const cloudTask = "spine-12345678-1234-4123-8123-123456789abc";
   const live = {

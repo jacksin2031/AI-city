@@ -852,3 +852,73 @@ describe("spineAdminAction", () => {
     });
   });
 });
+
+describe("snapshot adjustment", () => {
+  const owner = "a".repeat(64);
+  const task = "spine-12345678-1234-4123-8123-123456789abc";
+  const expiresAt = 99_999_999;
+  const live = {
+    processing: true,
+    externalModelUpload: true,
+    automaticPublication: true,
+    version: 2,
+    recordedAt: "2026-11-05T00:00:00.000Z",
+  } as const;
+  const bundle = {
+    runtime: "4.3",
+    skeleton: "/avatars/person/v1/skeleton.json",
+    atlas: "/avatars/person/v1/skeleton.atlas",
+    pages: ["/avatars/person/v1/page.png"],
+    orientationPolicy: "/avatars/person/v1/orientation-policy.json",
+    buildManifest: "/avatars/person/v1/build-manifest.json",
+    sha256: "e".repeat(64),
+  };
+  const adjustment = { version: 1, parts: { hair: { dx: 0, dy: 0.1, scale: 1 } } };
+  async function seed(extra: object) {
+    const store = new MemoryVisitorStore();
+    const job = makeCloudSpineJob(owner, "c".repeat(64), live, expiresAt, "5", 1_000);
+    await store.run(async (tx) => {
+      tx.set(`jobs/spine-${task}`, { ...job, state: "PUBLISHED", worker: "w1", bundle, ...extra });
+      tx.set(`sessions/${owner}`, {
+        expiresAt,
+        currentJob: null,
+        jobsCreated: 0,
+        requestTombstones: [],
+      });
+      tx.set("meta/state", {
+        schemaVersion: 1,
+        streamId: "stream-1",
+        eventSeq: 4,
+        joinedTotal: 1,
+        activeSessions: { [owner]: expiresAt },
+        pendingSessions: {},
+        invitations: {},
+        residents: [],
+        spineResidents: [{ task, owner, expiresAt }],
+      });
+    });
+    return { store, service: new VisitorService(store, () => 5_000) };
+  }
+  const manifest = async (service: VisitorService) =>
+    (await service.snapshot()).avatars.find((a) => a.manifest.avatarVersion === task)?.manifest;
+
+  it("ships the saved adjustment beside the bundle and drops it when cleared", async () => {
+    const { store, service } = await seed({ adjustment });
+    const shipped = await manifest(service);
+    expect(shipped?.adjustment).toEqual(adjustment);
+    expect(shipped?.spine).toEqual(bundle);
+    await store.run(async (tx) => {
+      const raw = await tx.get(`jobs/spine-${task}`);
+      tx.set(`jobs/spine-${task}`, { ...raw, adjustment: null });
+    });
+    const cleared = await manifest(service);
+    expect(cleared).toBeDefined();
+    expect(cleared && "adjustment" in cleared).toBe(false);
+  });
+  it("omits the field for old records without an adjustment", async () => {
+    const { service } = await seed({});
+    const shipped = await manifest(service);
+    expect(shipped?.spine).toEqual(bundle);
+    expect(shipped && "adjustment" in shipped).toBe(false);
+  });
+});

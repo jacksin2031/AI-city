@@ -32,6 +32,7 @@ import {
   makeCloudSpineJob,
   makeSpineJob,
   publishedSpineRecord,
+  publishedSpineView,
   SpineJobs,
   withdrawSpineJobRecord,
 } from "../spine/jobs";
@@ -1646,12 +1647,13 @@ export class VisitorService {
       for (const entry of cleaned.state.spineResidents) {
         const session = parseSession(await tx.get(`sessions/${entry.owner}`));
         if (!validSession(session, entry.owner, cleaned.state, now)) continue;
-        const bundle = publishedSpineRecord(
+        const published = publishedSpineView(
           await tx.get(`jobs/spine-${entry.task}`),
           entry.owner,
           entry.expiresAt,
         );
-        if (!bundle) continue;
+        if (!published) continue;
+        const { bundle, adjustment } = published;
         // The participant's own public profile, when they have sent one from the final page.
         const rawProfile = await tx.get(`requests/spine-profile-${entry.owner}`);
         const profile = rawProfile?.task === entry.task ? rawProfile : null;
@@ -1677,6 +1679,7 @@ export class VisitorService {
             avatarVersion: entry.task,
             rigVersion: "spine-4.3",
             spine: bundle,
+            ...(adjustment ? { adjustment } : {}),
           },
           assetStatus: "VERIFIED_SPINE",
         });

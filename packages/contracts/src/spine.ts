@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SpineBundleSchema } from "./index";
+import { SpineAdjustmentSchema, SpineBundleSchema } from "./index";
 
 /** Consent must be bound server-side to a live session and a verified photo digest. */
 export const SpinePhotoConsentSchema = z.strictObject({
@@ -66,7 +66,9 @@ export const SpineAdminTaskSchema = z.strictObject({
   stateSince: z.iso.datetime().nullable(),
   needsAttention: z.boolean(),
   /** Only PUBLISHED tasks; the bundle descriptor is already public to tablets. */
-  preview: z.strictObject({ bundle: SpineBundleSchema }).nullable(),
+  preview: z
+    .strictObject({ bundle: SpineBundleSchema, adjustment: SpineAdjustmentSchema.nullable() })
+    .nullable(),
 });
 export type SpineAdminTask = z.infer<typeof SpineAdminTaskSchema>;
 
@@ -80,20 +82,4 @@ export const SpineAdminViewSchema = z.strictObject({
 });
 export type SpineAdminView = z.infer<typeof SpineAdminViewSchema>;
 
-export const SPINE_PARTS = ["hair", "handLeft", "handRight", "footLeft", "footRight"] as const;
-export type SpinePart = (typeof SPINE_PARTS)[number];
-
-/** dx/dy are fractions of the character's height; scale multiplies the part's bones. */
-export const SpineAdjustmentSchema = z.strictObject({
-  version: z.literal(1),
-  // partialRecord: every part is optional (zod 4 `record` over an enum requires all keys).
-  parts: z.partialRecord(
-    z.enum(SPINE_PARTS),
-    z.strictObject({
-      dx: z.number().min(-0.15).max(0.15),
-      dy: z.number().min(-0.15).max(0.15),
-      scale: z.number().min(0.5).max(1.5),
-    }),
-  ),
-});
-export type SpineAdjustment = z.infer<typeof SpineAdjustmentSchema>;
+export { SPINE_PARTS, type SpineAdjustment, SpineAdjustmentSchema, type SpinePart } from "./index";

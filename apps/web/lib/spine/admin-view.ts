@@ -1,4 +1,4 @@
-import { SpineBundleSchema } from "@ai-city/contracts";
+import { SpineAdjustmentSchema, SpineBundleSchema } from "@ai-city/contracts";
 import {
   type SpineAdminTask,
   type SpineAdminView,
@@ -22,6 +22,7 @@ const jobView = z.object({
   state: SpineTaskStateSchema,
   stateSince: z.number().int().nonnegative().optional(),
   bundle: z.unknown().optional(),
+  adjustment: z.unknown().optional(),
 });
 
 const heartbeat = z.object({ seenAt: z.number(), running: z.number() });
@@ -48,7 +49,10 @@ export async function buildAdminView(store: VisitorStore, now: number): Promise<
     const stuck =
       state === "RUNNING" && stateSince !== undefined && now - stateSince > STUCK_AFTER_MS;
     const bundle = state === "PUBLISHED" ? SpineBundleSchema.safeParse(job.data.bundle) : null;
-    const preview = bundle?.success ? { bundle: bundle.data } : null;
+    const adjustment = SpineAdjustmentSchema.safeParse(job.data.adjustment);
+    const preview = bundle?.success
+      ? { bundle: bundle.data, adjustment: adjustment.success ? adjustment.data : null }
+      : null;
     tasks.push({
       task: task.data,
       code: task.data.slice("spine-".length, "spine-".length + 8),
