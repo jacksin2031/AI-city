@@ -44,3 +44,30 @@ describe("photo production lifecycle", () => {
     expect(transitionProductionJob(unknown, { type: "WITHDRAW" }).state).toBe("WITHDRAWN");
   });
 });
+
+describe("admin requeue", () => {
+  const base = createProductionJob({ processing: true, automaticPublication: true });
+  it("returns the four recoverable states to QUEUED", () => {
+    for (const state of ["UNKNOWN", "REQUIRES_REVIEW", "FAILED", "RUNNING"] as const)
+      expect(transitionProductionJob({ ...base, state }, { type: "REQUEUE" }).state).toBe("QUEUED");
+  });
+  it("rejects every other state", () => {
+    for (const state of ["PUBLISHED", "WITHDRAWN", "QUEUED", "PREPARED"] as const)
+      expect(() => transitionProductionJob({ ...base, state }, { type: "REQUEUE" })).toThrow(
+        "INVALID_TRANSITION",
+      );
+  });
+});
+
+describe("requeue of a genuinely withdrawn record", () => {
+  it("reports INVALID_TRANSITION, not CONSENT_REQUIRED", () => {
+    const withdrawn = transitionProductionJob(
+      createProductionJob({ processing: true, automaticPublication: true }),
+      { type: "WITHDRAW" },
+    );
+    expect(withdrawn.processingConsent).toBe(false);
+    expect(() => transitionProductionJob(withdrawn, { type: "REQUEUE" })).toThrow(
+      "INVALID_TRANSITION",
+    );
+  });
+});

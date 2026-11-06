@@ -7,6 +7,7 @@ import { useDeviceFeed } from "../device-feed";
 import { removeResidents } from "./actions";
 import PresetResidents from "./presets";
 import ManagedResidents from "./residents";
+import SpinePanel from "./spine-panel";
 
 const modes = { DEMO: "イラストの見本", LIVE: "参加者の街", MAINTENANCE: "展示を休止" } as const;
 export default function Admin({
@@ -218,6 +219,33 @@ export default function Admin({
             </p>
           </section>
           <section className="flow-panel">
+            <h2>AI会話の設定</h2>
+            <p role="status">現在：{state.control.dialogueEnabled ? "オン" : "オフ"}</p>
+            <button
+              type="button"
+              className={state.control.dialogueEnabled ? "secondary" : ""}
+              aria-pressed={state.control.dialogueEnabled}
+              disabled={busy}
+              onClick={() =>
+                void run(async (api) => {
+                  const enabled = !state.control.dialogueEnabled;
+                  const next = await api.update({
+                    expectedRevision: state.control.revision,
+                    dialogueEnabled: enabled,
+                  });
+                  setNotice(enabled ? "AI会話をオンにしました。" : "AI会話をオフにしました。");
+                  return next;
+                })
+              }
+            >
+              {state.control.dialogueEnabled ? "AI会話をオフにする" : "AI会話をオンにする"}
+            </button>
+            <p className="muted">
+              架空の住民同士のAI会話を切り替えます。オンでもAIサービスの接続設定が必要です。
+              オフでは新しい会話リクエストを停止します。独立した会話生成Workerは停止しません。
+            </p>
+          </section>
+          <section className="flow-panel">
             <h2>タブレットをつなぐ</h2>
             <p>タブレットで専用の展示画面を開き、コードを入力します。</p>
             <button
@@ -382,6 +410,7 @@ export default function Admin({
             )}
           </section>
           <ManagedResidents residents={state.snapshot.residents} busy={busy} remove={withdraw} />
+          <SpinePanel busy={busy} />
           <details className="flow-panel">
             <summary>接続を終了する</summary>
             <p>解除したタブレットには街の情報が表示されなくなります。</p>

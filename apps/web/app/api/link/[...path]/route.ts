@@ -1,5 +1,6 @@
 import { handleDialogueRequest } from "../../../../lib/link/dialogue";
 import { deviceLinkService, dialogueService, previewEnabled } from "../../../../lib/link/runtime";
+import { getCloudSpine } from "../../../../lib/spine/cloud-runtime";
 import { handlePersistentDeviceRequest } from "../../../../lib/visitor/device-http";
 import { getVisitorBoundary, getVisitorService } from "../../../../lib/visitor/runtime";
 export const runtime = "nodejs";
@@ -22,6 +23,7 @@ async function handle(request: Request) {
       process.env.AI_CITY_PUBLIC_ORIGIN,
       process.env.AI_CITY_LOOPBACK_PREVIEW === "1",
       getVisitorBoundary(),
+      () => getCloudSpine()?.photos,
     );
   } catch {
     return Response.json(

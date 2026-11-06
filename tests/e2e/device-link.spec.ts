@@ -29,11 +29,19 @@ test("mobile manager pairs an isolated tablet, controls it and revokes its read-
     target.on("console", (message) => {
       if (!["error", "warning"].includes(message.type())) return;
       if (isKnownCiDriverWarning(message.type(), message.text(), Boolean(process.env.CI))) return;
-      // Anonymous login and the explicit permission probe intentionally return 401/403.
+      // Anonymous login and permission probes intentionally return 401/403.
       if (
         /^Failed to load resource: the server responded with a status of (401|403) /.test(
           message.text(),
         )
+      )
+        return;
+      // The photo-task admin panel probes an intentionally disabled persistent visitor
+      // service in this local-mock E2E. Only that known endpoint may respond 503.
+      if (
+        message.text().includes("status of 503 (Service Unavailable)") &&
+        new URL(message.location().url || "http://127.0.0.1:3000").pathname ===
+          "/api/link/spine-admin"
       )
         return;
       problems.push(message.text());

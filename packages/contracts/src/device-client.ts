@@ -20,6 +20,7 @@ import {
   FocusRequestInputSchema,
   FocusStatusResponseSchema,
 } from "./focus-link";
+import { type SpineAdminAction, SpineAdminActionSchema, SpineAdminViewSchema } from "./spine";
 import { VisitorInvitationSchema } from "./visitor";
 
 export function createDeviceClient(options: { signal?: AbortSignal; fetch?: typeof fetch } = {}) {
@@ -60,6 +61,9 @@ export function createDeviceClient(options: { signal?: AbortSignal; fetch?: type
       read("preset", DeviceAdminSchema, DevicePresetUpdateSchema.parse(input)),
     remove: (residentId: string) =>
       read("remove", DeviceAdminSchema, DeviceRemoveSchema.parse({ residentId })),
+    spineAdmin: () => read("spine-admin", SpineAdminViewSchema),
+    spineAdminAction: (action: SpineAdminAction) =>
+      read("spine-admin", SpineAdminViewSchema, SpineAdminActionSchema.parse(action)),
     revoke: () => read("revoke", DeviceAdminSchema, {}),
     logout: () => read("logout", DeviceOkSchema, {}),
   };

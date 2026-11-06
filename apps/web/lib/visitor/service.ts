@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import {
   type PublicResident,
   PublicResidentSchema,
+  type SpineAdjustment,
   type SpineBundleSchema,
 } from "@ai-city/contracts";
 import {
@@ -18,6 +19,7 @@ import {
   ParticipationViewSchema,
   type PublishRequest,
   PublishRequestSchema,
+  type SampleIdSchema,
   sampleAvatars,
 } from "@ai-city/contracts/development";
 import {
@@ -27,17 +29,31 @@ import {
 } from "@ai-city/contracts/spine";
 import { z } from "zod";
 import { DevelopmentServiceError } from "../development/service";
+import { buildAdminView } from "../spine/admin-view";
 import {
   makeCloudSpineJob,
   makeSpineJob,
   publishedSpineRecord,
+  publishedSpineView,
+  SpineJobs,
   withdrawSpineJobRecord,
 } from "../spine/jobs";
+import { appendRepairLog } from "../spine/repair-log";
 import { removeSpineResident, SpineRosterEntrySchema } from "../spine/roster-index";
 import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
 
 /** The public descriptor of a published Spine bundle; enough to fetch and draw the character. */
 type SpineBundle = z.infer<typeof SpineBundleSchema>;
+
+/** Parsed admin recovery actions; the HTTP layer validates raw input before building one. */
+export type SpineAdminActionInput =
+  | { action: "cancel"; task: string }
+  | { action: "requeue"; task: string; confirmCost: boolean }
+  | { action: "preset"; task: string; presetId: z.infer<typeof SampleIdSchema> }
+  | { action: "adjust"; task: string; adjustment: SpineAdjustment }
+  | { action: "resetAdjust"; task: string };
+
+export type SpineAdminDeps = { photos?: { exists(task: string): Promise<boolean> } };
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const INVITATION_TTL_MS = 3 * 60 * 1000;
@@ -662,7 +678,7 @@ export class VisitorService {
       delete entries[task];
       tx.set(
         `jobs/spine-${task}`,
-        makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation),
+        makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation, now),
       );
       tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
       return { task, state: "QUEUED" as const };
@@ -746,7 +762,7 @@ export class VisitorService {
     const now = this.now();
     // Validate consent before entering the transaction; the server supplies its timestamp.
     const recordedConsent = { ...consent, recordedAt: new Date(now).toISOString() };
-    makeSpineJob(owner, photoSha256, recordedConsent);
+    makeSpineJob(owner, photoSha256, recordedConsent, undefined, now);
     return this.store.run(async (tx) => {
       const state = await readState(tx);
       const session = parseSession(await tx.get(`sessions/${owner}`));
@@ -773,10 +789,129 @@ export class VisitorService {
       if (acknowledged.changed) setDocument(tx, "meta/state", acknowledged.state);
       tx.set(
         `jobs/spine-${task}`,
-        makeSpineJob(owner, photoSha256, recordedConsent, session.expiresAt),
+        makeSpineJob(owner, photoSha256, recordedConsent, session.expiresAt, now),
       );
       tx.set(`requests/spine-owner-${owner}`, { task });
       return { task, state: "QUEUED" as const };
+    });
+  }
+
+  /** The admin recovery overview, built on the service clock. */
+  spineAdminView() {
+    return buildAdminView(this.store, this.now());
+  }
+
+  /** Admin recovery of one Spine task. Requeue spends model budget again, so it needs confirmCost. */
+  async spineAdminAction(
+    input: SpineAdminActionInput,
+    deps: SpineAdminDeps = {},
+  ): Promise<{ task: string; state: "QUEUED" | "WITHDRAWN" | "PUBLISHED" }> {
+    if (!SpineTaskIdSchema.safeParse(input.task).success)
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const jobs = new SpineJobs(this.store, this.now);
+    // The repair entry is written in the same transaction as the action itself.
+    const log = (tx: VisitorTransaction) =>
+      appendRepairLog(tx, input.action, input.task, this.now());
+    try {
+      if (input.action === "adjust" || input.action === "resetAdjust") {
+        await jobs.setAdjustment(
+          input.task,
+          input.action === "adjust" ? input.adjustment : null,
+          log,
+        );
+        return { task: input.task, state: "PUBLISHED" };
+      }
+      if (input.action === "cancel") {
+        await jobs.adminWithdraw(input.task, log);
+        return { task: input.task, state: "WITHDRAWN" };
+      }
+      if (input.action === "preset") {
+        await this.presetReplace(input.task, input.presetId, log);
+        return { task: input.task, state: "WITHDRAWN" };
+      }
+      if (input.action === "requeue") {
+        if (input.confirmCost !== true) throw new DevelopmentServiceError("COST_UNCONFIRMED", 400);
+        // Outside the transaction by design: a later claim fails safely if the photo vanishes meanwhile.
+        let present = false;
+        try {
+          present = deps.photos ? await deps.photos.exists(input.task) : false;
+        } catch {
+          throw new DevelopmentServiceError("CLOUD_PHOTO_UNAVAILABLE", 503);
+        }
+        if (!present) throw new DevelopmentServiceError("PHOTO_GONE", 409);
+        await jobs.requeue(input.task, log);
+        return { task: input.task, state: "QUEUED" };
+      }
+    } catch (error) {
+      if (error instanceof DevelopmentServiceError) throw error;
+      const message = error instanceof Error ? error.message : "";
+      if (error instanceof z.ZodError) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+      if (message === "NOT_FOUND") throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (message === "INVALID_TRANSITION" || message === "NOT_CLOUD_PHOTO")
+        throw new DevelopmentServiceError("INVALID_TRANSITION", 409);
+      throw error;
+    }
+    throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+  }
+
+  /** One transaction: publish a prepared character for the task's owner, then withdraw the task. */
+  private async presetReplace(
+    task: string,
+    presetId: z.infer<typeof SampleIdSchema>,
+    log: (tx: VisitorTransaction) => Promise<void>,
+  ) {
+    const avatar = avatarForSample(presetId);
+    const now = this.now();
+    await this.store.run(async (tx) => {
+      const raw = await tx.get(`jobs/spine-${task}`);
+      const owner = raw?.owner;
+      if (typeof owner !== "string" || !DIGEST.safeParse(owner).success)
+        throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (raw?.state === "WITHDRAWN") throw new DevelopmentServiceError("INVALID_TRANSITION", 409);
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (state.residents.some((stored) => stored.ownerDigest === owner))
+        throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      const spineResidents = state.spineResidents.filter((entry) => entry.task !== task);
+      if (state.residents.length + 1 + spineResidents.length > MAX_ACTIVE_SESSIONS)
+        throw new DevelopmentServiceError("LOCAL_CAPACITY", 429);
+      let withdrawn: ReturnType<typeof withdrawSpineJobRecord>;
+      try {
+        withdrawn = withdrawSpineJobRecord(raw, owner, now);
+      } catch {
+        throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      }
+      const profile = await tx.get(`requests/spine-profile-${owner}`);
+      const resident = PublicResidentSchema.parse({
+        schemaVersion: 1,
+        residentId: `resident-${task}`,
+        eventId: developmentEventId,
+        nickname: typeof profile?.nickname === "string" ? profile.nickname : "ゲスト",
+        personalityLabel:
+          typeof profile?.personalityLabel === "string" ? profile.personalityLabel : "非公開",
+        interests: Array.isArray(profile?.interests) ? profile.interests : [],
+        avatarVersion: avatar.manifest.avatarVersion,
+        publicConsent: true,
+        consentVersion: 1,
+        publicState: "VISIBLE",
+      });
+      const counted = state.spineResidents.some((entry) => entry.owner === owner);
+      setDocument(tx, "meta/state", {
+        ...state,
+        // One event for the roster removal (when present) and one for the new resident.
+        eventSeq:
+          state.eventSeq + 1 + (spineResidents.length !== state.spineResidents.length ? 1 : 0),
+        joinedTotal: state.joinedTotal + (counted ? 0 : 1),
+        residents: [
+          ...state.residents,
+          { ownerDigest: owner, jobId: task, expiresAt: session.expiresAt, resident },
+        ],
+        spineResidents,
+      });
+      tx.set(`jobs/spine-${task}`, withdrawn);
+      await log(tx);
     });
   }
 
@@ -793,7 +928,7 @@ export class VisitorService {
       if (!validSession(session, owner, state, now))
         throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
       if (!raw || raw.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
-      const withdrawn = withdrawSpineJobRecord(raw, owner);
+      const withdrawn = withdrawSpineJobRecord(raw, owner, now);
       await removeSpineResident(tx, task);
       tx.set(`jobs/spine-${task}`, withdrawn);
       return { toolCleanupPending: withdrawn.toolCleanupPending };
@@ -1544,12 +1679,13 @@ export class VisitorService {
       for (const entry of cleaned.state.spineResidents) {
         const session = parseSession(await tx.get(`sessions/${entry.owner}`));
         if (!validSession(session, entry.owner, cleaned.state, now)) continue;
-        const bundle = publishedSpineRecord(
+        const published = publishedSpineView(
           await tx.get(`jobs/spine-${entry.task}`),
           entry.owner,
           entry.expiresAt,
         );
-        if (!bundle) continue;
+        if (!published) continue;
+        const { bundle, adjustment } = published;
         // The participant's own public profile, when they have sent one from the final page.
         const rawProfile = await tx.get(`requests/spine-profile-${entry.owner}`);
         const profile = rawProfile?.task === entry.task ? rawProfile : null;
@@ -1575,6 +1711,7 @@ export class VisitorService {
             avatarVersion: entry.task,
             rigVersion: "spine-4.3",
             spine: bundle,
+            ...(adjustment ? { adjustment } : {}),
           },
           assetStatus: "VERIFIED_SPINE",
         });
@@ -1622,7 +1759,7 @@ export class VisitorService {
         const raw = await tx.get(`jobs/spine-${spine.task}`);
         if (!raw || raw.owner !== spine.owner)
           throw new DevelopmentServiceError("STORAGE_INVALID", 500);
-        const withdrawn = withdrawSpineJobRecord(raw, spine.owner);
+        const withdrawn = withdrawSpineJobRecord(raw, spine.owner, now);
         await removeSpineResident(tx, spine.task);
         tx.set(`jobs/spine-${spine.task}`, withdrawn);
         return success(undefined);

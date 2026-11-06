@@ -1,4 +1,4 @@
-import { SpineBundleSchema } from "@ai-city/contracts";
+import { type SpineAdjustment, SpineAdjustmentSchema, SpineBundleSchema } from "@ai-city/contracts";
 import { SpinePhotoConsentSchema, SpineTaskStateSchema } from "@ai-city/contracts/spine";
 import { z } from "zod";
 import type { VisitorStore, VisitorTransaction } from "../visitor/store";
@@ -22,10 +22,14 @@ const recordSchema = z
     photoSha256: digest.nullable(),
     consent: consentSchema.nullable(),
     state: SpineTaskStateSchema,
+    /** Epoch ms of the last state change; absent on records written before it existed. */
+    stateSince: z.number().int().nonnegative().optional(),
     processingConsent: z.boolean(),
     publicationConsent: z.boolean(),
     worker: id.nullable(),
     bundle: SpineBundleSchema.nullable().optional(),
+    /** Admin-saved per-part tuning, applied when the tablet plays the published bundle. */
+    adjustment: SpineAdjustmentSchema.nullable().optional(),
     sessionExpiresAt: z.number().int().nonnegative().optional(),
     cleanupPending: z.boolean().optional(),
     toolCleanupPending: z.boolean().optional(),
@@ -67,6 +71,11 @@ const recordSchema = z
     if (record.bundle != null) return false;
     return record.state === "QUEUED" ? record.worker === null : record.worker !== null;
   }, "Inconsistent job state");
+/** Single place that records when a job entered its current state. */
+function stamp<T extends object>(record: T, now: number): T & { stateSince: number } {
+  return { ...record, stateSince: now };
+}
+
 export type SpineConsent = {
   processing: boolean;
   automaticPublication: boolean;
@@ -79,13 +88,14 @@ export function makeSpineJob(
   owner: string,
   photoSha256: string,
   consent: SpineConsent,
-  sessionExpiresAt?: number,
+  sessionExpiresAt: number | undefined,
+  now: number,
 ) {
   return recordSchema.parse({
     owner: digest.parse(owner),
     photoSha256: digest.parse(photoSha256),
     consent: consentSchema.parse(consent),
-    ...createProductionJob(consent),
+    ...stamp(createProductionJob(consent), now),
     worker: null,
     bundle: null,
     cleanupPending: false,
@@ -104,21 +114,22 @@ export function makeCloudSpineJob(
   consent: SpineConsent,
   expiresAt: number,
   generation: string,
+  now: number,
 ) {
   return recordSchema.parse({
-    ...makeSpineJob(owner, photoSha256, consent, expiresAt),
+    ...makeSpineJob(owner, photoSha256, consent, expiresAt, now),
     photoStorage: "CLOUD_PRIVATE",
     photoGeneration: generation,
   });
 }
 
-export function withdrawSpineJobRecord(value: unknown, owner: string) {
+export function withdrawSpineJobRecord(value: unknown, owner: string, now: number) {
   digest.parse(owner);
   const record = recordSchema.parse(value);
   if (record.owner !== owner) throw new Error("NOT_FOUND");
   return {
     ...record,
-    ...transitionProductionJob(record, { type: "WITHDRAW" }),
+    ...stamp(transitionProductionJob(record, { type: "WITHDRAW" }), now),
     photoSha256: null,
     consent: null,
     worker: null,
@@ -136,6 +147,11 @@ export function withdrawSpineJobRecord(value: unknown, owner: string) {
 
 /** Public data only; caller must independently check the roster entry and live session. */
 export function publishedSpineRecord(value: unknown, owner: string, expiresAt: number) {
+  return publishedSpineView(value, owner, expiresAt)?.bundle ?? null;
+}
+
+/** Bundle plus the saved adjustment (null when none), under the same checks as above. */
+export function publishedSpineView(value: unknown, owner: string, expiresAt: number) {
   const parsed = recordSchema.safeParse(value);
   if (
     !parsed.success ||
@@ -144,7 +160,9 @@ export function publishedSpineRecord(value: unknown, owner: string, expiresAt: n
     parsed.data.sessionExpiresAt !== expiresAt
   )
     return null;
-  return parsed.data.bundle ?? null;
+  return parsed.data.bundle
+    ? { bundle: parsed.data.bundle, adjustment: parsed.data.adjustment ?? null }
+    : null;
 }
 
 async function sessionActive(
@@ -193,7 +211,7 @@ export class SpineJobs {
   }
   async create(task: string, owner: string, photoSha256: string, consent: SpineConsent) {
     const path = this.path(task);
-    const record = makeSpineJob(owner, photoSha256, consent);
+    const record = makeSpineJob(owner, photoSha256, consent, undefined, this.now());
     await this.store.run(async (tx) => {
       if (await tx.get(path)) throw new Error("ALREADY_EXISTS");
       tx.set(path, record);
@@ -247,7 +265,11 @@ export class SpineJobs {
     return this.store.run(async (tx) => {
       const record = recordSchema.parse(await tx.get(path));
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
-      const next = { ...record, ...transitionProductionJob(record, { type: "START" }), worker };
+      const next = {
+        ...record,
+        ...stamp(transitionProductionJob(record, { type: "START" }), this.now()),
+        worker,
+      };
       tx.set(path, next);
       return next;
     });
@@ -258,7 +280,10 @@ export class SpineJobs {
     return this.store.run(async (tx) => {
       const record = recordSchema.parse(await tx.get(path));
       if (record.worker !== worker) throw new Error("WORKER_MISMATCH");
-      const next = { ...record, ...transitionProductionJob(record, { type: "UNKNOWN" }) };
+      const next = {
+        ...record,
+        ...stamp(transitionProductionJob(record, { type: "UNKNOWN" }), this.now()),
+      };
       tx.set(path, next);
       return next;
     });
@@ -320,7 +345,7 @@ export class SpineJobs {
       )
         throw new Error("TOOL_FLOW_MISMATCH");
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
-      const next = { ...record, toolFlow: flow, state: "PREPARED" as const };
+      const next = stamp({ ...record, toolFlow: flow, state: "PREPARED" as const }, this.now());
       tx.set(path, next);
       return next;
     });
@@ -357,7 +382,7 @@ export class SpineJobs {
       if (existing || budget.reserved >= budget.maxTasks) throw new Error("BUDGET_EXHAUSTED");
       const next = {
         ...record,
-        ...transitionProductionJob(record, { type: "RESUME" }),
+        ...stamp(transitionProductionJob(record, { type: "RESUME" }), this.now()),
         worker,
         liveIntent: true,
       };
@@ -375,7 +400,10 @@ export class SpineJobs {
       if (record.worker !== worker || !record.toolFlow || record.liveIntent)
         throw new Error("TOOL_FLOW_MISMATCH");
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
-      const next = { ...record, ...transitionProductionJob(record, { type: "PREPARE" }) };
+      const next = {
+        ...record,
+        ...stamp(transitionProductionJob(record, { type: "PREPARE" }), this.now()),
+      };
       tx.set(path, next);
       return next;
     });
@@ -389,7 +417,10 @@ export class SpineJobs {
     return this.store.run(async (tx) => {
       const record = recordSchema.parse(await tx.get(path));
       if (record.worker !== worker) throw new Error("WORKER_MISMATCH");
-      const next = { ...record, ...transitionProductionJob(record, { type }) };
+      const next = {
+        ...record,
+        ...stamp(transitionProductionJob(record, { type }), this.now()),
+      };
       tx.set(path, next);
       return next;
     });
@@ -419,7 +450,10 @@ export class SpineJobs {
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
       const next = {
         ...record,
-        ...transitionProductionJob(record, { type: "PUBLISH", verified: true, approved: true }),
+        ...stamp(
+          transitionProductionJob(record, { type: "PUBLISH", verified: true, approved: true }),
+          this.now(),
+        ),
         bundle: descriptor,
         publishedPhotoCleanupPending: true,
       };
@@ -431,6 +465,23 @@ export class SpineJobs {
         });
       tx.set(path, next);
       return next;
+    });
+  }
+  /** Saves (or with null clears) the display adjustment; only a published task has one. */
+  async setAdjustment(
+    task: string,
+    adjustment: SpineAdjustment | null,
+    inTransaction?: (tx: VisitorTransaction) => Promise<void>,
+  ): Promise<void> {
+    const path = this.path(task);
+    const value = adjustment === null ? null : SpineAdjustmentSchema.parse(adjustment);
+    await this.store.run(async (tx) => {
+      const found = recordSchema.safeParse(await tx.get(path));
+      if (!found.success) throw new Error("NOT_FOUND");
+      const record = found.data;
+      if (record.state !== "PUBLISHED") throw new Error("INVALID_TRANSITION");
+      tx.set(path, recordSchema.parse({ ...record, adjustment: value }));
+      await inTransaction?.(tx);
     });
   }
   /** The public transport must check this on every request; it is not a storage URL. */
@@ -474,7 +525,7 @@ export class SpineJobs {
       if (record.state !== "WITHDRAWN") {
         if (record.sessionExpiresAt === undefined || (await sessionActive(tx, record, this.now())))
           return null;
-        record = withdrawSpineJobRecord(record, record.owner);
+        record = withdrawSpineJobRecord(record, record.owner, this.now());
         await removeSpineResident(tx, task);
         tx.set(path, record);
       }
@@ -510,10 +561,48 @@ export class SpineJobs {
     const path = this.path(task);
     digest.parse(owner);
     return this.store.run(async (tx) => {
-      const next = withdrawSpineJobRecord(await tx.get(path), owner);
+      const next = withdrawSpineJobRecord(await tx.get(path), owner, this.now());
       await removeSpineResident(tx, task);
       tx.set(path, next);
       return next;
+    });
+  }
+  /**
+   * Admin redo of a stuck or failed cloud task. The caller must have confirmed the cost and that the
+   * photo still exists. The live budget counter is deliberately not decremented, so a re-run is
+   * counted again when it is next claimed.
+   */
+  async requeue(task: string, inTransaction?: (tx: VisitorTransaction) => Promise<void>) {
+    const path = this.path(task);
+    return this.store.run(async (tx) => {
+      const found = recordSchema.safeParse(await tx.get(path));
+      if (!found.success) throw new Error("NOT_FOUND");
+      const record = found.data;
+      const next = {
+        ...record,
+        ...stamp(transitionProductionJob(record, { type: "REQUEUE" }), this.now()),
+        worker: null,
+        toolFlow: null,
+        liveIntent: false,
+      };
+      if (record.photoStorage !== "CLOUD_PRIVATE") throw new Error("NOT_CLOUD_PHOTO");
+      tx.delete(`requests/spine-live-${task}`);
+      tx.set(path, recordSchema.parse(next));
+      await inTransaction?.(tx);
+    });
+  }
+  /** Admin cancel: the participant withdrawal path, acting for the owner stored in the record. */
+  async adminWithdraw(task: string, inTransaction?: (tx: VisitorTransaction) => Promise<void>) {
+    const path = this.path(task);
+    return this.store.run(async (tx) => {
+      const raw = await tx.get(path);
+      const parsed = recordSchema.safeParse(raw);
+      if (!parsed.success) throw new Error("NOT_FOUND");
+      if (parsed.data.state === "WITHDRAWN") throw new Error("INVALID_TRANSITION");
+      const next = withdrawSpineJobRecord(parsed.data, parsed.data.owner, this.now());
+      await removeSpineResident(tx, task);
+      tx.set(path, next);
+      await inTransaction?.(tx);
     });
   }
 }

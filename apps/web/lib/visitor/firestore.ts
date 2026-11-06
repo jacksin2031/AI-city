@@ -1,5 +1,10 @@
 import type { Firestore } from "@google-cloud/firestore";
-import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
+import {
+  assertJobListLimit,
+  type StoredDocument,
+  type VisitorStore,
+  type VisitorTransaction,
+} from "./store";
 
 /** Server SDK only. Web clients retain deny-all rules; caller authorization is mandatory. */
 export class FirestoreVisitorStore implements VisitorStore {
@@ -8,6 +13,14 @@ export class FirestoreVisitorStore implements VisitorStore {
     private namespace: string,
   ) {
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(namespace)) throw new Error("Invalid visitor namespace");
+  }
+  async listJobs(limit: number): Promise<Array<{ id: string; value: StoredDocument }>> {
+    assertJobListLimit(limit);
+    const snapshot = await this.db
+      .collection(`visitorExhibitions/${this.namespace}/jobs`)
+      .limit(limit)
+      .get();
+    return snapshot.docs.map((doc) => ({ id: doc.id, value: doc.data() }));
   }
   run<T>(action: (tx: VisitorTransaction) => Promise<T>): Promise<T> {
     return this.db.runTransaction(

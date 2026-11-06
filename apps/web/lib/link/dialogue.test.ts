@@ -167,6 +167,73 @@ describe("fictional dialogue boundary", () => {
   });
 });
 
+describe("admin-controlled dialogue switch", () => {
+  it("blocks both availability and requests without calling the model while disabled", async () => {
+    const device = new DeviceLinkService(new LocalParticipationService(), key);
+    const admin = device.login(key);
+    showPresets(device, admin);
+    const display = device.pair(device.createPairing(admin).code);
+    const provider = vi.fn(async () => response(presetLines));
+    const dialogue = new DialogueService(config, provider, Date.now, async () => "test");
+    expect(
+      await (
+        await handleDialogueRequest(request(undefined, display), device, dialogue, true)
+      ).json(),
+    ).toEqual({ available: true });
+    device.update(admin, { expectedRevision: 3, dialogueEnabled: false });
+    expect(
+      await (
+        await handleDialogueRequest(request(undefined, display), device, dialogue, true)
+      ).json(),
+    ).toEqual({ available: false });
+    const blocked = await handleDialogueRequest(
+      request(presetInput, display),
+      device,
+      dialogue,
+      true,
+    );
+    expect(blocked.status).toBe(503);
+    expect((await blocked.json()).error.code).toBe("DIALOGUE_DISABLED");
+    expect(provider).not.toHaveBeenCalled();
+    device.update(admin, { expectedRevision: 4, dialogueEnabled: true });
+    const restored = await handleDialogueRequest(
+      request(presetInput, display),
+      device,
+      dialogue,
+      true,
+    );
+    expect(restored.status).toBe(200);
+    expect((await restored.json()).lines).toEqual(presetLines);
+    expect(provider).toHaveBeenCalledTimes(1);
+  });
+
+  it("discards a conversation finished after the admin turns dialogue off", async () => {
+    const device = new DeviceLinkService(new LocalParticipationService(), key);
+    const admin = device.login(key);
+    showPresets(device, admin);
+    const display = device.pair(device.createPairing(admin).code);
+    let finish!: (response: Response) => void;
+    let started!: () => void;
+    const waiting = new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+    const providerStarted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const provider = vi.fn(() => {
+      started();
+      return waiting;
+    });
+    const dialogue = new DialogueService(config, provider, Date.now, async () => "test");
+    const pending = handleDialogueRequest(request(presetInput, display), device, dialogue, true);
+    await providerStarted;
+    device.update(admin, { expectedRevision: 3, dialogueEnabled: false });
+    finish(response(presetLines));
+    expect((await pending).status).toBe(409);
+    expect(provider).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("worker-written dialogue", () => {
   const residents = developmentCitySnapshot.residents;
   const stored = [

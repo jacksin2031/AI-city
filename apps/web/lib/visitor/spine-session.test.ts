@@ -8,6 +8,9 @@ import { MemoryVisitorStore } from "./test-store";
 /** Match the production adapter's document-path restriction, including transactional writes. */
 class PathCheckingStore implements VisitorStore {
   private readonly inner = new MemoryVisitorStore();
+  listJobs(limit: number) {
+    return this.inner.listJobs(limit);
+  }
   run<T>(action: (tx: VisitorTransaction) => Promise<T>): Promise<T> {
     const check = (path: string) => {
       if (!/^(meta|sessions|jobs|requests)\/[A-Za-z0-9_-]{1,128}$/.test(path))

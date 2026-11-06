@@ -62,6 +62,7 @@ export class DeviceLinkService {
       revision: 0,
       displayMode: "LIVE",
       motionEnabled: true,
+      dialogueEnabled: true,
       updatedAt: new Date(now()).toISOString(),
     };
   }
@@ -173,10 +174,8 @@ export class DeviceLinkService {
     return DeviceDisplaySchema.parse({
       control: this.control,
       snapshot,
-      totalParticipants:
-        this.control.displayMode === "LIVE"
-          ? this.participation.joinedTotal()
-          : snapshot?.residents.length,
+      // Only actual participants count as joins. DEMO residents are fictional presets.
+      totalParticipants: this.control.displayMode === "LIVE" ? this.participation.joinedTotal() : 0,
     });
   }
   /** The display has its own monotonic stream because presets are not participant events. */
@@ -271,6 +270,7 @@ export class DeviceLinkService {
       ...this.control,
       ...(input.displayMode === undefined ? {} : { displayMode: input.displayMode }),
       ...(input.motionEnabled === undefined ? {} : { motionEnabled: input.motionEnabled }),
+      ...(input.dialogueEnabled === undefined ? {} : { dialogueEnabled: input.dialogueEnabled }),
       revision: this.control.revision + 1,
       updatedAt: new Date(this.now()).toISOString(),
     };

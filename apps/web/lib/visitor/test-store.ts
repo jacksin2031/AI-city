@@ -1,4 +1,9 @@
-import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
+import {
+  assertJobListLimit,
+  type StoredDocument,
+  type VisitorStore,
+  type VisitorTransaction,
+} from "./store";
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -41,6 +46,17 @@ export class MemoryVisitorStore implements VisitorStore {
     } finally {
       unlock();
     }
+  }
+
+  async listJobs(limit: number): Promise<Array<{ id: string; value: StoredDocument }>> {
+    assertJobListLimit(limit);
+    const jobs: Array<{ id: string; value: StoredDocument }> = [];
+    for (const [path, value] of this.documents) {
+      if (!path.startsWith("jobs/")) continue;
+      jobs.push({ id: path.slice("jobs/".length), value: clone(value) });
+      if (jobs.length >= limit) break;
+    }
+    return jobs;
   }
 
   dump(): ReadonlyMap<string, StoredDocument> {

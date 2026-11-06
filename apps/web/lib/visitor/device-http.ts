@@ -11,13 +11,26 @@ import {
   FocusRequestInputSchema,
   FocusStatusResponseSchema,
 } from "@ai-city/contracts/focus-link";
+import { SpineAdminActionSchema } from "@ai-city/contracts/spine";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
 import { handleLinkRequest } from "../link/http";
 import { DeviceLinkError, type DeviceLinkService } from "../link/service";
 import type { VisitorBoundary } from "./credentials";
 import { focusBroker } from "./focus-runtime";
-import type { VisitorService } from "./service";
+import type { SpineAdminDeps, VisitorService } from "./service";
+
+/** Safe Japanese text per code the admin recovery actions can raise; nothing internal leaks. */
+const SPINE_ADMIN_MESSAGES: Record<string, string> = {
+  COST_UNCONFIRMED: "再生成の費用を確認してください。",
+  JOB_NOT_FOUND: "対象のタスクが見つかりません。",
+  INVALID_TRANSITION: "このタスクの現在の状態ではその操作はできません。",
+  PHOTO_GONE: "写真が残っていないため再生成できません。",
+  CLOUD_PHOTO_UNAVAILABLE: "写真の保管先に接続できません。しばらくしてからお試しください。",
+  SESSION_REQUIRED: "参加者のセッションが終了しているため操作できません。",
+  ACTIVE_JOB_EXISTS: "この参加者には別の処理が残っているため操作できません。",
+  LOCAL_CAPACITY: "街の収容上限に達しているため操作できません。",
+};
 
 /** Keep existing device authentication; replace only authorized public data reads. */
 export async function handlePersistentDeviceRequest(
@@ -28,6 +41,7 @@ export async function handlePersistentDeviceRequest(
   remoteOrigin?: string,
   localBootstrap = false,
   security?: VisitorBoundary | null,
+  photos?: () => SpineAdminDeps["photos"],
 ): Promise<Response> {
   try {
     const focusPath = new URL(request.url).pathname;
@@ -112,6 +126,47 @@ export async function handlePersistentDeviceRequest(
         { headers: { "Cache-Control": "no-store" } },
       );
     }
+    if (
+      enabled &&
+      ["GET", "POST"].includes(request.method) &&
+      new URL(request.url).pathname === "/api/link/spine-admin"
+    ) {
+      validateRequestOrigin(request, remoteOrigin);
+      if (new URL(request.url).search) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+      const token = request.headers
+        .get("cookie")
+        ?.split(";")
+        .map((v) => v.trim())
+        .find((v) => v.startsWith("ai-city-link="))
+        ?.slice("ai-city-link=".length);
+      device.authorizeParticipant(token);
+      const action =
+        request.method === "POST"
+          ? SpineAdminActionSchema.parse(await readJsonBody(request))
+          : null;
+      if (!visitor) throw new DevelopmentServiceError("VISITORS_DISABLED", 503);
+      if (action) {
+        try {
+          await visitor.spineAdminAction(action, {
+            // Resolved only when a requeue checks the photo; a config error becomes a 503 there.
+            photos: {
+              exists: async (task) => {
+                const storage = photos?.();
+                return storage ? storage.exists(task) : false;
+              },
+            },
+          });
+        } catch (error) {
+          // The participant's session ending is not the administrator's session ending.
+          if (error instanceof DevelopmentServiceError && error.status === 401)
+            throw new DevelopmentServiceError(error.code, 409);
+          throw error;
+        }
+      }
+      return Response.json(await visitor.spineAdminView(), {
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     if (!visitor) return handleLinkRequest(request, device, enabled, remoteOrigin, localBootstrap);
     if (
       enabled &&
@@ -177,7 +232,8 @@ export async function handlePersistentDeviceRequest(
           message:
             known && error.code === "VISITORS_DISABLED"
               ? "永続参加機能の保存先を利用できません。設定を確認してください。"
-              : "操作を完了できませんでした。接続と入力内容を確認してください。",
+              : (known && SPINE_ADMIN_MESSAGES[error.code]) ||
+                "操作を完了できませんでした。接続と入力内容を確認してください。",
         },
       },
       {

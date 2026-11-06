@@ -1019,6 +1019,8 @@ details.tablet-resident-list > summary {
   left: max(12px, env(safe-area-inset-left));
   max-width: 55vw;
   padding: 4px 8px;
+  transform: scale(2);
+  transform-origin: top left;
   /* No plate: a white halo keeps the text legible over the busy 3D scene. */
   filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #fff)
     drop-shadow(0 0 10px rgb(255 255 255 / 90%));
@@ -1110,6 +1112,7 @@ details.tablet-resident-list > summary {
 @media (max-width: 600px) {
   .scene-logo {
     padding: 7px 14px 8px 12px;
+    transform: none;
   }
   .scene-logo-pre {
     font-size: 0.82rem;
@@ -1168,4 +1171,111 @@ details.tablet-resident-list > summary {
 .sound-toggle:focus-visible {
   outline: 3px solid #244d3c;
   outline-offset: 2px;
+}
+
+.spine-worker {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  margin: 12px 0;
+  border-radius: 10px;
+}
+.spine-worker.spine-ok {
+  color: #1f5a37;
+  background: #e3f2e7;
+}
+.spine-worker.spine-alert {
+  color: #8a1c1c;
+  background: #fbe4e4;
+}
+.spine-list,
+.spine-repairs {
+  padding: 0;
+  margin: 12px 0;
+  list-style: none;
+}
+.spine-list li {
+  margin-bottom: 8px;
+}
+.spine-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  text-align: left;
+}
+.spine-thumb {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  background: #edf2e8;
+  border-radius: 8px;
+}
+.spine-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.spine-state {
+  flex: 1;
+  font-weight: 700;
+}
+.spine-state.spine-alert {
+  color: #8a1c1c;
+}
+.spine-state.spine-wait {
+  color: #7a5a00;
+}
+.spine-state.spine-ok {
+  color: #1f5a37;
+}
+.spine-detail {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 0;
+}
+.spine-preview {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+}
+.spine-preview img {
+  max-width: 100%;
+  height: auto;
+}
+.spine-part {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid #d2dbd4;
+  border-radius: 10px;
+}
+.spine-slider {
+  display: grid;
+  grid-template-columns: 4.5em 1fr;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+.spine-slider input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+}
+.spine-presets {
+  display: grid;
+  gap: 4px;
+}
+.spine-presets label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+.spine-presets input {
+  width: 22px;
+  height: 22px;
 }

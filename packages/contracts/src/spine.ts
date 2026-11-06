@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { DevicePresetIdSchema } from "./device-link";
+import { SpineAdjustmentSchema, SpineBundleSchema } from "./index";
 
 /** Consent must be bound server-side to a live session and a verified photo digest. */
 export const SpinePhotoConsentSchema = z.strictObject({
@@ -44,3 +46,63 @@ export const SpineWithdrawalResponseSchema = z.strictObject({
   photoCleanup: z.enum(["PENDING", "COMPLETE"]),
 });
 export type SpineTaskView = z.infer<typeof SpineTaskViewSchema>;
+
+export const SpineWorkerStatusSchema = z.strictObject({
+  online: z.boolean(),
+  lastSeenAt: z.iso.datetime().nullable(),
+});
+export type SpineWorkerStatus = z.infer<typeof SpineWorkerStatusSchema>;
+
+export const SpineRepairEntrySchema = z.strictObject({
+  at: z.iso.datetime(),
+  action: z.enum(["cancel", "requeue", "preset", "adjust", "resetAdjust"]),
+  code: z.string().length(8),
+});
+export type SpineRepairEntry = z.infer<typeof SpineRepairEntrySchema>;
+
+export const SpineAdminTaskSchema = z.strictObject({
+  task: SpineTaskIdSchema,
+  code: z.string().length(8),
+  state: SpineTaskStateSchema,
+  stateSince: z.iso.datetime().nullable(),
+  needsAttention: z.boolean(),
+  /** Only PUBLISHED tasks; the bundle descriptor is already public to tablets. */
+  preview: z
+    .strictObject({ bundle: SpineBundleSchema, adjustment: SpineAdjustmentSchema.nullable() })
+    .nullable(),
+});
+export type SpineAdminTask = z.infer<typeof SpineAdminTaskSchema>;
+
+export const SpineAdminViewSchema = z.strictObject({
+  worker: SpineWorkerStatusSchema,
+  queued: z.number().int(),
+  running: z.number().int(),
+  tasks: z.array(SpineAdminTaskSchema).max(200),
+  truncated: z.boolean(),
+  repairs: z.array(SpineRepairEntrySchema).max(20),
+});
+export type SpineAdminView = z.infer<typeof SpineAdminViewSchema>;
+
+/** The admin recovery actions. A redo spends paid model budget, so it must carry confirmCost. */
+export const SpineAdminActionSchema = z.discriminatedUnion("action", [
+  z.strictObject({ action: z.literal("cancel"), task: SpineTaskIdSchema }),
+  z.strictObject({
+    action: z.literal("requeue"),
+    task: SpineTaskIdSchema,
+    confirmCost: z.literal(true),
+  }),
+  z.strictObject({
+    action: z.literal("preset"),
+    task: SpineTaskIdSchema,
+    presetId: DevicePresetIdSchema,
+  }),
+  z.strictObject({
+    action: z.literal("adjust"),
+    task: SpineTaskIdSchema,
+    adjustment: SpineAdjustmentSchema,
+  }),
+  z.strictObject({ action: z.literal("resetAdjust"), task: SpineTaskIdSchema }),
+]);
+export type SpineAdminAction = z.infer<typeof SpineAdminActionSchema>;
+
+export { SPINE_PARTS, type SpineAdjustment, SpineAdjustmentSchema, type SpinePart } from "./index";

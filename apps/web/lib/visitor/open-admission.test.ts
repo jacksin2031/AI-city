@@ -56,6 +56,7 @@ describe("code-free visitor admission", () => {
     let reads = 0;
     const store = new MemoryVisitorStore();
     const service = new VisitorService({
+      listJobs: (limit) => store.listJobs(limit),
       run: (action) => {
         reads++;
         return store.run(action);

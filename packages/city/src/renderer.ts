@@ -48,6 +48,8 @@ export type IllustratedCity = {
   setResidents(residents: PublicResident[], addedIds?: string[]): void;
   /** Pick up newly loaded character art without rebuilding the scene. */
   refreshCharacters(): void;
+  /** Recreate the animated player of every resident using one of these avatar versions. */
+  rebuildCharacters(avatarVersions: readonly string[]): void;
   setMotionEnabled(enabled: boolean): void;
   select(id: string | null): void;
   selectLandmark(id: number | null): void;
@@ -1075,6 +1077,17 @@ function startCity(
         if (entry.animated || entry.leaveAt) continue;
         const animated = animatedFor(entry.resident);
         if (!animated) continue;
+        entry.animated = animated;
+      }
+    },
+    rebuildCharacters(avatarVersions) {
+      if (destroyed) return;
+      for (const entry of entries.values()) {
+        if (entry.leaveAt || !avatarVersions.includes(entry.resident.avatarVersion)) continue;
+        const animated = animatedFor(entry.resident);
+        if (!animated) continue;
+        entry.animated?.source.dispose();
+        entry.animated?.texture.dispose();
         entry.animated = animated;
       }
     },

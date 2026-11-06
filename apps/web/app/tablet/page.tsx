@@ -184,6 +184,7 @@ export default function Tablet() {
               key={`${control.serverId}:${control.displayMode}:${state.snapshot.streamId}`}
               snapshot={state.snapshot}
               motion={control.motionEnabled}
+              dialogueEnabled={control.dialogueEnabled}
               sample={control.displayMode === "DEMO"}
               focus={focus}
               reliableFocus={queuedFocus}

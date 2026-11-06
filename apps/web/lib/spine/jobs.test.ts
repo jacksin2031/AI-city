@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { VisitorService } from "../visitor/service";
 import { MemoryVisitorStore } from "../visitor/test-store";
-import { SpineJobs } from "./jobs";
+import { makeCloudSpineJob, makeSpineJob, SpineJobs } from "./jobs";
 
 const owner = "a".repeat(64);
 const other = "b".repeat(64);
@@ -65,6 +65,31 @@ function candidate() {
     reviewApproved: true,
   };
 }
+
+describe("Spine job stateSince", () => {
+  it("stamps creation and every state change with the injected clock", async () => {
+    let now = 1_000;
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, () => now);
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    expect((await jobs.get("task1", owner)).stateSince).toBe(1_000);
+    now = 2_000;
+    expect((await jobs.claim("task1", "worker1")).stateSince).toBe(2_000);
+    now = 3_000;
+    expect((await jobs.markUnknown("task1", "worker1")).stateSince).toBe(3_000);
+    now = 4_000;
+    expect((await jobs.withdraw("task1", owner)).stateSince).toBe(4_000);
+  });
+  it("stamps new jobs at creation and still parses records without it", async () => {
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, () => 7_000);
+    const record = makeSpineJob(owner, "c".repeat(64), consent, undefined, 5_000);
+    expect(record.stateSince).toBe(5_000);
+    const { stateSince: _drop, ...legacy } = record;
+    await store.run(async (tx) => tx.set("jobs/spine-old", legacy));
+    expect((await jobs.get("old", owner)).state).toBe("QUEUED");
+  });
+});
 
 describe("Spine jobs transaction boundary", () => {
   it("binds job to owner and prevents duplicate claims", async () => {
@@ -206,5 +231,161 @@ describe("Spine jobs transaction boundary", () => {
     await visitor.confirm(spineFirst.token, secondReady.job.jobId, visitorConsent);
     expect(await visitor.joinedTotal()).toBe(1);
     expect((await visitor.snapshot()).residents).toHaveLength(4);
+  });
+});
+
+describe("Spine adjustment storage", () => {
+  const adjustment = { version: 1 as const, parts: { hair: { dx: 0, dy: 0.1, scale: 1 } } };
+  async function published() {
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store);
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    await jobs.claim("task1", "worker1");
+    await jobs.markReview("task1", "worker1");
+    await jobs.publish("task1", "worker1", candidate());
+    return { store, jobs };
+  }
+  const raw = (store: MemoryVisitorStore) =>
+    store.run(async (tx) => (await tx.get("jobs/spine-task1")) as Record<string, unknown>);
+
+  it("reports a missing task as NOT_FOUND, not a validation error", async () => {
+    const jobs = new SpineJobs(new MemoryVisitorStore());
+    await expect(jobs.setAdjustment("ghost", adjustment)).rejects.toThrow("NOT_FOUND");
+    await expect(jobs.setAdjustment("ghost", null)).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("saves, replaces and clears an adjustment on a published task without touching state", async () => {
+    const { store, jobs } = await published();
+    const before = await raw(store);
+    await jobs.setAdjustment("task1", adjustment);
+    const saved = await raw(store);
+    expect(saved.adjustment).toEqual(adjustment);
+    expect({ ...saved, adjustment: undefined }).toEqual({ ...before, adjustment: undefined });
+    expect(saved.stateSince).toBe(before.stateSince);
+    await jobs.setAdjustment("task1", null);
+    expect((await raw(store)).adjustment).toBeNull();
+    expect((await raw(store)).state).toBe("PUBLISHED");
+    expect(await jobs.publishedBundle("task1")).not.toBeNull();
+  });
+  it("refuses tasks that are not published, and unknown tasks", async () => {
+    const jobs = new SpineJobs(new MemoryVisitorStore());
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    await expect(jobs.setAdjustment("task1", adjustment)).rejects.toThrow("INVALID_TRANSITION");
+    await jobs.claim("task1", "worker1");
+    await jobs.markFailed("task1", "worker1");
+    await expect(jobs.setAdjustment("task1", adjustment)).rejects.toThrow("INVALID_TRANSITION");
+    await expect(jobs.setAdjustment("nope", null)).rejects.toThrow();
+  });
+  it("rejects an out-of-range adjustment and writes nothing", async () => {
+    const { store, jobs } = await published();
+    const before = JSON.stringify(await raw(store));
+    await expect(
+      jobs.setAdjustment("task1", { version: 1, parts: { hair: { dx: 2, dy: 0, scale: 1 } } }),
+    ).rejects.toThrow();
+    expect(JSON.stringify(await raw(store))).toBe(before);
+  });
+  it("still reads old records that have no adjustment field", async () => {
+    const { jobs } = await published();
+    expect(await jobs.publishedBundle("task1")).not.toBeNull();
+  });
+});
+
+describe("Spine admin requeue and cancel", () => {
+  const cloudTask = "spine-12345678-1234-4123-8123-123456789abc";
+  const live = {
+    processing: true,
+    externalModelUpload: true,
+    automaticPublication: true,
+    version: 2,
+    recordedAt: "2026-11-05T00:00:00.000Z",
+  } as const;
+  async function failedCloudJob(now = () => 9_000) {
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, now);
+    await store.run(async (tx) => {
+      tx.set(
+        `jobs/spine-${cloudTask}`,
+        makeCloudSpineJob(owner, "c".repeat(64), live, 99_999_999, "5", 1_000),
+      );
+      tx.set("meta/spine-live-budget", { maxTasks: 5, reserved: 2 });
+      tx.set(`requests/spine-live-${cloudTask}`, { task: cloudTask, reserved: true });
+    });
+    await store.run(async (tx) => {
+      const raw = await tx.get(`jobs/spine-${cloudTask}`);
+      tx.set(`jobs/spine-${cloudTask}`, {
+        ...raw,
+        state: "FAILED",
+        worker: "worker1",
+        toolFlow: `flow-${"d".repeat(32)}`,
+        liveIntent: true,
+      });
+    });
+    return { store, jobs };
+  }
+  it("requeues a failed cloud task without touching the budget counter", async () => {
+    const { store, jobs } = await failedCloudJob(() => 9_000);
+    await jobs.requeue(cloudTask);
+    const record = await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`));
+    expect(record).toMatchObject({
+      state: "QUEUED",
+      worker: null,
+      toolFlow: null,
+      liveIntent: false,
+      stateSince: 9_000,
+    });
+    expect(await store.run((tx) => tx.get(`requests/spine-live-${cloudTask}`))).toBeNull();
+    expect(await store.run((tx) => tx.get("meta/spine-live-budget"))).toEqual({
+      maxTasks: 5,
+      reserved: 2,
+    });
+  });
+  it("lets only one of two concurrent requeues win", async () => {
+    const { jobs } = await failedCloudJob();
+    const results = await Promise.allSettled([jobs.requeue(cloudTask), jobs.requeue(cloudTask)]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const lost = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
+    expect((lost.reason as Error).message).toBe("INVALID_TRANSITION");
+  });
+  it("refuses a valid published task, leaving the record untouched", async () => {
+    const { jobs, store } = await failedCloudJob();
+    const bundle = candidate().descriptor;
+    await store.run(async (tx) => {
+      const raw = await tx.get(`jobs/spine-${cloudTask}`);
+      tx.set(`jobs/spine-${cloudTask}`, { ...raw, state: "PUBLISHED", bundle });
+    });
+    const before = JSON.stringify(await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`)));
+    await expect(jobs.requeue(cloudTask)).rejects.toThrow("INVALID_TRANSITION");
+    expect(JSON.stringify(await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`)))).toBe(before);
+  });
+  it("refuses a record produced by withdrawal, for requeue and for a second cancel", async () => {
+    const { jobs, store } = await failedCloudJob();
+    await jobs.adminWithdraw(cloudTask);
+    const before = JSON.stringify(await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`)));
+    await expect(jobs.requeue(cloudTask)).rejects.toThrow("INVALID_TRANSITION");
+    await expect(jobs.adminWithdraw(cloudTask)).rejects.toThrow("INVALID_TRANSITION");
+    expect(JSON.stringify(await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`)))).toBe(before);
+  });
+  it("refuses non-cloud tasks", async () => {
+    const local = new SpineJobs(new MemoryVisitorStore());
+    await local.create("task1", owner, "c".repeat(64), consent);
+    await local.claim("task1", "worker1");
+    await local.markFailed("task1", "worker1");
+    await expect(local.requeue("task1")).rejects.toThrow("NOT_CLOUD_PHOTO");
+    expect((await local.get("task1", owner)).state).toBe("FAILED");
+  });
+  it("withdraws on behalf of the stored owner", async () => {
+    const jobs = new SpineJobs(new MemoryVisitorStore(), () => 5_000);
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    await jobs.claim("task1", "worker1");
+    await jobs.adminWithdraw("task1");
+    const record = await jobs.get("task1", owner);
+    expect(record).toMatchObject({
+      state: "WITHDRAWN",
+      cleanupPending: true,
+      toolCleanupPending: true,
+      photoSha256: null,
+      stateSince: 5_000,
+    });
+    await expect(jobs.adminWithdraw("missing")).rejects.toThrow("NOT_FOUND");
   });
 });

@@ -38,6 +38,23 @@ describe("device pairing and control", () => {
     expect(() => service.adminState(display)).toThrow();
     expect(() => service.pair(pairing.code)).toThrow();
   });
+  it("allows only an admin to toggle AI dialogue with revision checks", () => {
+    const { service } = setup();
+    const admin = service.login(key);
+    const display = service.pair(service.createPairing(admin).code);
+    expect(service.display(display).control.dialogueEnabled).toBe(true);
+    expect(() => service.update(display, { expectedRevision: 0, dialogueEnabled: false })).toThrow(
+      "ADMIN_REQUIRED",
+    );
+    service.update(admin, { expectedRevision: 0, dialogueEnabled: false });
+    expect(service.display(display).control.dialogueEnabled).toBe(false);
+    expect(() => service.update(admin, { expectedRevision: 0, dialogueEnabled: true })).toThrow(
+      "REVISION_CONFLICT",
+    );
+    service.update(admin, { expectedRevision: 1, dialogueEnabled: true });
+    expect(service.display(display).control.dialogueEnabled).toBe(true);
+    expect(service.display(display).control.revision).toBe(2);
+  });
   it("expires pairing codes, limits guesses and expires sessions", () => {
     const { service, advance } = setup();
     const admin = service.login(key);
@@ -101,6 +118,18 @@ describe("device pairing and control", () => {
     expect(() => service.pair(code, "legitimate")).not.toThrow();
     expect(() => service.pair(code)).toThrow();
   });
+});
+
+it("does not count fictional DEMO presets as real participants", () => {
+  const { service } = setup();
+  const admin = service.login(key);
+  const display = service.pair(service.createPairing(admin).code);
+  service.update(admin, { expectedRevision: 0, displayMode: "DEMO" });
+  expect(service.display(display).totalParticipants).toBe(0);
+  service.setPreset(admin, { expectedRevision: 1, presetId: "aoi", enabled: true });
+  const view = service.display(display);
+  expect(view.snapshot?.residents).toHaveLength(1);
+  expect(view.totalParticipants).toBe(0);
 });
 
 it("lets only an admin add and remove fictional presets from the display", () => {

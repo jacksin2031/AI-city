@@ -15,15 +15,27 @@ describe("mobile/tablet link contracts", () => {
     expect(DeviceUpdateSchema.parse({ expectedRevision: 0, displayMode: "DEMO" }).displayMode).toBe(
       "DEMO",
     );
+    expect(DeviceUpdateSchema.parse({ expectedRevision: 0, dialogueEnabled: false })).toEqual({
+      expectedRevision: 0,
+      dialogueEnabled: false,
+    });
     for (const input of [
       { expectedRevision: 0 },
       { expectedRevision: -1, motionEnabled: true },
+      { expectedRevision: 0, dialogueEnabled: "off" },
+      { expectedRevision: 0, dialogueEnabled: false, privateValue: "test" },
       { expectedRevision: 0, photo: "private" },
       { expectedRevision: 0, displayMode: "CLOUD_AI" },
     ])
       expect(() => DeviceUpdateSchema.parse(input)).toThrow();
   });
   it("requires explicit demo/live/maintenance envelopes without private fields", () => {
+    expect(
+      DeviceDisplaySchema.parse({
+        control: { ...deviceControlFixture, dialogueEnabled: undefined },
+        snapshot: developmentCitySnapshot,
+      }).control.dialogueEnabled,
+    ).toBe(true);
     expect(
       DeviceDisplaySchema.parse({
         control: deviceControlFixture,

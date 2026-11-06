@@ -102,6 +102,48 @@ describe("local integration boundaries", () => {
     );
   });
 
+  it("accepts an optional adjustment beside the spine bundle and rejects bad values", () => {
+    const avatar = developmentCitySnapshot.avatars[0];
+    if (!avatar) throw new Error("FIXTURE_MISSING");
+    const base = "/avatars/person/v1/";
+    const spine = {
+      runtime: "4.3",
+      skeleton: `${base}skeleton.json`,
+      atlas: `${base}skeleton.atlas`,
+      pages: [`${base}page.png`],
+      orientationPolicy: `${base}orientation-policy.json`,
+      buildManifest: `${base}build-manifest.json`,
+      sha256: "a".repeat(64),
+    };
+    const withAdjustment = (adjustment: unknown) => ({
+      ...developmentCitySnapshot,
+      mode: "LOCAL_PRIVATE_TEST",
+      avatars: [
+        {
+          ...avatar,
+          assetStatus: "VERIFIED_SPINE",
+          manifest: {
+            ...avatar.manifest,
+            directions: undefined,
+            spine,
+            ...(adjustment === undefined ? {} : { adjustment }),
+          },
+        },
+        ...developmentCitySnapshot.avatars.slice(1),
+      ],
+    });
+    const good = { version: 1, parts: { hair: { dx: 0, dy: 0.1, scale: 1 } } };
+    expect(CitySnapshotSchema.safeParse(withAdjustment(undefined)).success).toBe(true);
+    expect(CitySnapshotSchema.safeParse(withAdjustment(good)).success).toBe(true);
+    for (const bad of [
+      { version: 1, parts: { hair: { dx: Number.NaN, dy: 0, scale: 1 } } },
+      { version: 1, parts: { hair: { dx: 0.5, dy: 0, scale: 1 } } },
+      { version: 1, parts: { hair: { dx: 0, dy: 0, scale: 9 } } },
+      { version: 1, parts: { tail: { dx: 0, dy: 0, scale: 1 } } },
+    ])
+      expect(CitySnapshotSchema.safeParse(withAdjustment(bad)).success).toBe(false);
+  });
+
   it("requires a usable READY result while keeping the old general contract compatible", () => {
     const job = {
       schemaVersion: 1,

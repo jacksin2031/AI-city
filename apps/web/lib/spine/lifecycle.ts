@@ -21,6 +21,7 @@ type Event =
   | { type: "REVIEW" }
   | { type: "FAIL" }
   | { type: "PUBLISH"; verified: boolean; approved: boolean }
+  | { type: "REQUEUE" }
   | { type: "WITHDRAW" };
 
 export function createProductionJob(consent: {
@@ -34,7 +35,24 @@ export function createProductionJob(consent: {
 export function transitionProductionJob(job: ProductionJob, event: Event): ProductionJob {
   if (event.type === "WITHDRAW")
     return { ...job, state: "WITHDRAWN", processingConsent: false, publicationConsent: false };
+  // Decide recoverability first: a withdrawn record has no consent but must report INVALID_TRANSITION.
+  if (
+    event.type === "REQUEUE" &&
+    job.state !== "UNKNOWN" &&
+    job.state !== "REQUIRES_REVIEW" &&
+    job.state !== "FAILED" &&
+    job.state !== "RUNNING"
+  )
+    throw new Error("INVALID_TRANSITION");
   if (!job.processingConsent || !job.publicationConsent) throw new Error("CONSENT_REQUIRED");
+  if (
+    event.type === "REQUEUE" &&
+    (job.state === "UNKNOWN" ||
+      job.state === "REQUIRES_REVIEW" ||
+      job.state === "FAILED" ||
+      job.state === "RUNNING")
+  )
+    return { ...job, state: "QUEUED" };
   if (event.type === "START" && job.state === "QUEUED") return { ...job, state: "RUNNING" };
   if (event.type === "UNKNOWN" && job.state === "RUNNING") return { ...job, state: "UNKNOWN" };
   if (event.type === "PREPARE" && job.state === "RUNNING") return { ...job, state: "PREPARED" };

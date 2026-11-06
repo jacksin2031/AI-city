@@ -1,4 +1,5 @@
 import { SpineBundleSchema } from "@ai-city/contracts";
+import type { SpineAdjustment } from "@ai-city/contracts/spine";
 import {
   AtlasAttachmentLoader,
   CanvasTexture,
@@ -177,13 +178,14 @@ export async function prepareSpineBundle(
     );
     let disposed = false;
     return {
-      create() {
+      create(adjustment?: SpineAdjustment) {
         if (disposed) throw new Error("SPINE_BUNDLE_DISPOSED");
         return createSpinePlayer(
           data,
           document.createElement("canvas"),
           (skeleton, direction) => applySpineOrientation(skeleton, direction, policy),
           manifest.skin,
+          adjustment,
         );
       },
       dispose() {
