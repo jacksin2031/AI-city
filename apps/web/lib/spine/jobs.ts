@@ -1,5 +1,10 @@
 import { type SpineAdjustment, SpineAdjustmentSchema, SpineBundleSchema } from "@ai-city/contracts";
-import { SpinePhotoConsentSchema, SpineTaskStateSchema } from "@ai-city/contracts/spine";
+import {
+  type SpineFailureCode,
+  SpineFailureCodeSchema,
+  SpinePhotoConsentSchema,
+  SpineTaskStateSchema,
+} from "@ai-city/contracts/spine";
 import { z } from "zod";
 import type { VisitorStore, VisitorTransaction } from "../visitor/store";
 import { verifySpineBundle } from "./bundle";
@@ -36,6 +41,7 @@ const recordSchema = z
     startedAt: z.number().int().nonnegative().optional(),
     preparedAt: z.number().int().nonnegative().optional(),
     finishedAt: z.number().int().nonnegative().optional(),
+    failureCode: SpineFailureCodeSchema.nullable().optional(),
     processingConsent: z.boolean(),
     publicationConsent: z.boolean(),
     worker: id.nullable(),
@@ -313,7 +319,7 @@ export class SpineJobs {
       return next;
     });
   }
-  async markUnknown(task: string, worker: string) {
+  async markUnknown(task: string, worker: string, failureCode: SpineFailureCode | null = null) {
     const path = this.path(task);
     id.parse(worker);
     return this.store.run(async (tx) => {
@@ -324,6 +330,7 @@ export class SpineJobs {
         ...record,
         ...stamp(transitionProductionJob(record, { type: "UNKNOWN" }), at),
         finishedAt: at,
+        failureCode,
       };
       tx.set(path, next);
       return next;
@@ -629,6 +636,7 @@ export class SpineJobs {
         startedAt: _startedAt,
         preparedAt: _preparedAt,
         finishedAt: _finishedAt,
+        failureCode: _failureCode,
         ...record
       } = found.data;
       const at = this.now();
