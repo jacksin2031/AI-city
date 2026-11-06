@@ -111,6 +111,8 @@ export const PublicResidentSchema = z.strictObject({
   consentVersion: z.number().int().positive(),
   interests: z.array(z.string().min(1).max(32)).max(8),
   personalityLabel: z.string().min(1).max(80),
+  /** Six entertainment trait values (0 to 1) shown as the hexagon on the resident card. */
+  traits: z.array(z.number().min(0).max(1)).length(6).optional(),
   // Removed residents leave the public collection; HIDDEN keeps the record but stops display.
   publicState: z.enum(["VISIBLE", "HIDDEN"]).optional(),
 });

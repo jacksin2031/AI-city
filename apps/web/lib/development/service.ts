@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { CityEvent, GenerationJob, PublicResident } from "@ai-city/contracts";
 import {
   aiStyleLabels,
+  avatarForSample,
   CityEventPageSchema,
   CitySnapshotSchema,
   type CreateJobRequest,
@@ -13,6 +14,7 @@ import {
   ParticipationViewSchema,
   type PublishRequest,
   PublishRequestSchema,
+  sampleAvatars,
 } from "@ai-city/contracts/development";
 
 export class DevelopmentServiceError extends Error {
@@ -135,7 +137,7 @@ export class LocalParticipationService {
     return this.view(this.record(token, id));
   }
   private avatar(record: RecordState): DevelopmentAvatar {
-    const avatar = developmentAvatars[record.input.sampleId === "sora" ? 0 : 1];
+    const avatar = avatarForSample(record.input.sampleId);
     if (!avatar) throw new DevelopmentServiceError("ASSET_NOT_FOUND", 500);
     return avatar;
   }
@@ -303,7 +305,7 @@ export class LocalParticipationService {
       streamId: this.streamId,
       eventSeq: this.cityEvents.length,
       residents,
-      avatars: developmentAvatars.filter((avatar) =>
+      avatars: sampleAvatars.filter((avatar) =>
         residents.some((resident) => resident.avatarVersion === avatar.manifest.avatarVersion),
       ),
     });

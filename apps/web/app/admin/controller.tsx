@@ -320,7 +320,7 @@ export default function Admin({
             selected={state.presetIds}
             availableSlots={
               20 -
-              (state.control.displayMode === "DEMO" ? 2 : state.snapshot.residents.length) -
+              (state.control.displayMode === "DEMO" ? 0 : state.snapshot.residents.length) -
               state.presetIds.length
             }
             busy={busy}

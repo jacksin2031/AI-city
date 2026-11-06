@@ -4,12 +4,14 @@ import { characterDataUrl } from "@ai-city/city/illustrations";
 import {
   type AiStyle,
   aiStyleLabels,
+  type CreateJobRequest,
   type ParticipationView,
 } from "@ai-city/contracts/development";
 import {
   createDevelopmentClient,
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
+import { PRESET_CHARACTERS } from "@ai-city/contracts/device-link";
 import Link from "next/link";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
@@ -40,7 +42,13 @@ type Stage =
   | "published"
   | "removed";
 
-export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boolean }) {
+export function ParticipantExperience({
+  spineLocal = false,
+  photoHref = "/join/spine",
+}: {
+  spineLocal?: boolean;
+  photoHref?: string;
+}) {
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
   const focusRequest = useReliableFocus(client);
   const [stage, setStage] = useState<Stage>("name");
@@ -51,7 +59,7 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackShown, setFeedbackShown] = useState(false);
   const [nickname, setNickname] = useState("");
-  const [sample, setSample] = useState<"sora" | "haru">("sora");
+  const [sample, setSample] = useState<CreateJobRequest["sampleId"]>("aoi");
   const [color, setColor] = useState<(typeof colors)[number]>(colors[0]);
   const [mark, setMark] = useState<(typeof marks)[number]>(marks[0]);
   const [hasDecoration, setHasDecoration] = useState(false);
@@ -278,7 +286,7 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
       <div className="pf-sheet">
         {spineLocal && (
           <p>
-            <Link href="/join/spine">写真からキャラクターを作る（試験運用）</Link>
+            <Link href={photoHref}>写真からキャラクターを作る（試験運用）</Link>
           </p>
         )}
         {error && (
@@ -415,15 +423,15 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
                 </div>
                 <fieldset className="pf-options">
                   <legend>街に表示するサンプル</legend>
-                  {(["sora", "haru"] as const).map((item) => (
-                    <label key={item}>
+                  {PRESET_CHARACTERS.map((item) => (
+                    <label key={item.id}>
                       <input
                         type="radio"
                         name="sample"
-                        checked={sample === item}
-                        onChange={() => setSample(item)}
+                        checked={sample === item.id}
+                        onChange={() => setSample(item.id)}
                       />
-                      {item === "sora" ? "そら" : "はる"}
+                      {item.name}（{item.personality}）
                     </label>
                   ))}
                 </fieldset>

@@ -6,18 +6,19 @@ import {
 } from "@ai-city/contracts";
 import {
   aiStyleLabels,
+  avatarForSample,
   type CitySnapshot,
   CitySnapshotSchema,
   type CreateJobRequest,
   CreateJobRequestSchema,
   type DevelopmentAvatar,
   DevelopmentJobSchema,
-  developmentAvatars,
   developmentEventId,
   type ParticipationView,
   ParticipationViewSchema,
   type PublishRequest,
   PublishRequestSchema,
+  sampleAvatars,
 } from "@ai-city/contracts/development";
 import {
   SpinePhotoConsentSchema,
@@ -113,6 +114,10 @@ function focusState(entry: FocusEntry, state: VisitorState, now: number): FocusS
         r.ownerDigest === entry.ownerDigest &&
         r.resident.residentId === entry.residentId &&
         r.expiresAt > now,
+    ) &&
+    // A Spine participant is on the roster under its task id rather than as a stored resident.
+    !state.spineResidents.some(
+      (r) => r.owner === entry.ownerDigest && r.task === entry.residentId && r.expiresAt > now,
     )
   )
     return "CANCELLED";
@@ -431,7 +436,7 @@ function iso(now: number): string {
 }
 
 function avatarFor(input: CreateJobRequest): DevelopmentAvatar {
-  const avatar = developmentAvatars[input.sampleId === "sora" ? 0 : 1];
+  const avatar = avatarForSample(input.sampleId);
   if (!avatar) throw new DevelopmentServiceError("ASSET_NOT_FOUND", 500);
   return avatar;
 }
@@ -890,6 +895,44 @@ export class VisitorService {
     });
   }
 
+  /**
+   * The participant's own public profile, sent from the final page. It only labels their
+   * already-published character, so it is refused unless that character is on the roster.
+   */
+  async setSpineProfile(token: string, input: unknown): Promise<void> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const profile = z
+      .strictObject({
+        nickname: z
+          .string()
+          .trim()
+          .min(1)
+          .max(40)
+          .refine((value) =>
+            [...value].every((c) => c.charCodeAt(0) >= 32 && c.charCodeAt(0) !== 127),
+          ),
+        personalityLabel: z.string().trim().min(1).max(80).nullable(),
+        interests: z.array(z.string().trim().min(1).max(32)).max(3),
+      })
+      .parse(input);
+    const now = this.now();
+    await this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const index = await tx.get(`requests/spine-owner-${owner}`);
+      const task = index?.task;
+      const entry =
+        typeof task === "string" ? state.spineResidents.find((item) => item.task === task) : null;
+      if (!entry || entry.owner !== owner || entry.expiresAt <= now)
+        throw new DevelopmentServiceError("JOB_NOT_READY", 409);
+      tx.set(`requests/spine-profile-${owner}`, { task: entry.task, ...profile });
+      tx.set("meta/state", { ...state, eventSeq: state.eventSeq + 1 });
+    });
+  }
+
   async createInvitation(): Promise<{ code: string; expiresAt: number }> {
     const now = this.now();
     const code = randomBytes(16).toString("hex");
@@ -1049,7 +1092,32 @@ export class VisitorService {
         if (existing.ownerDigest !== digest) return failure("IDEMPOTENCY_CONFLICT");
         return success({ requestId, status: focusState(existing, state, now) });
       }
+      const spineIndex = await tx.get(`requests/spine-owner-${digest}`);
+      const spineTask = typeof spineIndex?.task === "string" ? spineIndex.task : null;
+      const spineResidentId =
+        spineTask &&
+        state.spineResidents.some(
+          (r) => r.owner === digest && r.task === spineTask && r.expiresAt > now,
+        )
+          ? spineTask
+          : null;
       const resident = job?.resident;
+      if (spineResidentId) {
+        const retainedSpine = queue.requests.filter(
+          (entry) => entry.createdAt + FOCUS_RETENTION_MS > now,
+        );
+        if (retainedSpine.length >= MAX_FOCUS_REQUESTS) return failure("FOCUS_QUEUE_FULL", 429);
+        retainedSpine.push({
+          requestId,
+          ownerDigest: digest,
+          residentId: spineResidentId,
+          createdAt: now,
+          expiresAt: now + FOCUS_LIFETIME_MS,
+          appliedAt: null,
+        });
+        setDocument(tx, "meta/focus-queue", { schemaVersion: 1, requests: retainedSpine });
+        return success({ requestId, status: "PENDING" as const });
+      }
       if (
         !job ||
         job.ownerDigest !== digest ||
@@ -1481,17 +1549,21 @@ export class VisitorService {
           entry.expiresAt,
         );
         if (!bundle) continue;
+        // The participant's own public profile, when they have sent one from the final page.
+        const rawProfile = await tx.get(`requests/spine-profile-${entry.owner}`);
+        const profile = rawProfile?.task === entry.task ? rawProfile : null;
         residents.push(
           PublicResidentSchema.parse({
             schemaVersion: 1,
             residentId: entry.task,
             eventId: developmentEventId,
-            nickname: "参加者",
+            nickname: typeof profile?.nickname === "string" ? profile.nickname : "参加者",
             avatarVersion: entry.task,
             publicConsent: true,
             consentVersion: 1,
-            personalityLabel: "非公開",
-            interests: [],
+            personalityLabel:
+              typeof profile?.personalityLabel === "string" ? profile.personalityLabel : "非公開",
+            interests: Array.isArray(profile?.interests) ? profile.interests : [],
             publicState: "VISIBLE",
           }),
         );
@@ -1513,7 +1585,7 @@ export class VisitorService {
         eventSeq: cleaned.state.eventSeq,
         residents,
         avatars: [
-          ...developmentAvatars.filter((avatar) =>
+          ...sampleAvatars.filter((avatar) =>
             residents.some((resident) => resident.avatarVersion === avatar.manifest.avatarVersion),
           ),
           ...spineAvatars,

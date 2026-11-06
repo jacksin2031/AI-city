@@ -13,7 +13,7 @@ describe("local integration boundaries", () => {
       eventId: "fixture-event",
       requestId: "fixture",
       nickname: "架空",
-      sampleId: "sora",
+      sampleId: "aoi",
       answers: null,
       scenario: "SUCCESS",
     };
@@ -125,7 +125,7 @@ describe("local integration boundaries", () => {
       requestId: "request-1",
       eventId: "fixture-event",
       nickname: "そら",
-      sampleId: "sora",
+      sampleId: "aoi",
       answers: null,
       scenario: "SUCCESS",
     };

@@ -167,7 +167,8 @@ export class DeviceLinkService {
       this.control.displayMode === "MAINTENANCE"
         ? null
         : this.control.displayMode === "DEMO"
-          ? this.withPresets(developmentCitySnapshot, "DEMO")
+          ? // The demo screen no longer carries fixture residents; only enabled presets appear.
+            this.withPresets({ ...developmentCitySnapshot, residents: [], avatars: [] }, "DEMO")
           : this.withPresets(this.participation.snapshot(), "LIVE");
     return DeviceDisplaySchema.parse({
       control: this.control,

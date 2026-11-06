@@ -9,6 +9,49 @@ import {
 import type { AnimatedCharacter } from "./animated-character";
 import type { Direction } from "./simulation";
 
+type Rect = { x: number; y: number; width: number; height: number };
+
+/**
+ * The drawing is framed once, so the frame must hold every pose the character can take. Framing
+ * only the idle pose cut the head off while walking, when it bobs, tilts or shows its side.
+ */
+function unionMovementBounds(
+  data: SkeletonData,
+  skinName: string,
+  guard: (skeleton: Skeleton, direction: Direction) => void,
+  idle: Rect,
+): Rect {
+  let minX = idle.x;
+  let minY = idle.y;
+  let maxX = idle.x + idle.width;
+  let maxY = idle.y + idle.height;
+  const scratch = new Skeleton(data);
+  scratch.setSkin(skinName);
+  scratch.setupPose();
+  const state = new AnimationState(new AnimationStateData(data));
+  const samples = 12;
+  for (const animation of data.animations) {
+    if (!animation.name.startsWith("movement/")) continue;
+    const direction = animation.name.split("-").pop() as Direction;
+    state.setAnimation(0, animation.name, true);
+    const step = Math.max(animation.duration, 0.1) / samples;
+    for (let index = 0; index <= samples; index += 1) {
+      scratch.update(step);
+      state.update(step);
+      state.apply(scratch);
+      guard(scratch, direction);
+      scratch.updateWorldTransform(Physics.update);
+      const rect = scratch.getBoundsRect();
+      if (![rect.x, rect.y, rect.width, rect.height].every(Number.isFinite)) continue;
+      minX = Math.min(minX, rect.x);
+      minY = Math.min(minY, rect.y);
+      maxX = Math.max(maxX, rect.x + rect.width);
+      maxY = Math.max(maxY, rect.y + rect.height);
+    }
+  }
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
 /** Caller must verify assets, bind the bundle's orientation policy and retain its atlas. */
 export function createSpinePlayer(
   data: SkeletonData,
@@ -38,7 +81,7 @@ export function createSpinePlayer(
   state.apply(skeleton);
   guard(skeleton, "front");
   skeleton.updateWorldTransform(Physics.update);
-  const bounds = skeleton.getBoundsRect();
+  const bounds = unionMovementBounds(data, skinName, guard, skeleton.getBoundsRect());
   const extent = Math.max(bounds.width, bounds.height);
   if (!Number.isFinite(extent) || extent <= 0) throw new Error("SPINE_EMPTY_BOUNDS");
   const scale = 220 / extent;

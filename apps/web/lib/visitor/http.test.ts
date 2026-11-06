@@ -35,7 +35,7 @@ describe("persistent visitor HTTP boundary", () => {
       eventId: "fixture-event",
       requestId: "focus-job",
       nickname: "架空",
-      sampleId: "sora",
+      sampleId: "aoi",
       answers: null,
       scenario: "SUCCESS",
     });
@@ -148,7 +148,7 @@ describe("persistent visitor HTTP boundary", () => {
           eventId: "fixture-event",
           requestId: "http-test",
           nickname: "架空",
-          sampleId: "sora",
+          sampleId: "aoi",
           answers: null,
           scenario: "SUCCESS",
         },

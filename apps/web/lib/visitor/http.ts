@@ -182,6 +182,10 @@ export async function handleVisitorRequest(
         throw error;
       }
     }
+    if ((spineStorage || spineCloud) && path === "spine/profile" && request.method === "POST") {
+      await service.setSpineProfile(token, await readJsonBody(request));
+      return json({ mode: "LOCAL_PRIVATE_TEST" });
+    }
     if ((spineStorage || spineCloud) && path === "spine/jobs/current" && request.method === "GET")
       return json({ mode: "LOCAL_PRIVATE_TEST", job: await service.currentSpineJob(token) });
     // The participant's own character, so the summary card can draw the finished figure.

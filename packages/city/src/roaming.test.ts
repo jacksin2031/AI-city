@@ -12,7 +12,7 @@ function realWorld() {
 }
 
 describe("central district roaming on the exported city grid", () => {
-  it("starts residents on walkable streets near the station and bridges", () => {
+  it("starts residents on walkable streets in the Sola City plaza", () => {
     const world = realWorld();
     expect(world.spawns.length).toBeGreaterThanOrEqual(8);
     for (const point of world.spawns) {

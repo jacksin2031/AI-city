@@ -19,7 +19,6 @@ import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseLines } from "../apps/web/lib/link/dialogue-lines";
-import { developmentCitySnapshot } from "../packages/contracts/src/development";
 import { PRESET_CHARACTERS } from "../packages/contracts/src/device-link";
 
 const require = createRequire(new URL("../apps/web/package.json", import.meta.url));
@@ -29,6 +28,15 @@ const project = process.env.AI_CITY_VISITOR_PROJECT_ID ?? "ai-city-511822";
 const namespace = process.env.AI_CITY_VISITOR_NAMESPACE ?? "preview-visitors-20261019";
 if (!/^[A-Za-z0-9_-]{1,64}$/.test(namespace)) throw new Error("Invalid namespace");
 const once = process.argv.includes("--once");
+// The roster below is fixed fictional characters, so this worker would talk even with no visitor
+// present and every pair costs a Codex call. It is OFF by default: opt in with --chat or
+// AI_CITY_WORKER_CHAT=1.
+if (!process.argv.includes("--chat") && process.env.AI_CITY_WORKER_CHAT !== "1") {
+  console.log(
+    "[dialogue] disabled (default). Start with --chat or AI_CITY_WORKER_CHAT=1 to enable.",
+  );
+  process.exit(0);
+}
 const TTL_MS = Number(process.env.AI_CITY_CHAT_TTL_SECONDS ?? 1800) * 1000;
 const IDLE_MS = Number(process.env.AI_CITY_WORKER_IDLE_SECONDS ?? 5) * 1000;
 const CHAT_IDLE_MS = Number(process.env.AI_CITY_CHAT_IDLE_SECONDS ?? 30) * 1000;
@@ -41,12 +49,6 @@ const CODEX_BIN =
 
 type Fictional = { id: string; name: string; personality: string; interests: string[] };
 const roster: Fictional[] = [
-  ...developmentCitySnapshot.residents.map((resident) => ({
-    id: resident.residentId,
-    name: resident.nickname,
-    personality: resident.personalityLabel,
-    interests: resident.interests,
-  })),
   ...PRESET_CHARACTERS.map((preset) => ({
     id: `preset-${preset.id}`,
     name: preset.name,

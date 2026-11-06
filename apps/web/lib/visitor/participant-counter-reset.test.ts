@@ -11,7 +11,7 @@ const input = {
   requestId: "request-1",
   eventId: "fixture-event" as const,
   nickname: "テストそら",
-  sampleId: "sora" as const,
+  sampleId: "aoi" as const,
   answers: null,
   scenario: "SUCCESS" as const,
 };

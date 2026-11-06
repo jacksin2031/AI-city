@@ -564,7 +564,7 @@ test("actual Node restart preserves signed visitor identity and publication but 
         eventId: "fixture-event",
         requestId: "restart-job",
         nickname: "再起動テスト・架空",
-        sampleId: "sora",
+        sampleId: "aoi",
         answers: null,
         scenario: "SUCCESS",
       })

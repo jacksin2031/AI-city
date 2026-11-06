@@ -180,9 +180,19 @@ export function TabletCity({
                 bundlePlayers += 1;
                 return player;
               }
-              const preset = /^preset-([a-z]+)(?:-\d+)?$/.exec(resident.residentId);
+              const preset =
+                /^preset-([a-z]+)(?:-\d+)?$/.exec(resident.residentId) ??
+                /^sample-([a-z]+)-v1$/.exec(resident.avatarVersion);
               if (assets && preset?.[1] && sampleSkins[preset[1]])
                 return assets.create(sampleSkins[preset[1]]);
+              // A participant's own character is still loading: never borrow the sample figure.
+              if (
+                latest.current.snapshot.avatars.some(
+                  ({ manifest }) =>
+                    manifest.spine && manifest.avatarVersion === resident.avatarVersion,
+                )
+              )
+                return null;
               return assets && sample && resident.residentId === sampleId ? assets.create() : null;
             } catch {
               return null;
@@ -280,12 +290,21 @@ export function TabletCity({
     let live = true;
     void Promise.all(
       missing.map(async ({ version, descriptor }) => {
-        try {
-          const assets = await fetchSpineBundle(descriptor, controller.signal);
-          if (!live || controller.signal.aborted) assets.dispose();
-          else bundleAssets.current.set(version, assets);
-        } catch {
-          // An unavailable or invalid bundle keeps the illustration fallback.
+        // A bundle can be briefly unavailable right after publishing, so retry a few times
+        // instead of waiting for the next roster change.
+        for (const delay of [0, 2000, 5000, 10000]) {
+          if (delay) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            if (!live || controller.signal.aborted) return;
+          }
+          try {
+            const assets = await fetchSpineBundle(descriptor, controller.signal);
+            if (!live || controller.signal.aborted) assets.dispose();
+            else bundleAssets.current.set(version, assets);
+            return;
+          } catch {
+            // Keep the illustration fallback until a retry succeeds.
+          }
         }
       }),
     ).then(() => {

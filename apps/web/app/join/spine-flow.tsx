@@ -239,6 +239,26 @@ export function SpineParticipantFlow() {
   const styleLabel = aiStyleLabels[style];
   // The finished figure is drawn from the participant's own published bundle.
   const portrait = useSpinePortrait(stage === "done" && job?.state === "PUBLISHED");
+  // On the final page the participant's name and style become the public card in the city.
+  const profileSent = useRef(false);
+  useEffect(() => {
+    if (stage !== "done" || job?.state !== "PUBLISHED" || profileSent.current) return;
+    profileSent.current = true;
+    const choice = answers[5];
+    const interest = typeof choice === "number" ? questions[5][1][choice] : undefined;
+    void request("spine/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nickname: nickname.trim() || "ゲスト",
+        personalityLabel: answered ? styleLabel : null,
+        interests: interest ? [interest] : [],
+      }),
+    }).catch(() => {
+      // The city keeps the anonymous card; a later change on this page sends it again.
+      profileSent.current = false;
+    });
+  }, [stage, job?.state, nickname, answers, answered, styleLabel]);
   const stepLabel = (n: number) => `ステップ ${n} / 4`;
 
   return (
@@ -301,6 +321,10 @@ export function SpineParticipantFlow() {
                 <p className="pf-step">{stepLabel(2)}</p>
                 <h2>写真をアップロード</h2>
                 <p>写真をもとに、あなた専用のキャラクターを作ります。</p>
+                <p className="pf-tip" role="note">
+                  <strong>キャラクターの制作には時間がかかります。</strong>
+                  1人あたり5〜10分ほど、順番待ちがあるとさらに長くなります。すぐに参加したい場合は、下の「写真なしで参加」もお選びいただけます。
+                </p>
                 <div className="pf-note">
                   <strong>送信される写真について</strong>
                   <p>
@@ -381,6 +405,15 @@ export function SpineParticipantFlow() {
                 >
                   {busy ? "送信しています…" : "写真を送信して次へ"}
                 </button>
+                <div className="pf-note">
+                  <strong>待たずに参加する（写真なし）</strong>
+                  <p>
+                    写真は送らず、用意されたキャラクターで参加できます。待ち時間はほとんどなく、そのまま質問に進めます。あなた専用のキャラクターは作られません。
+                  </p>
+                  <Link className="pf-back" href="/join?mode=sample">
+                    写真なしで、用意されたキャラクターで参加する
+                  </Link>
+                </div>
                 <button
                   className="pf-back"
                   type="button"

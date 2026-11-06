@@ -139,7 +139,7 @@ describe("persistent snapshot device authorization", () => {
       eventId: "fixture-event",
       requestId: "device-job",
       nickname: "架空",
-      sampleId: "sora",
+      sampleId: "aoi",
       answers: null,
       scenario: "SUCCESS",
     });

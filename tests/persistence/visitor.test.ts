@@ -28,7 +28,7 @@ const input = {
   eventId: "fixture-event" as const,
   requestId: "persistent-1",
   nickname: "架空の住民",
-  sampleId: "sora" as const,
+  sampleId: "aoi" as const,
   answers: [1, 1, 1, 1, 1, 1] as [0 | 1 | 2, 0 | 1 | 2, 0 | 1 | 2, 0 | 1 | 2, 0 | 1 | 2, 0 | 1 | 2],
   scenario: "SUCCESS" as const,
 };
