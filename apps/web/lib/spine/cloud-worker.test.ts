@@ -213,7 +213,13 @@ describe("concurrent workers in one process", () => {
       seen.push(task);
       running += 1;
       peak = Math.max(peak, running);
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      // Hold until both workers are inside execute (bounded), so the overlap
+      // does not depend on CI timing.
+      const deadline = Date.now() + 2000;
+      while (running < 2 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      peak = Math.max(peak, running);
       running -= 1;
       return { status: "APPROVED" as const, candidate: await candidate(task) };
     };

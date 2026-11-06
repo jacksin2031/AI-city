@@ -296,7 +296,9 @@ export function ParticipantExperience({
         </div>
       )}
       <div className="pf-sheet">
-        {spineLocal && (
+        {/* Only before anything exists: leaving mid-flow would strand a session and a published
+            character on this page. */}
+        {spineLocal && stage === (presetOnly ? "custom" : "name") && (
           <p>
             <Link href={photoHref}>写真からキャラクターを作る（試験運用）</Link>
           </p>
