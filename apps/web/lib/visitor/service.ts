@@ -1,26 +1,43 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { type PublicResident, PublicResidentSchema } from "@ai-city/contracts";
+import {
+  type PublicResident,
+  PublicResidentSchema,
+  type SpineBundleSchema,
+} from "@ai-city/contracts";
 import {
   aiStyleLabels,
+  avatarForSample,
   type CitySnapshot,
   CitySnapshotSchema,
   type CreateJobRequest,
   CreateJobRequestSchema,
   type DevelopmentAvatar,
   DevelopmentJobSchema,
-  developmentAvatars,
   developmentEventId,
   type ParticipationView,
   ParticipationViewSchema,
   type PublishRequest,
   PublishRequestSchema,
+  sampleAvatars,
 } from "@ai-city/contracts/development";
-import { SpineTaskStateSchema } from "@ai-city/contracts/spine";
+import {
+  SpinePhotoConsentSchema,
+  SpineTaskIdSchema,
+  SpineTaskStateSchema,
+} from "@ai-city/contracts/spine";
 import { z } from "zod";
 import { DevelopmentServiceError } from "../development/service";
-import { makeSpineJob, publishedSpineRecord, withdrawSpineJobRecord } from "../spine/jobs";
+import {
+  makeCloudSpineJob,
+  makeSpineJob,
+  publishedSpineRecord,
+  withdrawSpineJobRecord,
+} from "../spine/jobs";
 import { removeSpineResident, SpineRosterEntrySchema } from "../spine/roster-index";
 import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
+
+/** The public descriptor of a published Spine bundle; enough to fetch and draw the character. */
+type SpineBundle = z.infer<typeof SpineBundleSchema>;
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const INVITATION_TTL_MS = 3 * 60 * 1000;
@@ -34,6 +51,25 @@ const OpenAdmissionSchema = z.strictObject({
   count: z.number().int().min(1).max(OPEN_ADMISSIONS_PER_MINUTE),
 });
 const DIGEST = z.string().regex(/^[a-f0-9]{64}$/);
+const CloudPhotoReservationsSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  entries: z
+    .record(
+      SpineTaskIdSchema,
+      z
+        .strictObject({
+          owner: DIGEST,
+          photoSha256: DIGEST,
+          consent: SpinePhotoConsentSchema.extend({ recordedAt: z.iso.datetime() }),
+          createdAt: z.number().int().nonnegative(),
+          sessionExpiresAt: z.number().int().nonnegative(),
+          state: z.enum(["RESERVED", "UPLOADING", "CLEANUP_PENDING"]),
+          startedAt: z.number().int().nonnegative().optional(),
+        })
+        .refine((entry) => (entry.state === "RESERVED") === (entry.startedAt === undefined)),
+    )
+    .refine((entries) => Object.keys(entries).length <= MAX_ACTIVE_SESSIONS),
+});
 const INVITATION_DIGEST = z.string().regex(/^[a-f0-9]{64}$/);
 const SafeId = z
   .string()
@@ -78,6 +114,10 @@ function focusState(entry: FocusEntry, state: VisitorState, now: number): FocusS
         r.ownerDigest === entry.ownerDigest &&
         r.resident.residentId === entry.residentId &&
         r.expiresAt > now,
+    ) &&
+    // A Spine participant is on the roster under its task id rather than as a stored resident.
+    !state.spineResidents.some(
+      (r) => r.owner === entry.ownerDigest && r.task === entry.residentId && r.expiresAt > now,
     )
   )
     return "CANCELLED";
@@ -396,7 +436,7 @@ function iso(now: number): string {
 }
 
 function avatarFor(input: CreateJobRequest): DevelopmentAvatar {
-  const avatar = developmentAvatars[input.sampleId === "sora" ? 0 : 1];
+  const avatar = avatarForSample(input.sampleId);
   if (!avatar) throw new DevelopmentServiceError("ASSET_NOT_FOUND", 500);
   return avatar;
 }
@@ -502,6 +542,189 @@ export class VisitorService {
     private readonly now: () => number = Date.now,
   ) {}
 
+  /** Internal admission reservation; no photo is uploaded and no generation is started here. */
+  async reserveCloudPhotoUpload(
+    token: string,
+    task: string,
+    photoSha256: string,
+    consent: unknown,
+  ) {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const taskResult = SpineTaskIdSchema.safeParse(task);
+    const digestResult = DIGEST.safeParse(photoSha256);
+    const consentResult = SpinePhotoConsentSchema.safeParse(consent);
+    if (!taskResult.success || !digestResult.success)
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    if (!consentResult.success) throw new DevelopmentServiceError("PHOTO_CONSENT_REQUIRED", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const existing = await tx.get(`requests/spine-owner-${owner}`);
+      const target = await tx.get(`jobs/spine-${task}`);
+      const orphan = await tx.get(`requests/spine-orphan-${task}`);
+      const rawIndex = await tx.get("meta/cloud-photo-uploads");
+      const parsed = CloudPhotoReservationsSchema.safeParse(
+        rawIndex ?? { schemaVersion: 1, entries: {} },
+      );
+      if (!parsed.success) throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      const previousTask = existing?.task;
+      const previous =
+        typeof previousTask === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(previousTask)
+          ? await tx.get(`jobs/spine-${previousTask}`)
+          : null;
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (
+        target ||
+        orphan ||
+        parsed.data.entries[task] ||
+        (existing &&
+          (!previous ||
+            previous.owner !== owner ||
+            previous.state !== "WITHDRAWN" ||
+            previous.cleanupPending !== false))
+      )
+        throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      if (Object.keys(parsed.data.entries).length >= MAX_ACTIVE_SESSIONS)
+        throw new DevelopmentServiceError("LOCAL_CAPACITY", 429);
+      const entry = {
+        owner,
+        photoSha256,
+        consent: { ...consentResult.data, recordedAt: new Date(now).toISOString() },
+        createdAt: now,
+        sessionExpiresAt: session.expiresAt,
+        state: "RESERVED" as const,
+      };
+      const acknowledged = acknowledgeSession(state, owner);
+      if (acknowledged.changed) setDocument(tx, "meta/state", acknowledged.state);
+      tx.set(
+        "meta/cloud-photo-uploads",
+        CloudPhotoReservationsSchema.parse({
+          schemaVersion: 1,
+          entries: { ...parsed.data.entries, [task]: entry },
+        }),
+      );
+      tx.set(`requests/spine-owner-${owner}`, { task });
+      return { task, state: "RESERVED" as const };
+    });
+  }
+
+  /** Record intent before starting I/O; cancellation races through the same transaction. */
+  async beginCloudPhotoUpload(token: string, task: string) {
+    return this.transitionCloudPhotoUpload(token, task, "BEGIN");
+  }
+
+  /** Cancellation after I/O begins must remain pending until the writer and object are reconciled. */
+  async cancelCloudPhotoUpload(token: string, task: string) {
+    return this.transitionCloudPhotoUpload(token, task, "CANCEL");
+  }
+
+  /** Internal only: caller must independently read the exact generation and verify its digest. */
+  async completeCloudPhotoUpload(
+    token: string,
+    task: string,
+    verifiedDigest: string,
+    generation: string,
+  ) {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    if (
+      !SpineTaskIdSchema.safeParse(task).success ||
+      !DIGEST.safeParse(verifiedDigest).success ||
+      !/^[1-9][0-9]{0,19}$/.test(generation)
+    )
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const parsed = CloudPhotoReservationsSchema.safeParse(
+        await tx.get("meta/cloud-photo-uploads"),
+      );
+      const ownerRequest = await tx.get(`requests/spine-owner-${owner}`);
+      const target = await tx.get(`jobs/spine-${task}`);
+      if (!parsed.success) throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const entry = parsed.data.entries[task];
+      if (!entry || entry.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (
+        entry.state !== "UPLOADING" ||
+        entry.photoSha256 !== verifiedDigest ||
+        entry.sessionExpiresAt !== session.expiresAt ||
+        ownerRequest?.task !== task ||
+        target
+      )
+        throw new DevelopmentServiceError("INVALID_REQUEST", 409);
+      const entries = { ...parsed.data.entries };
+      delete entries[task];
+      tx.set(
+        `jobs/spine-${task}`,
+        makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation),
+      );
+      tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
+      return { task, state: "QUEUED" as const };
+    });
+  }
+
+  private async transitionCloudPhotoUpload(
+    token: string,
+    task: string,
+    action: "BEGIN" | "CANCEL",
+  ) {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    if (!SpineTaskIdSchema.safeParse(task).success)
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      const rawIndex = await tx.get("meta/cloud-photo-uploads");
+      const ownerRequest = await tx.get(`requests/spine-owner-${owner}`);
+      const parsed = CloudPhotoReservationsSchema.safeParse(rawIndex);
+      if (!parsed.success) throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const entry = parsed.data.entries[task];
+      if (!entry || entry.owner !== owner) throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (entry.sessionExpiresAt !== session.expiresAt || ownerRequest?.task !== task)
+        throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      if (action === "BEGIN") {
+        if (entry.state !== "RESERVED") throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+        tx.set(
+          "meta/cloud-photo-uploads",
+          CloudPhotoReservationsSchema.parse({
+            ...parsed.data,
+            entries: {
+              ...parsed.data.entries,
+              [task]: { ...entry, state: "UPLOADING", startedAt: now },
+            },
+          }),
+        );
+        return { task, state: "UPLOADING" as const };
+      }
+      if (entry.state === "RESERVED") {
+        const entries = { ...parsed.data.entries };
+        delete entries[task];
+        tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
+        tx.delete(`requests/spine-owner-${owner}`);
+        tx.set(`requests/spine-orphan-${task}`, { cleanup: true });
+        return { task, state: "CANCELLED" as const };
+      }
+      tx.set(
+        "meta/cloud-photo-uploads",
+        CloudPhotoReservationsSchema.parse({
+          ...parsed.data,
+          entries: { ...parsed.data.entries, [task]: { ...entry, state: "CLEANUP_PENDING" } },
+        }),
+      );
+      return { task, state: "CLEANUP_PENDING" as const };
+    });
+  }
+
   /** Atomically bind an already privately stored photo and explicit consent to this live session. */
   async createSpineJob(
     token: string,
@@ -529,6 +752,7 @@ export class VisitorService {
       const session = parseSession(await tx.get(`sessions/${owner}`));
       const existing = await tx.get(`requests/spine-owner-${owner}`);
       const target = await tx.get(`jobs/spine-${task}`);
+      const orphanCleanup = await tx.get(`requests/spine-orphan-${task}`);
       const previousTask = existing?.task;
       const previous =
         typeof previousTask === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(previousTask)
@@ -536,7 +760,7 @@ export class VisitorService {
           : null;
       if (!validSession(session, owner, state, now))
         throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
-      if (target) throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      if (target || orphanCleanup) throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
       if (
         existing &&
         (!previous ||
@@ -646,6 +870,67 @@ export class VisitorService {
           ? { photoCleanup: job.cleanupPending ? "PENDING" : "COMPLETE" }
           : {}),
       };
+    });
+  }
+
+  /**
+   * The participant's own published character bundle, so the summary card can draw it.
+   * Only the owner of a live session may read it, and only once it is public.
+   */
+  async currentSpineBundle(token: string): Promise<SpineBundle | null> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const index = await tx.get(`requests/spine-owner-${owner}`);
+      const task = index?.task;
+      if (typeof task !== "string" || !/^[A-Za-z0-9_-]{1,96}$/.test(task)) return null;
+      const entry = state.spineResidents.find((item) => item.task === task);
+      if (!entry || entry.owner !== owner || entry.expiresAt <= now) return null;
+      return publishedSpineRecord(await tx.get(`jobs/spine-${task}`), owner, entry.expiresAt);
+    });
+  }
+
+  /**
+   * The participant's own public profile, sent from the final page. It only labels their
+   * already-published character, so it is refused unless that character is on the roster.
+   */
+  async setSpineProfile(token: string, input: unknown): Promise<void> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const profile = z
+      .strictObject({
+        nickname: z
+          .string()
+          .trim()
+          .min(1)
+          .max(40)
+          .refine((value) =>
+            [...value].every((c) => c.charCodeAt(0) >= 32 && c.charCodeAt(0) !== 127),
+          ),
+        personalityLabel: z.string().trim().min(1).max(80).nullable(),
+        interests: z.array(z.string().trim().min(1).max(32)).max(3),
+        traits: z.array(z.number().min(0).max(1)).length(6).optional(),
+      })
+      .parse(input);
+    const now = this.now();
+    await this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const index = await tx.get(`requests/spine-owner-${owner}`);
+      const task = index?.task;
+      const entry =
+        typeof task === "string" ? state.spineResidents.find((item) => item.task === task) : null;
+      if (!entry || entry.owner !== owner || entry.expiresAt <= now)
+        throw new DevelopmentServiceError("JOB_NOT_READY", 409);
+      tx.set(`requests/spine-profile-${owner}`, { task: entry.task, ...profile });
+      tx.set("meta/state", { ...state, eventSeq: state.eventSeq + 1 });
     });
   }
 
@@ -808,7 +1093,32 @@ export class VisitorService {
         if (existing.ownerDigest !== digest) return failure("IDEMPOTENCY_CONFLICT");
         return success({ requestId, status: focusState(existing, state, now) });
       }
+      const spineIndex = await tx.get(`requests/spine-owner-${digest}`);
+      const spineTask = typeof spineIndex?.task === "string" ? spineIndex.task : null;
+      const spineResidentId =
+        spineTask &&
+        state.spineResidents.some(
+          (r) => r.owner === digest && r.task === spineTask && r.expiresAt > now,
+        )
+          ? spineTask
+          : null;
       const resident = job?.resident;
+      if (spineResidentId) {
+        const retainedSpine = queue.requests.filter(
+          (entry) => entry.createdAt + FOCUS_RETENTION_MS > now,
+        );
+        if (retainedSpine.length >= MAX_FOCUS_REQUESTS) return failure("FOCUS_QUEUE_FULL", 429);
+        retainedSpine.push({
+          requestId,
+          ownerDigest: digest,
+          residentId: spineResidentId,
+          createdAt: now,
+          expiresAt: now + FOCUS_LIFETIME_MS,
+          appliedAt: null,
+        });
+        setDocument(tx, "meta/focus-queue", { schemaVersion: 1, requests: retainedSpine });
+        return success({ requestId, status: "PENDING" as const });
+      }
       if (
         !job ||
         job.ownerDigest !== digest ||
@@ -1083,7 +1393,11 @@ export class VisitorService {
         eventSeq: state.eventSeq + 1,
         // Re-publishing an already public profile is not a new participant.
         joinedTotal:
-          state.joinedTotal + (state.residents.some((s) => s.ownerDigest === digest) ? 0 : 1),
+          state.joinedTotal +
+          (state.residents.some((stored) => stored.ownerDigest === digest) ||
+          state.spineResidents.some((stored) => stored.owner === digest)
+            ? 0
+            : 1),
         residents: [
           ...state.residents.filter((stored) => stored.ownerDigest !== digest),
           { ownerDigest: digest, jobId: id, expiresAt: session.expiresAt, resident },
@@ -1236,17 +1550,22 @@ export class VisitorService {
           entry.expiresAt,
         );
         if (!bundle) continue;
+        // The participant's own public profile, when they have sent one from the final page.
+        const rawProfile = await tx.get(`requests/spine-profile-${entry.owner}`);
+        const profile = rawProfile?.task === entry.task ? rawProfile : null;
         residents.push(
           PublicResidentSchema.parse({
             schemaVersion: 1,
             residentId: entry.task,
             eventId: developmentEventId,
-            nickname: "参加者",
+            nickname: typeof profile?.nickname === "string" ? profile.nickname : "参加者",
             avatarVersion: entry.task,
             publicConsent: true,
             consentVersion: 1,
-            personalityLabel: "非公開",
-            interests: [],
+            personalityLabel:
+              typeof profile?.personalityLabel === "string" ? profile.personalityLabel : "非公開",
+            interests: Array.isArray(profile?.interests) ? profile.interests : [],
+            ...(Array.isArray(profile?.traits) ? { traits: profile.traits } : {}),
             publicState: "VISIBLE",
           }),
         );
@@ -1268,7 +1587,7 @@ export class VisitorService {
         eventSeq: cleaned.state.eventSeq,
         residents,
         avatars: [
-          ...developmentAvatars.filter((avatar) =>
+          ...sampleAvatars.filter((avatar) =>
             residents.some((resident) => resident.avatarVersion === avatar.manifest.avatarVersion),
           ),
           ...spineAvatars,
@@ -1282,6 +1601,15 @@ export class VisitorService {
     return this.store.run(async (tx) => {
       const raw = await tx.get("meta/state");
       return raw ? parseState(raw).joinedTotal : 0;
+    });
+  }
+
+  /** Resets the anonymous public-join total without changing the resident roster. */
+  async resetJoinedTotal(): Promise<number> {
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      setDocument(tx, "meta/state", { ...state, joinedTotal: 0 });
+      return 0;
     });
   }
 

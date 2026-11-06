@@ -86,8 +86,48 @@ export function focusCamera(
   return base;
 }
 
+/** The automatic tour's own view of a resident: closer than the street tour, wider than a profile. */
+export const TOUR_FOCUS_ZOOM = DEFAULT_ZOOM * 2;
+/** Screen-space metres above a resident's feet that the tour centres on. */
+const TOUR_FOCUS_LIFT = 2.5;
+
+/**
+ * The automatic tour's view of a resident. The tour keeps looking at participants rather than
+ * landmarks, so it frames them the way a portrait would — centred, feet low, headroom above —
+ * while staying wide enough that the street around them still reads.
+ */
+export function tourCamera(actor: Placed): SceneCamera {
+  return clampCamera({ ...above(actor, TOUR_FOCUS_LIFT), zoom: TOUR_FOCUS_ZOOM });
+}
+
+/** The four drawings a resident can be shown with, relative to the fixed camera. */
+export type Facing = "front" | "left" | "back" | "right";
+
+/**
+ * Which drawing faces the viewer. The camera never rotates, so a resident's heading is turned
+ * into two screen-space components: across the view and into it. A walker shows a profile
+ * whenever they are moving across the screen at all; only a heading almost straight at or away
+ * from the camera shows a front or back drawing. This keeps the drawing consistent with the
+ * direction the figure is seen to travel.
+ */
+export function facingFor(heading: number, walking: boolean): Facing {
+  const fx = Math.cos(heading);
+  const fy = Math.sin(heading);
+  const right = fx * VIEW.right.x + fy * VIEW.right.y;
+  const length = Math.hypot(VIEW.toCamera.x, VIEW.toCamera.y);
+  const toward = (fx * VIEW.toCamera.x + fy * VIEW.toCamera.y) / length;
+  const across = Math.abs(right);
+  const into = Math.abs(toward);
+  // A walker turns to a profile as soon as they are moving across screen at all; a stationary
+  // resident keeps the front or back drawing until the angle is clearer.
+  const profileAt = walking ? 0.18 : 0.5;
+  if (across >= profileAt || across >= into * (walking ? 0.45 : 1.2))
+    return right > 0 ? "right" : "left";
+  return toward > 0 ? "front" : "back";
+}
+
 /** The point that projects `metres` (in screen space) straight above the actor. */
-function above(actor: Placed, metres: number) {
+export function above(actor: Placed, metres: number) {
   return {
     centerX: actor.x + VIEW.up.x * metres,
     centerY: actor.y + VIEW.up.y * metres,

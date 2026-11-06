@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { verifySpineBundle } from "./bundle";
+import type { CloudAssetStorage } from "./cloud-asset-storage";
 import type { SpineJobs } from "./jobs";
+import { type CloudCleanup, cleanupLocalTask } from "./local-cleanup";
 import type { LocalSpineStorage } from "./local-storage";
 import { runSpineWorker, type ToolOutcome } from "./worker";
 
@@ -11,10 +13,20 @@ export async function dispatchLocalTask(
   task: string,
   worker: string,
   execute: (photo: Uint8Array, worker: string) => Promise<ToolOutcome>,
+  cloud: Pick<CloudAssetStorage, "write" | "remove"> | null = null,
+  options: {
+    queued?: (task: string) => Promise<{ owner: string; photoSha256: string | null } | null>;
+    cleanup?: CloudCleanup | null;
+  } = {},
 ) {
-  const queued = await jobs.queuedForWorker(task);
+  const queued = await (options.queued ?? ((t: string) => jobs.queuedForWorker(t)))(task);
   if (!queued?.photoSha256) return null;
   const staged: string[] = [];
+  const stagedCloud: string[] = [];
+  const unstage = async () => {
+    for (const name of staged) await storage.remove(task, name);
+    for (const name of stagedCloud) await cloud?.remove(task, name).catch(() => {});
+  };
   try {
     const result = await runSpineWorker(jobs, task, queued.owner, worker, async () => {
       const photo = await storage.read(task, "photo.png", 24 * 1024 * 1024);
@@ -43,14 +55,25 @@ export async function dispatchLocalTask(
         if (!bytes) return { status: "FAILED" };
         await storage.write(task, name, bytes);
         staged.push(name);
+        // Upload before publication commits, so a published bundle is never missing in the cloud.
+        if (cloud) {
+          await cloud.write(task, name, bytes);
+          stagedCloud.push(name);
+        }
       }
       return outcome;
     });
-    if (result.state === "PUBLISHED") return result;
-    for (const name of staged) await storage.remove(task, name);
+    if (result.state === "PUBLISHED") {
+      // Publication has committed: a cleanup outage must not remove its staged assets.
+      await cleanupLocalTask(jobs, storage, task, options.cleanup ?? null).catch(
+        () => "PENDING" as const,
+      );
+      return result;
+    }
+    await unstage();
     return result;
   } catch (error) {
-    for (const name of staged) await storage.remove(task, name);
+    await unstage();
     throw error;
   }
 }

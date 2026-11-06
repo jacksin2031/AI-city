@@ -40,7 +40,7 @@ describe("persistent anonymous visitors", () => {
     requestId: "request-1",
     eventId: "fixture-event" as const,
     nickname: "テストそら",
-    sampleId: "sora" as const,
+    sampleId: "aoi" as const,
     answers: null,
     scenario: "SUCCESS" as const,
   };
@@ -306,6 +306,25 @@ describe("persistent anonymous visitors", () => {
     await service.removeResident(published[0].resident?.residentId as string);
     expect((await service.snapshot()).residents).toHaveLength(1);
     expect(await service.joinedTotal()).toBe(2);
+  });
+
+  it("resets the running join total without removing residents and counts later joins from zero", async () => {
+    const first = await newSession();
+    const firstJob = await ready(first.token);
+    const resident = (await service.confirm(first.token, firstJob.job.jobId, consent)).resident;
+    expect(resident).not.toBeNull();
+
+    expect(await service.resetJoinedTotal()).toBe(0);
+    expect(await service.joinedTotal()).toBe(0);
+    expect((await service.snapshot()).residents.map((entry) => entry.residentId)).toContain(
+      resident?.residentId,
+    );
+
+    const second = await newSession();
+    const secondJob = await ready(second.token, { ...input, requestId: "request-after-reset" });
+    await service.confirm(second.token, secondJob.job.jobId, consent);
+    expect(await service.joinedTotal()).toBe(1);
+    expect((await service.snapshot()).residents).toHaveLength(2);
   });
 
   it("rejects a late confirmation after cancellation or withdrawal", async () => {

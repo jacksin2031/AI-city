@@ -39,10 +39,21 @@ export type World = { grid: WalkGrid; pois: Poi[]; spawns: Point[] };
 /** Extent of the exported terrain. */
 export const BOUNDS = { x0: -480, y0: -390, width: 790, depth: 730 } as const;
 
-/** Relative effort of walking one metre over each cell kind; streets are crossed, not followed. */
-const COST = [0, 1, 1.3, 2.5, 3.5, 9];
+/**
+ * Relative effort of walking one metre over each cell kind. Footways are the intended route, so
+ * they are cheapest; open ground is markedly more expensive because it includes the unmarked gaps
+ * between buildings, and a resident should only cross it when there is no footway alternative.
+ * Streets are crossed rather than followed.
+ */
+const COST = [0, 1, 4, 2.5, 3.5, 9];
 /** Kerbs and steps are fine; anything taller is a wall, an embankment or a bridge edge. */
 const MAX_STEP_CM = 45;
+/**
+ * Extra metres of apparent distance that make a walker prefer a footway over open ground.
+ * Open ground includes the unmarked gaps between buildings, so it should only be chosen when
+ * nothing paved is anywhere near.
+ */
+const OPEN_GROUND_AVOIDANCE = 10;
 
 export function parseGrid(meta: CityPlaces["grid"], data: ArrayBuffer): WalkGrid {
   const cells = meta.width * meta.depth;
@@ -105,11 +116,14 @@ export function nearestWalkable(grid: WalkGrid, point: Point, radius = 40): Poin
         const r = row + dr;
         if (c < 0 || r < 0 || c >= grid.width || r >= grid.depth) continue;
         const index = r * grid.width + c;
-        // Prefer footways; a street cell only counts when nothing better is near.
+        // Prefer footways. Open ground may be a gap between buildings, so it is only chosen
+        // when no footway is near; a street cell is a last resort.
         const kind = grid.kinds[index] ?? 0;
         if (!kind) continue;
         const cell = centre(grid, index);
-        const distance = Math.hypot(cell.x - point.x, cell.y - point.y) + (kind >= 4 ? 6 : 0);
+        // Open ground may be a gap between buildings; a street cell is a last resort.
+        const avoidance = kind === 2 ? OPEN_GROUND_AVOIDANCE : kind >= 4 ? 6 : 0;
+        const distance = Math.hypot(cell.x - point.x, cell.y - point.y) + avoidance;
         if (distance < bestDistance) {
           bestDistance = distance;
           best = cell;
@@ -383,6 +397,46 @@ const landmarks: Landmark[] = [
     facing: { x: 60, y: 110 },
   },
   {
+    id: "plaza-north",
+    x: 44,
+    y: 95,
+    activity: "stand",
+    seconds: 5,
+    doing: "広場を散歩しています",
+    place: "ソラシティ広場の北側",
+    heading: Math.PI / 2,
+  },
+  {
+    id: "plaza-west",
+    x: 38,
+    y: 108,
+    activity: "stand",
+    seconds: 5,
+    doing: "広場でひと息ついています",
+    place: "広場の西側",
+    heading: 0,
+  },
+  {
+    id: "plaza-centre",
+    x: 52,
+    y: 114,
+    activity: "stand",
+    seconds: 5,
+    doing: "広場の真ん中で空を見上げています",
+    place: "広場の中央",
+    heading: -Math.PI / 2,
+  },
+  {
+    id: "plaza-south",
+    x: 56,
+    y: 126,
+    activity: "stand",
+    seconds: 5,
+    doing: "広場の南で友だちを待っています",
+    place: "広場の南側",
+    heading: -Math.PI / 2,
+  },
+  {
     id: "nikolai",
     x: -38,
     y: 190,
@@ -466,22 +520,22 @@ const shopActivities: Record<string, { place: string; doing: string }[]> = {
 };
 
 /**
- * Where residents first appear: open footways near the station and the plaza. The first two
- * stand in the opening view, in front of JR御茶ノ水駅.
+ * Where residents first appear: the footways of the Sola City plaza. The camera opens on
+ * this plaza.
  */
 const spawnPoints: Point[] = [
-  { x: -125, y: 40 },
-  { x: -104.5, y: 25.5 },
-  { x: -20, y: 60 },
-  { x: -120.5, y: 20.5 },
-  { x: -170, y: 20 },
-  { x: -125.5, y: 29.5 },
-  { x: -20, y: -40 },
-  { x: -80, y: 60 },
-  { x: -83.5, y: 60.5 },
-  { x: -86.5, y: 60.5 },
-  { x: -140, y: 90 },
-  { x: -131.5, y: 89.5 },
+  { x: 44, y: 95 },
+  { x: 38, y: 108 },
+  { x: 52, y: 114 },
+  { x: 56, y: 126 },
+  { x: 46, y: 102 },
+  { x: 40, y: 116 },
+  { x: 42, y: 112 },
+  { x: 48, y: 122 },
+  { x: 36, y: 100 },
+  { x: 60, y: 118 },
+  { x: 50, y: 96 },
+  { x: 50, y: 100 },
 ];
 
 export function createWorld(grid: WalkGrid, shops: Shopfront[]): World {

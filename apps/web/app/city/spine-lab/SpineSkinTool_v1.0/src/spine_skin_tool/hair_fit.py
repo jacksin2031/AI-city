@@ -96,17 +96,17 @@ def solve(front,back,head,head_image,front_cheeks=False,coverage_margin=0):
 
 
 def make(root,record,resolved,revision=None,tip_artifacts=None):
-    revision=revision or VERSIONS['workflow']['hair_fit_revision'];require(revision in ('head-alpha-fit-001','head-alpha-fit-002','head-alpha-fit-003','head-alpha-fit-004','head-alpha-fit-005','head-alpha-fit-006','head-alpha-fit-007'),'FIT_REVISION')
+    revision=revision or VERSIONS['workflow']['hair_fit_revision'];require(revision in ('head-alpha-fit-001','head-alpha-fit-002','head-alpha-fit-003','head-alpha-fit-004','head-alpha-fit-005','head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008'),'FIT_REVISION')
     images=[]
     for part in ('HAIR_FRONT','HAIR_BACK'):
         with Image.open(io.BytesIO(resolved[part]['content'])) as im:normalized,_=prepare_texture(im,im.size,'hair')
         images.append(normalized)
     head,image=target_head(root)
-    if revision in ('head-alpha-fit-006','head-alpha-fit-007'):layout={'front_width':head['width']*1.2,'back_width':head['width']*1.2,'top':head['x']+head['height']/2};metrics={'physical_size_approved':False}
+    if revision in ('head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008'):layout={'front_width':head['width']*1.2,'back_width':head['width']*1.2,'top':head['x']+head['height']/2};metrics={'physical_size_approved':False}
     else:layout,metrics=solve_legacy(*images,head,image) if revision=='head-alpha-fit-001' else solve(*images,head,image,front_cheeks=revision in ('head-alpha-fit-003','head-alpha-fit-004','head-alpha-fit-005'),coverage_margin=.03 if revision in ('head-alpha-fit-004','head-alpha-fit-005') else 0)
-    if revision in ('head-alpha-fit-006','head-alpha-fit-007'):
+    if revision in ('head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008'):
         from .hair_stages import fit_pair
-        layout,metrics=fit_pair(*images,head,image,layout,metrics,current=revision=='head-alpha-fit-007')
+        layout,metrics=fit_pair(*images,head,image,layout,metrics,current=revision=='head-alpha-fit-007',non_uniform=revision=='head-alpha-fit-008')
         from .ear_geometry import target_roots
         from .character_flow import source_profile
         metrics['shared_ear_targets']=target_roots(source_profile(root)[0],head,image)

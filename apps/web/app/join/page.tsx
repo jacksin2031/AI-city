@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { ParticipantExperience } from "./participant-experience";
 import { ParticipationFlow } from "./participation-flow";
+import { SpineParticipantFlow } from "./spine-flow";
 export const dynamic = "force-dynamic";
 
-export default function Join() {
+export default async function Join({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const mode = (await searchParams)?.mode;
   const hosted = Boolean(process.env.AI_CITY_PUBLIC_ORIGIN);
   const persistent = process.env.AI_CITY_ENABLE_VISITORS === "1";
   const codeFree = persistent && process.env.AI_CITY_VISITOR_CODE_FREE === "1";
@@ -12,7 +18,24 @@ export default function Join() {
     process.env.AI_CITY_SPINE_LOCAL_INTAKE === "1" &&
     process.env.AI_CITY_LOOPBACK_PREVIEW === "1" &&
     !process.env.AI_CITY_PUBLIC_ORIGIN;
-  if (codeFree) return <ParticipantExperience spineLocal={spineLocal} />;
+  // Hosted photo intake is a separate, explicit switch; the page only offers it when configured.
+  const spineCloud =
+    persistent &&
+    process.env.AI_CITY_SPINE_CLOUD_INTAKE === "1" &&
+    process.env.AI_CITY_SPINE_CLOUD_ASSETS === "1" &&
+    Boolean(process.env.AI_CITY_PUBLIC_ORIGIN);
+  // Photo-to-character flow: hosted when cloud intake is on; locally only when asked for explicitly.
+  const photoFlow =
+    codeFree && (spineCloud || (spineLocal && process.env.AI_CITY_SPINE_FLOW === "1"));
+  // "?mode=sample" is the no-photo path: a prepared sample character with a short wait.
+  if (photoFlow && mode !== "sample") return <SpineParticipantFlow />;
+  if (codeFree)
+    return (
+      <ParticipantExperience
+        spineLocal={spineLocal || spineCloud}
+        photoHref={photoFlow ? "/join" : "/join/spine"}
+      />
+    );
   return (
     <main className="participation">
       <h1>AIシティへの参加</h1>
@@ -40,7 +63,7 @@ export default function Join() {
         codeFree={codeFree}
       />
       <nav aria-label="サンプルの移動">
-        {spineLocal && <Link href="/join/spine">写真からキャラクターを作る（本機テスト）</Link>}
+        {spineLocal && <Link href="/join/spine">写真からキャラクターを作る（試験運用）</Link>}
         <Link href="/">戻る</Link>
       </nav>
     </main>

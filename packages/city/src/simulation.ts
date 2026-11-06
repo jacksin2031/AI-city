@@ -19,12 +19,15 @@ export type Actor = {
 };
 /** Walking pace in metres per second. */
 const speed = 1.35;
-/** Residents pick their next stop within a few minutes' walk. */
-const NEARBY = 80;
+/** Residents pick their next stop within a few minutes' walk, so the crowd stays together. */
+const NEARBY = 45;
 
-/** Station, main street and bridges around the central railway / river corridor. */
+/**
+ * The Sola City plaza and the crossing beside it. Destinations are limited to this box so the
+ * crowd stays in the part of town the exhibition shows, rather than scattering across the map.
+ */
 export function inCentralDistrict(point: Point): boolean {
-  return point.x >= -210 && point.x <= 45 && point.y >= -95 && point.y <= 110;
+  return point.x >= -10 && point.x <= 120 && point.y >= 55 && point.y <= 150;
 }
 
 export function poiById(world: World, id: string | null): Poi | undefined {

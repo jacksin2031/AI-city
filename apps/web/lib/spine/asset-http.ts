@@ -1,19 +1,27 @@
 import { validateRequestOrigin } from "../development/http";
 import type { SpineJobs } from "./jobs";
-import type { LocalSpineStorage } from "./local-storage";
-import { readPublishedSpineAsset } from "./published-assets";
+import { type PrivateSpineAssets, readPublishedSpineAsset } from "./published-assets";
 
-/** Local-only delivery: every response checks current publication and byte hashes. */
-export async function handleLocalSpineAsset(
+/** Anything that can hand out a read-only reader for one task (local disk or private cloud bucket). */
+export interface SpineAssetSource {
+  assetReader(task: string): PrivateSpineAssets;
+}
+
+/**
+ * Delivery from private storage: every response rechecks current publication and byte hashes.
+ * `remoteOrigin` is the configured HTTPS origin when hosted; local runs pass nothing.
+ */
+export async function handleSpineAsset(
   request: Request,
   jobs: SpineJobs | null,
-  storage: LocalSpineStorage | null,
+  storage: SpineAssetSource | null,
+  remoteOrigin?: string,
 ) {
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
   try {
     if (!jobs || !storage || request.method !== "GET")
       return new Response(null, { status: 404, headers });
-    validateRequestOrigin(request);
+    validateRequestOrigin(request, remoteOrigin);
     const url = new URL(request.url);
     if (url.search) return new Response(null, { status: 404, headers });
     const match =
@@ -40,3 +48,6 @@ export async function handleLocalSpineAsset(
     return new Response(null, { status: 404, headers });
   }
 }
+
+/** Kept for the local emulator tests and callers that only know the local adapter. */
+export const handleLocalSpineAsset = handleSpineAsset;

@@ -1,0 +1,11 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file
+      - infra/app/Dockerfile
+      - --tag
+      - asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/web:20cf074
+      - .
+images:
+  - asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/web:20cf074

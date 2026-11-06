@@ -9,6 +9,7 @@ import { PRESET_CHARACTERS } from "@ai-city/contracts/device-link";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
 import { DeviceLinkError, type DeviceLinkService } from "./service";
+import { dialoguePairKey, type StoredDialogueReader } from "./stored-dialogue";
 
 type Options = { enabled: boolean; project?: string; model?: string; maxCalls: number };
 const fictionalIds = new Set([
@@ -44,8 +45,12 @@ export class DialogueService {
         }).getAccessToken()) ?? null
       );
     },
+    private stored: StoredDialogueReader | null = null,
   ) {}
   available() {
+    return this.stored !== null || this.modelAvailable();
+  }
+  private modelAvailable() {
     return (
       this.config.enabled &&
       /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(this.config.project ?? "") &&
@@ -56,6 +61,31 @@ export class DialogueService {
       this.calls < this.config.maxCalls
     );
   }
+  /** Dialogue the local worker wrote for this pair, re-validated against the request. */
+  private async fromWorker(input: ReturnType<typeof DialogueRequestSchema.parse>) {
+    if (!this.stored) return null;
+    try {
+      const found = await this.stored(dialoguePairKey(input.residentIds[0], input.residentIds[1]));
+      if (!found) return null;
+      const lines = found.lines.slice(0, input.maxLines);
+      const parsed = DialogueResultSchema.safeParse({
+        schemaVersion: 1,
+        requestId: input.requestId,
+        source: "LIVE",
+        safety: "PASSED",
+        lines,
+      });
+      if (
+        !parsed.success ||
+        parsed.data.lines.length < 2 ||
+        parsed.data.lines.some((line) => !input.residentIds.includes(line.residentId))
+      )
+        return null;
+      return parsed.data;
+    } catch {
+      return null;
+    }
+  }
   async generate(request: unknown, residents: PublicResident[]) {
     const input = DialogueRequestSchema.parse(request);
     if (input.maxLines < 2) throw new DeviceLinkError("INVALID_REQUEST", 400);
@@ -64,7 +94,14 @@ export class DialogueService {
     );
     if (pair.some((resident) => !resident || resident.eventId !== input.eventId))
       throw new DeviceLinkError("DIALOGUE_RESIDENT_UNAVAILABLE", 400);
-    if (!this.available()) throw new DeviceLinkError("DIALOGUE_UNAVAILABLE", 503);
+    const fromWorker = await this.fromWorker(input);
+    if (fromWorker) return fromWorker;
+    // The worker has not written this pair yet: only the visible preset text applies. Not a 503,
+    // so the tablet keeps asking for other pairs.
+    if (!this.modelAvailable()) {
+      if (this.stored) throw new DeviceLinkError("DIALOGUE_PENDING", 404);
+      throw new DeviceLinkError("DIALOGUE_UNAVAILABLE", 503);
+    }
     if (this.busy || this.now() - this.lastCall < 30_000)
       throw new DeviceLinkError("DIALOGUE_RATE_LIMITED", 429);
     this.busy = true;
@@ -174,6 +211,7 @@ export class DialogueService {
   }
 }
 
+export type { StoredDialogueReader };
 export async function handleDialogueRequest(
   request: Request,
   device: DeviceLinkService,

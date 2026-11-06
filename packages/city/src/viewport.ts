@@ -50,6 +50,25 @@ export function nextVisibleTourIndex(
   return null;
 }
 
+/**
+ * Choose the next resident the automatic tour should look at. The tour prefers a participant
+ * over a landmark, so it walks the candidate list and takes the first one that is not already
+ * held in the middle of the frame; `current` is the previously chosen resident, or null.
+ * Returns the index into `ids`, or null when there is nobody to look at.
+ */
+export function nextResidentTourIndex(
+  ids: readonly string[],
+  current: string | null,
+): number | null {
+  if (ids.length === 0) return null;
+  const start = current === null ? -1 : ids.indexOf(current);
+  for (let offset = 1; offset <= ids.length; offset++) {
+    const index = (start + offset + ids.length) % ids.length;
+    if (ids[index] !== current || ids.length === 1) return index;
+  }
+  return 0;
+}
+
 /** Keep the profile card in the visible part of a cropped scene. */
 export function clampSpeechToViewport(
   bounds: { x: number; y: number; width: number; height: number },

@@ -760,3 +760,48 @@
   background: white;
   box-shadow: 0 12px 36px #183c3033;
 }
+
+/* Photo-to-character progress */
+.pf-progress {
+  display: grid;
+  gap: 12px;
+}
+.pf-bar {
+  height: 14px;
+  overflow: hidden;
+  background: #dbe5dd;
+  border-radius: 7px;
+}
+.pf-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #2f7a5f, #5aa886);
+  border-radius: 7px;
+  transition: width 0.8s ease;
+}
+.pf-bar-text {
+  margin: 0;
+  font-size: 15px;
+}
+.pf-bar-text strong {
+  font-size: 18px;
+}
+.pf-tip {
+  padding: 14px 16px;
+  color: #1d3129;
+  background: #eef5ea;
+  border: 1px solid #c9dbd0;
+  border-radius: 8px;
+}
+.pf-tip ul {
+  margin: 8px 0;
+  padding-left: 1.2em;
+}
+.pf-tip li {
+  margin: 4px 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-bar span {
+    transition: none;
+  }
+}

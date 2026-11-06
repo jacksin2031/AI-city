@@ -8,6 +8,9 @@ import { FocusRequestInputSchema, FocusStatusResponseSchema } from "@ai-city/con
 import { VisitorSessionRequestSchema } from "@ai-city/contracts/visitor";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
+import type { CloudAssetStorage } from "../spine/cloud-asset-storage";
+import { submitCloudPhoto, withdrawCloudPhoto } from "../spine/cloud-photo-intake";
+import type { CloudPhotoStorage } from "../spine/cloud-photo-storage";
 import type { LocalSpineStorage } from "../spine/local-storage";
 import { submitSpinePhoto, withdrawSpinePhoto } from "../spine/photo-intake";
 import type { VisitorBoundary } from "./credentials";
@@ -76,6 +79,10 @@ export async function handleVisitorRequest(
   security?: VisitorBoundary | null,
   codeFree = false,
   spineStorage?: LocalSpineStorage | null,
+  spineCloud?: {
+    photos: Pick<CloudPhotoStorage, "write" | "read" | "remove">;
+    assets: Pick<CloudAssetStorage, "removeTask">;
+  } | null,
 ): Promise<Response> {
   try {
     if (!enabled || !service)
@@ -139,7 +146,7 @@ export async function handleVisitorRequest(
         }),
       );
     }
-    if (path === "spine/jobs" && request.method === "POST" && spineStorage) {
+    if (path === "spine/jobs" && request.method === "POST" && (spineStorage || spineCloud)) {
       if (
         request.headers.get("x-spine-processing-consent") !== "1" ||
         request.headers.get("x-spine-model-upload-consent") !== "1" ||
@@ -150,12 +157,21 @@ export async function handleVisitorRequest(
         throw new DevelopmentServiceError("PHOTO_INVALID", 400);
       const bytes = await readPhoto(request);
       try {
-        const job = await submitSpinePhoto(service, spineStorage, token, bytes, {
+        const consent = {
           processing: true,
           externalModelUpload: true,
           automaticPublication: true,
           version: 2,
-        });
+        };
+        const job = spineCloud
+          ? await submitCloudPhoto(service, spineCloud.photos, token, bytes, consent)
+          : await submitSpinePhoto(
+              service,
+              spineStorage as LocalSpineStorage,
+              token,
+              bytes,
+              consent,
+            );
         return json({ mode: "LOCAL_PRIVATE_TEST", ...job }, 202);
       } catch (error) {
         if (
@@ -166,10 +182,20 @@ export async function handleVisitorRequest(
         throw error;
       }
     }
-    if (spineStorage && path === "spine/jobs/current" && request.method === "GET")
+    if ((spineStorage || spineCloud) && path === "spine/profile" && request.method === "POST") {
+      await service.setSpineProfile(token, await readJsonBody(request));
+      return json({ mode: "LOCAL_PRIVATE_TEST" });
+    }
+    if ((spineStorage || spineCloud) && path === "spine/jobs/current" && request.method === "GET")
       return json({ mode: "LOCAL_PRIVATE_TEST", job: await service.currentSpineJob(token) });
+    // The participant's own character, so the summary card can draw the finished figure.
+    if ((spineStorage || spineCloud) && path === "spine/bundle" && request.method === "GET")
+      return json({
+        mode: "LOCAL_PRIVATE_TEST",
+        bundle: await service.currentSpineBundle(token),
+      });
     const spineMatch = /^spine\/jobs\/([A-Za-z0-9_-]{1,96})(?:\/(withdraw))?$/.exec(path);
-    if (spineStorage && spineMatch?.[1]) {
+    if ((spineStorage || spineCloud) && spineMatch?.[1]) {
       if (request.method === "GET" && !spineMatch[2])
         return json({
           mode: "LOCAL_PRIVATE_TEST",
@@ -179,7 +205,20 @@ export async function handleVisitorRequest(
         EmptyDevelopmentRequestSchema.parse(await readJsonBody(request));
         return json({
           mode: "LOCAL_PRIVATE_TEST",
-          ...(await withdrawSpinePhoto(service, spineStorage, token, spineMatch[1])),
+          ...(spineCloud
+            ? await withdrawCloudPhoto(
+                service,
+                spineCloud.photos,
+                spineCloud.assets,
+                token,
+                spineMatch[1],
+              )
+            : await withdrawSpinePhoto(
+                service,
+                spineStorage as LocalSpineStorage,
+                token,
+                spineMatch[1],
+              )),
         });
       }
     }

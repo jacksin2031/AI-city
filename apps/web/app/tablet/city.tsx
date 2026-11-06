@@ -15,10 +15,15 @@ import {
 } from "@ai-city/city";
 import { DialogueResultSchema } from "@ai-city/contracts";
 import type { CitySnapshot } from "@ai-city/contracts/development";
+import { PRESET_CHARACTERS } from "@ai-city/contracts/device-link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LandmarkCard } from "../landmark-card";
 import { AutumnFilter, SceneCounts, SceneLogo } from "./hud";
 import { ResidentSpeech } from "./resident-speech";
+
+const sampleSkins: Record<string, string> = Object.fromEntries(
+  PRESET_CHARACTERS.map((preset) => [preset.id, preset.officialSkin]),
+);
 export function TabletCity({
   snapshot,
   motion,
@@ -45,13 +50,23 @@ export function TabletCity({
   const [presentation, setPresentation] = useState(() => updatePresentation(null, snapshot));
   const view = useMemo(() => updatePresentation(presentation, snapshot), [presentation, snapshot]);
   const residents = view.roster.residents;
-  const spineKey = JSON.stringify(
-    snapshot.avatars.flatMap(({ manifest }) =>
-      manifest.spine &&
-      residents.some((resident) => resident.avatarVersion === manifest.avatarVersion)
-        ? [{ version: manifest.avatarVersion, descriptor: manifest.spine }]
-        : [],
-    ),
+  const hasPresetResidents = residents.some((resident) =>
+    resident.residentId.startsWith("preset-"),
+  );
+  // Which Spine bundles the current roster needs. Residents come and go, so this list changes
+  // often — it must only top up the loaded bundles, never restart the scene.
+  const spineDescriptors: Array<{
+    version: string;
+    descriptor: NonNullable<CitySnapshot["avatars"][number]["manifest"]["spine"]>;
+  }> = useMemo(
+    () =>
+      snapshot.avatars.flatMap(({ manifest }) =>
+        manifest.spine &&
+        residents.some((resident) => resident.avatarVersion === manifest.avatarVersion)
+          ? [{ version: manifest.avatarVersion, descriptor: manifest.spine }]
+          : [],
+      ),
+    [snapshot.avatars, residents],
   );
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -62,6 +77,10 @@ export function TabletCity({
   const [spineBundles, setSpineBundles] = useState(0);
   const [landmark, setLandmark] = useState<Landmark | null>(null);
   const [dialogueAvailable, setDialogueAvailable] = useState(false);
+  // Loaded Spine bundles live as long as the scene does, keyed by avatar version. They are
+  // filled in independently of the scene so a resident leaving never rebuilds the world.
+  const bundleAssets = useRef(new Map<string, Awaited<ReturnType<typeof fetchSpineBundle>>>());
+  const bundleLifetime = useRef<AbortController | null>(null);
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
   const select = useCallback((id: string) => {
@@ -101,7 +120,6 @@ export function TabletCity({
     let aiEnabled = false;
     const lifetime = new AbortController();
     let sampleAssets: Awaited<ReturnType<typeof loadChibiDemo>> | undefined;
-    const bundleAssets = new Map<string, Awaited<ReturnType<typeof fetchSpineBundle>>>();
     void fetch("/api/link/dialogue", {
       credentials: "same-origin",
       cache: "no-store",
@@ -124,39 +142,27 @@ export function TabletCity({
     applyMotion();
     media.addEventListener("change", applyMotion);
     const container = parent.current;
-    const loadSample = sample
-      ? loadChibiDemo(lifetime.signal)
-          .then((assets) => {
-            if (!active) {
-              assets.dispose();
+    const loadSample =
+      sample || hasPresetResidents
+        ? loadChibiDemo(lifetime.signal)
+            .then((assets) => {
+              if (!active) {
+                assets.dispose();
+                return undefined;
+              }
+              sampleAssets = assets;
+              return assets;
+            })
+            .catch(() => {
+              if (active) setSpineSample("failed");
               return undefined;
-            }
-            sampleAssets = assets;
-            return assets;
-          })
-          .catch(() => {
-            if (active) setSpineSample("failed");
-            return undefined;
-          })
-      : Promise.resolve(undefined);
-    if (sample) setSpineSample("loading");
+            })
+        : Promise.resolve(undefined);
+    if (sample || hasPresetResidents) setSpineSample("loading");
     else setSpineSample(null);
-    const descriptors: Array<{
-      version: string;
-      descriptor: NonNullable<CitySnapshot["avatars"][number]["manifest"]["spine"]>;
-    }> = JSON.parse(spineKey);
-    const loadBundles = Promise.all(
-      descriptors.map(async ({ version, descriptor }) => {
-        try {
-          const assets = await fetchSpineBundle(descriptor, lifetime.signal);
-          if (!active) assets.dispose();
-          else bundleAssets.set(version, assets);
-        } catch {
-          // An unavailable or invalid bundle falls back to the existing illustration.
-        }
-      }),
-    );
-    Promise.all([loadSample, loadBundles])
+    // Bundles are loaded by their own effect, so the scene never waits on the network for
+    // someone who just left. Anything already loaded is used immediately.
+    Promise.all([loadSample])
       .then(([assets]) => {
         if (!active) return;
         const sampleId = latest.current.residents[0]?.residentId;
@@ -168,13 +174,26 @@ export function TabletCity({
           signal: lifetime.signal,
           createAnimatedCharacter: (resident) => {
             try {
-              const bundle = bundleAssets.get(resident.avatarVersion);
+              const bundle = bundleAssets.current.get(resident.avatarVersion);
               if (bundle) {
                 const player = bundle.create();
                 bundlePlayers += 1;
                 return player;
               }
-              return assets && resident.residentId === sampleId ? assets.create() : null;
+              const preset =
+                /^preset-([a-z]+)(?:-\d+)?$/.exec(resident.residentId) ??
+                /^sample-([a-z]+)-v1$/.exec(resident.avatarVersion);
+              if (assets && preset?.[1] && sampleSkins[preset[1]])
+                return assets.create(sampleSkins[preset[1]]);
+              // A participant's own character is still loading: never borrow the sample figure.
+              if (
+                latest.current.snapshot.avatars.some(
+                  ({ manifest }) =>
+                    manifest.spine && manifest.avatarVersion === resident.avatarVersion,
+                )
+              )
+                return null;
+              return assets && sample && resident.residentId === sampleId ? assets.create() : null;
             } catch {
               return null;
             }
@@ -251,12 +270,59 @@ export function TabletCity({
       city.current = null;
       setSound(false);
       sampleAssets?.dispose();
-      for (const assets of bundleAssets.values()) assets.dispose();
+      bundleLifetime.current?.abort();
+      bundleLifetime.current = null;
+      for (const assets of bundleAssets.current.values()) assets.dispose();
+      bundleAssets.current.clear();
     };
-  }, [select, close, sample, spineKey]);
+  }, [select, close, sample, hasPresetResidents]);
   useEffect(() => {
     setPresentation((previous) => updatePresentation(previous, snapshot));
   }, [snapshot]);
+  // Top up the Spine bundles the roster needs. A resident leaving simply drops out of this
+  // list; the scene keeps running and the character plays its own departure animation.
+  useEffect(() => {
+    if (!ready) return;
+    const missing = spineDescriptors.filter((item) => !bundleAssets.current.has(item.version));
+    if (!missing.length) return;
+    const controller = new AbortController();
+    bundleLifetime.current = controller;
+    let live = true;
+    void Promise.all(
+      missing.map(async ({ version, descriptor }) => {
+        // A bundle can be briefly unavailable right after publishing, so retry a few times
+        // instead of waiting for the next roster change.
+        for (const delay of [0, 2000, 5000, 10000]) {
+          if (delay) {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            if (!live || controller.signal.aborted) return;
+          }
+          try {
+            const assets = await fetchSpineBundle(descriptor, controller.signal);
+            if (!live || controller.signal.aborted) assets.dispose();
+            else bundleAssets.current.set(version, assets);
+            return;
+          } catch {
+            // Keep the illustration fallback until a retry succeeds.
+          }
+        }
+      }),
+    ).then(() => {
+      if (!live || controller.signal.aborted) return;
+      // Residents now have real art: refresh them in place, without rebuilding the scene.
+      const loaded = spineDescriptors.filter((item) =>
+        bundleAssets.current.has(item.version),
+      ).length;
+      setSpineBundles(loaded);
+      city.current?.setResidents(latest.current.residents);
+      // Residents that appeared before their art was ready pick it up in place.
+      city.current?.refreshCharacters();
+    });
+    return () => {
+      live = false;
+      controller.abort();
+    };
+  }, [ready, spineDescriptors]);
   useEffect(() => {
     city.current?.setResidents(residents);
     const enabled = motion && !matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -349,10 +415,7 @@ export function TabletCity({
           <span aria-hidden="true">{sound ? "🔊" : "🔈"}</span>
           {sound ? "街の音：オン" : "街の音：オフ"}
         </button>
-        <SceneCounts
-          participants={Math.max(totalParticipants ?? 0, residents.length)}
-          inScene={inScene}
-        />
+        <SceneCounts participants={totalParticipants ?? residents.length} inScene={inScene} />
         {tools && (
           <p className="tablet-dialogue-status">
             {dialogueAvailable ? "架空の住民：AI会話の接続設定あり" : "架空の住民：AI会話は未設定"}

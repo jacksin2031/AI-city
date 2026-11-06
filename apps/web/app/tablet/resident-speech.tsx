@@ -2,6 +2,54 @@
 import { clampSpeechToViewport, type ScenePresentationFrame, speechBounds } from "@ai-city/city";
 import type { PublicResident } from "@ai-city/contracts";
 import { useEffect, useRef, useState } from "react";
+import { traitLabels } from "../join/trait-values";
+
+/** Corner i of a hexagon, starting at the top and going clockwise. */
+function corner(i: number, radius: number) {
+  const angle = -Math.PI / 2 + (i * Math.PI) / 3;
+  return [Math.cos(angle) * radius, Math.sin(angle) * radius] as const;
+}
+const valueRadius = (value: number, radius: number) => radius * (0.15 + 0.85 * value);
+
+/** The participant's own trait hexagon, as on the last page of their phone flow. */
+function TraitHexagon({ traits }: { traits: readonly number[] }) {
+  const points = (radiusFor: (i: number) => number) =>
+    traitLabels.map((_, i) => corner(i, radiusFor(i)).join(",")).join(" ");
+  const summary = traitLabels
+    .map((label, i) => `${label} ${Math.round((traits[i] ?? 0) * 100)}`)
+    .join("、");
+  return (
+    <svg
+      className="tablet-card-hex"
+      viewBox="-70 -62 140 124"
+      role="img"
+      aria-label={`性格六角形：${summary}`}
+    >
+      {[1, 0.66, 0.33].map((k) => (
+        <polygon key={k} className="tablet-hex-grid" points={points(() => 40 * k)} />
+      ))}
+      <polygon
+        className="tablet-hex-shape"
+        points={points((i) => valueRadius(traits[i] ?? 0, 40))}
+      />
+      {traitLabels.map((label, i) => {
+        const [x, y] = corner(i, 54);
+        return (
+          <text
+            key={label}
+            className="tablet-hex-label"
+            x={x}
+            y={y}
+            textAnchor="middle"
+            dy="0.35em"
+          >
+            {label}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
 
 /** HTML controls in an SVG coordinate overlay; no modal, backdrop or second avatar. */
 export function ResidentSpeech({
@@ -129,6 +177,7 @@ export function ResidentSpeech({
                       : "仮のイラスト・本人の公開項目のみ"}
                 </p>
               </div>
+              {resident.traits && <TraitHexagon traits={resident.traits} />}
               <button
                 ref={closeButton}
                 className="tablet-card-close"

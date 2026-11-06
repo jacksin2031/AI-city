@@ -1,6 +1,7 @@
 import { participationService } from "../development/runtime";
 import { DialogueService } from "./dialogue";
 import { DeviceLinkService } from "./service";
+import { createStoredDialogueReader } from "./stored-dialogue";
 
 const local = globalThis as typeof globalThis & {
   aiCityDeviceLink?: DeviceLinkService;
@@ -13,12 +14,18 @@ local.aiCityDeviceLink ??= new DeviceLinkService(
   process.env.AI_CITY_ADMIN_KEY,
 );
 export const deviceLinkService = local.aiCityDeviceLink;
-local.aiCityDialogue ??= new DialogueService({
-  enabled: process.env.AI_CITY_DIALOGUE_ENABLED === "1",
-  project: process.env.AI_CITY_DIALOGUE_PROJECT,
-  model: process.env.AI_CITY_GEMINI_MODEL ?? "gemini-3.1-flash-lite",
-  maxCalls: Number(process.env.AI_CITY_DIALOGUE_MAX_CALLS),
-});
+local.aiCityDialogue ??= new DialogueService(
+  {
+    enabled: process.env.AI_CITY_DIALOGUE_ENABLED === "1",
+    project: process.env.AI_CITY_DIALOGUE_PROJECT,
+    model: process.env.AI_CITY_GEMINI_MODEL ?? "gemini-3.1-flash-lite",
+    maxCalls: Number(process.env.AI_CITY_DIALOGUE_MAX_CALLS),
+  },
+  fetch,
+  Date.now,
+  undefined,
+  createStoredDialogueReader(),
+);
 export const dialogueService = local.aiCityDialogue;
 export const previewEnabled =
   (process.env.NODE_ENV === "development" || process.env.AI_CITY_ENABLE_LOCAL_MOCK === "1") &&

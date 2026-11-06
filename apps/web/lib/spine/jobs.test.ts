@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { VisitorService } from "../visitor/service";
 import { MemoryVisitorStore } from "../visitor/test-store";
 import { SpineJobs } from "./jobs";
 
@@ -10,6 +11,26 @@ const consent = {
   automaticPublication: true,
   version: 1,
   recordedAt: "2026-11-05T00:00:00.000Z",
+} as const;
+const visitorInput = {
+  requestId: "ordinary-1",
+  eventId: "fixture-event" as const,
+  nickname: "テストそら",
+  sampleId: "aoi" as const,
+  answers: null,
+  scenario: "SUCCESS" as const,
+};
+const visitorConsent = {
+  avatarPublicConsent: true as const,
+  consentVersion: 2 as const,
+  publicationScope: "HOSTED_PREVIEW" as const,
+  fields: { nickname: true, personality: true, interests: true },
+};
+const spineConsent = {
+  processing: true,
+  externalModelUpload: true,
+  automaticPublication: true,
+  version: 2,
 } as const;
 
 function candidate() {
@@ -143,5 +164,47 @@ describe("Spine jobs transaction boundary", () => {
     ]);
     expect((await jobs.get("task1", owner)).state).toBe("WITHDRAWN");
     expect(await jobs.publishedBundle("task1")).toBeNull();
+  });
+  it("counts each owner once across ordinary and Spine publication, including after a counter reset", async () => {
+    let now = Date.parse("2026-11-05T00:00:00Z");
+    const store = new MemoryVisitorStore();
+    const visitor = new VisitorService(store, () => now);
+    const jobs = new SpineJobs(store, () => now);
+    const newSession = async () =>
+      visitor.createSession(undefined, (await visitor.createInvitation()).code);
+
+    const ordinaryFirst = await newSession();
+    const firstJob = await visitor.createJob(ordinaryFirst.token, visitorInput);
+    now += 1200;
+    const ready = await visitor.getJob(ordinaryFirst.token, firstJob.job.jobId);
+    await visitor.confirm(ordinaryFirst.token, ready.job.jobId, visitorConsent);
+    expect(await visitor.joinedTotal()).toBe(1);
+
+    const firstSpineTask = "spine-11111111-1111-4111-8111-111111111111";
+    await visitor.createSpineJob(ordinaryFirst.token, firstSpineTask, "d".repeat(64), spineConsent);
+    await jobs.claim(firstSpineTask, "worker1");
+    await jobs.publish(firstSpineTask, "worker1", candidate());
+    expect(await visitor.joinedTotal()).toBe(1);
+
+    await visitor.resetJoinedTotal();
+    expect(await visitor.joinedTotal()).toBe(0);
+    expect((await visitor.snapshot()).residents).toHaveLength(2);
+
+    const spineFirst = await newSession();
+    const secondSpineTask = "spine-22222222-2222-4222-8222-222222222222";
+    await visitor.createSpineJob(spineFirst.token, secondSpineTask, "e".repeat(64), spineConsent);
+    await jobs.claim(secondSpineTask, "worker2");
+    await jobs.publish(secondSpineTask, "worker2", candidate());
+    expect(await visitor.joinedTotal()).toBe(1);
+
+    const secondJob = await visitor.createJob(spineFirst.token, {
+      ...visitorInput,
+      requestId: "ordinary-after-spine",
+    });
+    now += 1200;
+    const secondReady = await visitor.getJob(spineFirst.token, secondJob.job.jobId);
+    await visitor.confirm(spineFirst.token, secondReady.job.jobId, visitorConsent);
+    expect(await visitor.joinedTotal()).toBe(1);
+    expect((await visitor.snapshot()).residents).toHaveLength(4);
   });
 });

@@ -853,6 +853,33 @@ canvas {
   font-size: 24px;
   line-height: 1;
 }
+.tablet-resident-speech:has(.tablet-card-hex) .tablet-speech-content {
+  padding-right: 150px;
+}
+.tablet-card-hex {
+  position: absolute;
+  top: 52px;
+  right: 10px;
+  width: 140px;
+  height: 124px;
+  pointer-events: none;
+}
+.tablet-hex-grid {
+  fill: none;
+  stroke: #cfdad2;
+  stroke-width: 0.8;
+}
+.tablet-hex-shape {
+  fill: rgb(31 111 83 / 28%);
+  stroke: #1f6f53;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.tablet-hex-label {
+  fill: #1f4a39;
+  font-size: 9px;
+  font-weight: 700;
+}
 .tablet-resident-speech[data-kind="welcome"] {
   padding: 6px;
 }

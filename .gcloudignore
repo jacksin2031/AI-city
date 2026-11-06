@@ -1,0 +1,24 @@
+# Cloud Build context: only what `pnpm install && pnpm build` needs.
+# The bundled Spine tool is a local Python toolchain; the container never runs it.
+.git
+.github
+.tools
+.superpowers
+.artifacts
+.agents
+.devcontainer
+node_modules
+.next
+dist
+coverage
+test-results
+playwright-report
+.playwright-cli
+output
+*.log
+*.tsbuildinfo
+
+# Local-only AI tool workspace and its runtime
+apps/web/app/city/spine-lab/SpineSkinTool_v1.0/runtime
+apps/web/app/city/spine-lab/SpineSkinTool_v1.0/templates
+apps/web/app/city/spine-lab/SpineSkinTool_v1.0/.venv

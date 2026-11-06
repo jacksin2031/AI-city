@@ -42,7 +42,7 @@ export class DeviceLinkService {
   private pairing: { digest: string; expiresAt: number } | null = null;
   private attempts = new Map<string, { count: number; until: number }>();
   private control: DeviceControl;
-  private presetIds = new Set<DevicePresetId>();
+  private presetIds: DevicePresetId[] = [];
   private presetVersion = 0;
   private displayStreams = new Map<
     string,
@@ -60,7 +60,7 @@ export class DeviceLinkService {
       mode: "MOCK",
       serverId: randomUUID(),
       revision: 0,
-      displayMode: "DEMO",
+      displayMode: "LIVE",
       motionEnabled: true,
       updatedAt: new Date(now()).toISOString(),
     };
@@ -139,8 +139,12 @@ export class DeviceLinkService {
       if (current) this.throttle(`pair-code:${current.digest}:${client}`, 5);
       throw new DeviceLinkError("PAIR_FAILED", 401);
     }
+    const token = this.issue("DISPLAY");
+    const currentDisplay = hash(token);
+    for (const [id, session] of this.sessions)
+      if (session.role === "DISPLAY" && id !== currentDisplay) this.sessions.delete(id);
     this.pairing = null;
-    return this.issue("DISPLAY");
+    return token;
   }
   adminState(token: string | undefined) {
     this.require(token, "ADMIN");
@@ -163,7 +167,8 @@ export class DeviceLinkService {
       this.control.displayMode === "MAINTENANCE"
         ? null
         : this.control.displayMode === "DEMO"
-          ? this.withPresets(developmentCitySnapshot, "DEMO")
+          ? // The demo screen no longer carries fixture residents; only enabled presets appear.
+            this.withPresets({ ...developmentCitySnapshot, residents: [], avatars: [] }, "DEMO")
           : this.withPresets(this.participation.snapshot(), "LIVE");
     return DeviceDisplaySchema.parse({
       control: this.control,
@@ -200,13 +205,17 @@ export class DeviceLinkService {
       stream.seq++;
     }
     const room = Math.max(0, 200 - snapshot.residents.length);
-    const presets = PRESET_CHARACTERS.filter((preset) => this.presetIds.has(preset.id)).slice(
-      0,
-      room,
-    );
+    const counts = new Map<DevicePresetId, number>();
+    const presets = this.presetIds.slice(0, room).map((id) => {
+      const preset = PRESET_CHARACTERS.find((entry) => entry.id === id);
+      if (!preset) throw new Error("INVALID_PRESET");
+      const number = (counts.get(id) ?? 0) + 1;
+      counts.set(id, number);
+      return { ...preset, number };
+    });
     const residents = presets.map((preset) => ({
       schemaVersion: 1 as const,
-      residentId: `preset-${preset.id}`,
+      residentId: `preset-${preset.id}${preset.number === 1 ? "" : `-${preset.number}`}`,
       eventId: snapshot.eventId,
       nickname: `見本・${preset.name}`,
       avatarVersion: preset.avatarVersion,
@@ -237,12 +246,12 @@ export class DeviceLinkService {
     const input = DevicePresetUpdateSchema.parse(raw);
     if (input.expectedRevision !== this.control.revision)
       throw new DeviceLinkError("REVISION_CONFLICT", 409);
-    const changed = input.enabled
-      ? !this.presetIds.has(input.presetId)
-      : this.presetIds.has(input.presetId);
+    const index = this.presetIds.lastIndexOf(input.presetId);
+    if (input.enabled && this.presetIds.length >= 20) throw new DeviceLinkError("CAPACITY", 429);
+    const changed = input.enabled || index !== -1;
     if (changed) {
-      if (input.enabled) this.presetIds.add(input.presetId);
-      else this.presetIds.delete(input.presetId);
+      if (input.enabled) this.presetIds.push(input.presetId);
+      else this.presetIds.splice(index, 1);
       this.presetVersion++;
       this.control = {
         ...this.control,

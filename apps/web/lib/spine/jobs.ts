@@ -30,6 +30,12 @@ const recordSchema = z
     cleanupPending: z.boolean().optional(),
     toolCleanupPending: z.boolean().optional(),
     toolCleanupSafe: z.boolean().optional(),
+    publishedPhotoCleanupPending: z.boolean().optional(),
+    photoStorage: z.literal("CLOUD_PRIVATE").optional(),
+    photoGeneration: z
+      .string()
+      .regex(/^[1-9][0-9]{0,19}$/)
+      .optional(),
     toolFlow: z
       .string()
       .regex(/^flow-[a-f0-9]{32}$/)
@@ -38,6 +44,8 @@ const recordSchema = z
     liveIntent: z.boolean().optional(),
   })
   .refine((record) => {
+    if ((record.photoStorage === "CLOUD_PRIVATE") !== (record.photoGeneration !== undefined))
+      return false;
     if (record.state === "WITHDRAWN")
       return (
         !record.processingConsent &&
@@ -86,6 +94,21 @@ export function makeSpineJob(
     toolFlow: null,
     liveIntent: false,
     ...(sessionExpiresAt === undefined ? {} : { sessionExpiresAt }),
+  });
+}
+
+/** Only a server-side verifier may bind an object generation to a queued task. */
+export function makeCloudSpineJob(
+  owner: string,
+  photoSha256: string,
+  consent: SpineConsent,
+  expiresAt: number,
+  generation: string,
+) {
+  return recordSchema.parse({
+    ...makeSpineJob(owner, photoSha256, consent, expiresAt),
+    photoStorage: "CLOUD_PRIVATE",
+    photoGeneration: generation,
   });
 }
 
@@ -158,6 +181,16 @@ export class SpineJobs {
   private path(task: string) {
     return `jobs/spine-${id.parse(task)}`;
   }
+  /** Tombstone serializes orphan cleanup against a late admission transaction. */
+  async reserveOrphanCleanup(task: string): Promise<boolean> {
+    const path = this.path(task);
+    const marker = `requests/spine-orphan-${id.parse(task)}`;
+    return this.store.run(async (tx) => {
+      if (await tx.get(path)) return false;
+      if (!(await tx.get(marker))) tx.set(marker, { cleanup: true });
+      return true;
+    });
+  }
   async create(task: string, owner: string, photoSha256: string, consent: SpineConsent) {
     const path = this.path(task);
     const record = makeSpineJob(owner, photoSha256, consent);
@@ -179,9 +212,33 @@ export class SpineJobs {
   async queuedForWorker(task: string) {
     return this.store.run(async (tx) => {
       const record = recordSchema.safeParse(await tx.get(this.path(task)));
-      if (!record.success || record.data.state !== "QUEUED") return null;
+      if (
+        !record.success ||
+        record.data.state !== "QUEUED" ||
+        record.data.photoStorage === "CLOUD_PRIVATE"
+      )
+        return null;
       if (!(await sessionActive(tx, record.data, this.now()))) return null;
       return { owner: record.data.owner, photoSha256: record.data.photoSha256 };
+    });
+  }
+  /** Internal dispatcher lookup for a cloud-stored photo. Never return this record to a browser. */
+  async cloudQueuedForWorker(task: string) {
+    return this.store.run(async (tx) => {
+      const record = recordSchema.safeParse(await tx.get(this.path(task)));
+      if (
+        !record.success ||
+        record.data.state !== "QUEUED" ||
+        record.data.photoStorage !== "CLOUD_PRIVATE" ||
+        record.data.photoGeneration === undefined
+      )
+        return null;
+      if (!(await sessionActive(tx, record.data, this.now()))) return null;
+      return {
+        owner: record.data.owner,
+        photoSha256: record.data.photoSha256,
+        generation: record.data.photoGeneration,
+      };
     });
   }
   async claim(task: string, worker: string) {
@@ -364,6 +421,7 @@ export class SpineJobs {
         ...record,
         ...transitionProductionJob(record, { type: "PUBLISH", verified: true, approved: true }),
         bundle: descriptor,
+        publishedPhotoCleanupPending: true,
       };
       if (record.sessionExpiresAt !== undefined)
         await addSpineResident(tx, {
@@ -384,6 +442,26 @@ export class SpineJobs {
         (await sessionActive(tx, record.data, this.now()))
         ? (record.data.bundle ?? null)
         : null;
+    });
+  }
+  /** Publication records the need for cleanup in the same transaction as the public bundle. */
+  async publishedPhotoCleanupPending(task: string) {
+    return this.store.run(async (tx) => {
+      const parsed = recordSchema.safeParse(await tx.get(this.path(task)));
+      return Boolean(
+        parsed.success &&
+          parsed.data.state === "PUBLISHED" &&
+          parsed.data.publishedPhotoCleanupPending,
+      );
+    });
+  }
+  async finishPublishedPhotoCleanup(task: string) {
+    return this.store.run(async (tx) => {
+      const path = this.path(task);
+      const parsed = recordSchema.safeParse(await tx.get(path));
+      if (!parsed.success || parsed.data.state !== "PUBLISHED") return false;
+      tx.set(path, { ...parsed.data, publishedPhotoCleanupPending: false });
+      return true;
     });
   }
   /** Local maintenance: expire session-bound tasks and retain a durable cleanup marker. */

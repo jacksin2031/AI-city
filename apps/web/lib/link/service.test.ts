@@ -15,13 +15,25 @@ function setup() {
   };
 }
 describe("device pairing and control", () => {
+  it("replaces the previous display only after a successful new pairing", () => {
+    const { service } = setup();
+    const admin = service.login(key);
+    const oldDisplay = service.pair(service.createPairing(admin).code);
+    const code = service.createPairing(admin).code;
+    expect(() => service.pair("00000000")).toThrow();
+    expect(service.display(oldDisplay).snapshot).not.toBeNull();
+    const newDisplay = service.pair(code);
+    expect(() => service.display(oldDisplay)).toThrow("PAIR_REQUIRED");
+    expect(service.display(newDisplay).snapshot).not.toBeNull();
+    expect(service.adminState(admin).pairedDisplays).toBe(1);
+  });
   it("requires a manager key and keeps display sessions read only", () => {
     const { service } = setup();
     expect(() => service.login("wrong")).toThrow();
     const admin = service.login(key);
     const pairing = service.createPairing(admin);
     const display = service.pair(pairing.code);
-    expect(service.display(display).control.displayMode).toBe("DEMO");
+    expect(service.display(display).control.displayMode).toBe("LIVE");
     expect(() => service.update(display, { expectedRevision: 0, displayMode: "LIVE" })).toThrow();
     expect(() => service.adminState(display)).toThrow();
     expect(() => service.pair(pairing.code)).toThrow();
@@ -114,12 +126,16 @@ it("lets only an admin add and remove fictional presets from the display", () =>
     presetId: "aoi",
     enabled: true,
   });
-  expect(repeated.control.revision).toBe(2);
-  expect(service.display(display).snapshot?.residents).toHaveLength(1);
+  expect(repeated.control.revision).toBe(3);
+  expect(
+    service.display(display).snapshot?.residents.map((resident) => resident.residentId),
+  ).toEqual(["preset-aoi", "preset-aoi-2"]);
   expect(() =>
     service.setPreset(admin, { expectedRevision: 1, presetId: "aoi", enabled: false }),
   ).toThrow();
-  service.setPreset(admin, { expectedRevision: 2, presetId: "aoi", enabled: false });
+  service.setPreset(admin, { expectedRevision: 3, presetId: "aoi", enabled: false });
+  expect(service.display(display).snapshot?.residents).toHaveLength(1);
+  service.setPreset(admin, { expectedRevision: 4, presetId: "aoi", enabled: false });
   expect(service.display(display).snapshot?.residents).toHaveLength(0);
 });
 
@@ -132,4 +148,25 @@ it("does not resurrect removed residents when display snapshots arrive out of or
   const newest = service.withPresets(removed, "LIVE");
   expect(() => service.withPresets(old, "LIVE")).toThrow();
   expect(service.withPresets(removed, "LIVE").eventSeq).toBe(newest.eventSeq);
+});
+
+it("bounds repeated sample additions and preserves unrelated samples when one is removed", () => {
+  const { service } = setup();
+  const admin = service.login(key);
+  const display = service.pair(service.createPairing(admin).code);
+  for (let revision = 0; revision < 20; revision++)
+    service.setPreset(admin, {
+      expectedRevision: revision,
+      presetId: revision === 1 ? "kaede" : "aoi",
+      enabled: true,
+    });
+  expect(() =>
+    service.setPreset(admin, { expectedRevision: 20, presetId: "aoi", enabled: true }),
+  ).toThrow("CAPACITY");
+  service.setPreset(admin, { expectedRevision: 20, presetId: "aoi", enabled: false });
+  const ids =
+    service.display(display).snapshot?.residents.map((resident) => resident.residentId) ?? [];
+  expect(ids).toHaveLength(19);
+  expect(new Set(ids).size).toBe(19);
+  expect(ids).toContain("preset-kaede");
 });

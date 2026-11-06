@@ -41,7 +41,7 @@ describe("B typed client against the real local API", () => {
         requestId: "node-1",
         eventId: "fixture-event",
         nickname: "そら",
-        sampleId: "sora",
+        sampleId: "aoi",
         answers: null,
         scenario: "SUCCESS",
       });
@@ -78,7 +78,7 @@ describe("B typed client against the real local API", () => {
       requestId: "client-1",
       eventId: "fixture-event",
       nickname: "そら",
-      sampleId: "sora",
+      sampleId: "aoi",
       answers: null,
       scenario: "SUCCESS",
     });

@@ -39,7 +39,7 @@ describe("local API boundary", () => {
       eventId: "fixture-event",
       requestId: "hosted-scope",
       nickname: "架空",
-      sampleId: "sora",
+      sampleId: "aoi",
       answers: null,
       scenario: "SUCCESS",
     });

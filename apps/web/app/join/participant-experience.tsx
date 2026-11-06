@@ -4,44 +4,24 @@ import { characterDataUrl } from "@ai-city/city/illustrations";
 import {
   type AiStyle,
   aiStyleLabels,
+  type CreateJobRequest,
   type ParticipationView,
 } from "@ai-city/contracts/development";
 import {
   createDevelopmentClient,
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
+import { PRESET_CHARACTERS } from "@ai-city/contracts/device-link";
 import Link from "next/link";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
 import { LocalPhoto } from "./local-photo";
 import { ParticipantCard } from "./participant-card";
+import { computeStyle, questions } from "./questions";
 import { traitValues } from "./trait-values";
 import { useReliableFocus } from "./use-reliable-focus";
 import "./participant.css";
 
-const questions = [
-  [
-    "AIを初めて使うなら？",
-    ["まず自由に試す", "使い方を調べてから始める", "簡単な説明を見てから試す"],
-  ],
-  [
-    "AIに何を手伝ってほしい？",
-    ["新しいアイデアを考える", "情報を整理する", "両方を場面に合わせて使う"],
-  ],
-  ["AIの答えが予想と違ったら？", ["質問を変えて試す", "理由を確認する", "別の方法も考えてみる"]],
-  [
-    "AIと何かを作るなら？",
-    ["想像を広げて作品を作る", "役に立つものを作る", "楽しさと実用性を両立する"],
-  ],
-  [
-    "新しいAI機能を見つけたら？",
-    ["すぐ触ってみる", "評判や使い方を確認する", "必要になったら試す"],
-  ],
-  [
-    "AIとの会話で楽しいのは？",
-    ["意外な発想に出会うこと", "疑問を一つずつ解決すること", "気軽にやりとりすること"],
-  ],
-] as const;
 const colors = [
   { id: "green", label: "みどり" },
   { id: "violet", label: "むらさき" },
@@ -62,7 +42,13 @@ type Stage =
   | "published"
   | "removed";
 
-export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boolean }) {
+export function ParticipantExperience({
+  spineLocal = false,
+  photoHref = "/join/spine",
+}: {
+  spineLocal?: boolean;
+  photoHref?: string;
+}) {
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
   const focusRequest = useReliableFocus(client);
   const [stage, setStage] = useState<Stage>("name");
@@ -73,7 +59,7 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackShown, setFeedbackShown] = useState(false);
   const [nickname, setNickname] = useState("");
-  const [sample, setSample] = useState<"sora" | "haru">("sora");
+  const [sample, setSample] = useState<CreateJobRequest["sampleId"]>("aoi");
   const [color, setColor] = useState<(typeof colors)[number]>(colors[0]);
   const [mark, setMark] = useState<(typeof marks)[number]>(marks[0]);
   const [hasDecoration, setHasDecoration] = useState(false);
@@ -185,21 +171,6 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
     return () => window.clearTimeout(timer);
   }, [stage, feedbackShown]);
 
-  function computeStyle(values: (number | null)[]): AiStyle {
-    const score = (indices: number[]) =>
-      indices.reduce((sum, i) => sum + (values[i] === 0 ? 1 : values[i] === 1 ? -1 : 0), 0);
-    const a = score([0, 2, 4]),
-      c = score([1, 3, 5]);
-    return !a || !c
-      ? "BALANCED"
-      : a > 0
-        ? c > 0
-          ? "INSPIRED_EXPLORER"
-          : "PRACTICAL_CHALLENGER"
-        : c > 0
-          ? "THOUGHTFUL_CREATOR"
-          : "STEADY_SUPPORTER";
-  }
   async function prepare(skipped: boolean) {
     const aiStyle = skipped ? "UNANSWERED" : computeStyle(answers);
     setError("");
@@ -315,7 +286,7 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
       <div className="pf-sheet">
         {spineLocal && (
           <p>
-            <Link href="/join/spine">写真からキャラクターを作る（本機テスト）</Link>
+            <Link href={photoHref}>写真からキャラクターを作る（試験運用）</Link>
           </p>
         )}
         {error && (
@@ -452,15 +423,15 @@ export function ParticipantExperience({ spineLocal = false }: { spineLocal?: boo
                 </div>
                 <fieldset className="pf-options">
                   <legend>街に表示するサンプル</legend>
-                  {(["sora", "haru"] as const).map((item) => (
-                    <label key={item}>
+                  {PRESET_CHARACTERS.map((item) => (
+                    <label key={item.id}>
                       <input
                         type="radio"
                         name="sample"
-                        checked={sample === item}
-                        onChange={() => setSample(item)}
+                        checked={sample === item.id}
+                        onChange={() => setSample(item.id)}
                       />
-                      {item === "sora" ? "そら" : "はる"}
+                      {item.name}（{item.personality}）
                     </label>
                   ))}
                 </fieldset>

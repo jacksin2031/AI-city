@@ -13,7 +13,13 @@ const Id = z
   .max(128)
   .regex(/^[A-Za-z0-9_-]+$/);
 export const developmentEventId = "fixture-event" as const;
-export const SampleIdSchema = z.enum(["sora", "haru"]);
+/**
+ * The six prepared characters a participant can join as without a photo. Mirrors the ids in
+ * PRESET_CHARACTERS (device-link.ts, which imports this file, so the list is repeated here and
+ * checked against it in a test).
+ */
+export const PRESET_SAMPLE_IDS = ["aoi", "kaede", "minato", "hinata", "yui", "ren"] as const;
+export const SampleIdSchema = z.enum(PRESET_SAMPLE_IDS);
 export const AiStyleSchema = z.enum([
   "INSPIRED_EXPLORER",
   "PRACTICAL_CHALLENGER",
@@ -193,6 +199,27 @@ export const developmentAvatars: DevelopmentAvatar[] = developmentAvatarManifest
     assetStatus: "REFERENCE_ONLY",
   }),
 );
+/** Which of the two fixture illustrations a prepared character reuses. */
+const presetFixtureIndex: Record<(typeof PRESET_SAMPLE_IDS)[number], 0 | 1> = {
+  aoi: 0,
+  kaede: 1,
+  minato: 0,
+  hinata: 1,
+  yui: 0,
+  ren: 1,
+};
+/** One avatar per prepared character; the avatarVersion tells the tablet which skin to draw. */
+export const presetSampleAvatars: DevelopmentAvatar[] = PRESET_SAMPLE_IDS.map((id) => {
+  const base = developmentAvatars[presetFixtureIndex[id]] as DevelopmentAvatar;
+  return {
+    manifest: { ...base.manifest, avatarVersion: `sample-${id}-v1` },
+    assetStatus: "REFERENCE_ONLY",
+  };
+});
+export const sampleAvatars: DevelopmentAvatar[] = [...developmentAvatars, ...presetSampleAvatars];
+export function avatarForSample(sampleId: z.infer<typeof SampleIdSchema>): DevelopmentAvatar {
+  return presetSampleAvatars[PRESET_SAMPLE_IDS.indexOf(sampleId)] as DevelopmentAvatar;
+}
 export const developmentCitySnapshot = CitySnapshotSchema.parse({
   schemaVersion: 1,
   mode: "MOCK",

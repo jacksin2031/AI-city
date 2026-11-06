@@ -3,6 +3,7 @@ import { developmentCitySnapshot } from "./development";
 import {
   DeviceAdminSchema,
   DeviceDisplaySchema,
+  DeviceParticipantCounterResetSchema,
   DevicePresetUpdateSchema,
   DeviceUpdateSchema,
   deviceControlFixture,
@@ -68,5 +69,25 @@ it("validates preset IDs, rejects private fields and accepts legacy admin respon
       photo: "private",
     }),
   ).toThrow();
-  expect(() => DeviceAdminSchema.parse({ ...legacy, presetIds: ["aoi", "aoi"] })).toThrow();
+  expect(DeviceAdminSchema.parse({ ...legacy, presetIds: ["aoi", "aoi"] }).presetIds).toHaveLength(
+    2,
+  );
+  expect(() => DeviceAdminSchema.parse({ ...legacy, presetIds: Array(21).fill("aoi") })).toThrow();
+});
+
+it("validates participant counter reset responses", () => {
+  expect(
+    DeviceParticipantCounterResetSchema.parse({ mode: "MOCK", totalParticipants: 0 })
+      .totalParticipants,
+  ).toBe(0);
+  expect(() =>
+    DeviceParticipantCounterResetSchema.parse({ mode: "MOCK", totalParticipants: -1 }),
+  ).toThrow();
+  expect(() =>
+    DeviceParticipantCounterResetSchema.parse({
+      mode: "MOCK",
+      totalParticipants: 0,
+      token: "private",
+    }),
+  ).toThrow();
 });
