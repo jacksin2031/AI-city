@@ -33,6 +33,7 @@ import {
   CHAT_WORKER_HEARTBEAT_PATH,
   evaluateChatWorkerHeartbeat,
 } from "../link/chat-worker-health";
+import { addSpineTaskIndex, SPINE_TASK_INDEX_PATH } from "../spine/admin-index";
 import { buildAdminView } from "../spine/admin-view";
 import {
   makeCloudSpineJob,
@@ -694,12 +695,16 @@ export class VisitorService {
         target
       )
         throw new DevelopmentServiceError("INVALID_REQUEST", 409);
+      // Index only opaque task IDs. The admin viewer uses document get (not collection list)
+      // because its narrow Cloud Run identity cannot enumerate Firestore collections.
+      const oldTaskIndex = await tx.get(SPINE_TASK_INDEX_PATH);
       const entries = { ...parsed.data.entries };
       delete entries[task];
       tx.set(
         `jobs/spine-${task}`,
         makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation, now),
       );
+      tx.set(SPINE_TASK_INDEX_PATH, addSpineTaskIndex(oldTaskIndex, task));
       tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
       return { task, state: "QUEUED" as const };
     });
@@ -805,12 +810,14 @@ export class VisitorService {
           previous.cleanupPending !== false)
       )
         throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      const oldTaskIndex = await tx.get(SPINE_TASK_INDEX_PATH);
       const acknowledged = acknowledgeSession(state, owner);
       if (acknowledged.changed) setDocument(tx, "meta/state", acknowledged.state);
       tx.set(
         `jobs/spine-${task}`,
         makeSpineJob(owner, photoSha256, recordedConsent, session.expiresAt, now),
       );
+      tx.set(SPINE_TASK_INDEX_PATH, addSpineTaskIndex(oldTaskIndex, task));
       tx.set(`requests/spine-owner-${owner}`, { task });
       return { task, state: "QUEUED" as const };
     });
