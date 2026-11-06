@@ -183,3 +183,83 @@ describe("cloud photo worker", () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("concurrent workers in one process", () => {
+  async function twoJobs() {
+    const root = await mkdtemp(join(tmpdir(), "ai-city-cloudworker-"));
+    roots.push(root);
+    const storage = await LocalSpineStorage.open(root);
+    const store = new MemoryVisitorStore();
+    const service = new VisitorService(store);
+    const jobs = new SpineJobs(store);
+    const c = cloud();
+    const png = await sharp({ create: { width: 4, height: 4, channels: 3, background: "blue" } })
+      .png()
+      .toBuffer();
+    const tasks: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      const { token } = await service.createOpenSession();
+      tasks.push((await submitCloudPhoto(service, c.photoApi, token, png, consent)).task);
+    }
+    return { storage, jobs, c, tasks };
+  }
+
+  it("processes different people at the same time and each person exactly once", async () => {
+    const f = await twoJobs();
+    let running = 0;
+    let peak = 0;
+    const seen: string[] = [];
+    const execute = async (task: string) => {
+      seen.push(task);
+      running += 1;
+      peak = Math.max(peak, running);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      running -= 1;
+      return { status: "APPROVED" as const, candidate: await candidate(task) };
+    };
+    const deps = {
+      jobs: f.jobs,
+      storage: f.storage,
+      photos: f.c.photoApi,
+      assets: f.c.assetApi,
+      listTasks: async () => f.tasks,
+      execute: execute as never,
+    };
+    const inFlight = new Set<string>();
+    const [a, b] = await Promise.all([
+      pollCloudSpineTasks(deps, 1, inFlight),
+      pollCloudSpineTasks(deps, 1, inFlight),
+    ]);
+    expect(a.claimed + b.claimed).toBe(2);
+    expect(peak).toBe(2);
+    expect([...seen].sort()).toEqual([...f.tasks].sort());
+    for (const task of f.tasks) expect(await f.jobs.publishedBundle(task)).not.toBeNull();
+    expect(inFlight.size).toBe(0);
+  });
+
+  it("never lets two loops run the same person", async () => {
+    const f = await twoJobs();
+    const only = f.tasks.slice(0, 1);
+    let executions = 0;
+    const execute = async (task: string) => {
+      executions += 1;
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      return { status: "APPROVED" as const, candidate: await candidate(task) };
+    };
+    const deps = {
+      jobs: f.jobs,
+      storage: f.storage,
+      photos: f.c.photoApi,
+      assets: f.c.assetApi,
+      listTasks: async () => only,
+      execute: execute as never,
+    };
+    const inFlight = new Set<string>();
+    await Promise.all([
+      pollCloudSpineTasks(deps, 1, inFlight),
+      pollCloudSpineTasks(deps, 1, inFlight),
+      pollCloudSpineTasks(deps, 1, inFlight),
+    ]);
+    expect(executions).toBe(1);
+  });
+});

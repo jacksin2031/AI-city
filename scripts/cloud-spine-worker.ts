@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -29,8 +30,18 @@ async function main() {
   const args = process.argv.slice(2);
   const live = args.includes("--live");
   const capArg = args.find((arg) => arg.startsWith("--cap="));
-  if (args.some((arg) => arg !== "--once" && arg !== "--live" && !arg.startsWith("--cap=")))
+  const workersArg = args.find((arg) => arg.startsWith("--workers="));
+  if (
+    args.some(
+      (arg) =>
+        arg !== "--once" && arg !== "--live" && !arg.startsWith("--cap=") && arg !== workersArg,
+    )
+  )
     throw new Error("WORKER_ARGUMENTS");
+  // Several tasks at once, in one process. Each task still has its own call cap; the model
+  // provider's rate limits decide how many are useful, so the ceiling is deliberately low.
+  const workers = workersArg ? Number(workersArg.slice(10)) : 1;
+  if (!Number.isInteger(workers) || workers < 1 || workers > 4) throw new Error("WORKER_ARGUMENTS");
   if (live && process.env.AI_CITY_SPINE_LIVE_CONFIRM !== "I_AUTHORIZE_REAL_MODEL_CALLS")
     throw new Error("LIVE_NOT_CONFIRMED");
   if (capArg && !live) throw new Error("WORKER_ARGUMENTS");
@@ -96,6 +107,29 @@ async function main() {
     }
   } while (!stop.signal.aborted);
   await db.terminate();
+}
+
+/** One owner per scratch directory; a lock left by a dead process is taken over. */
+async function acquireLock(path: string) {
+  try {
+    await writeFile(path, String(process.pid), { flag: "wx" });
+    return;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
+  const pid = Number((await readFile(path, "utf8").catch(() => "")).trim());
+  let alive = false;
+  if (Number.isInteger(pid) && pid > 0) {
+    try {
+      process.kill(pid, 0);
+      alive = true;
+    } catch {
+      alive = false;
+    }
+  }
+  if (alive) throw new Error("WORKER_ALREADY_RUNNING");
+  await rm(path, { force: true });
+  await writeFile(path, String(process.pid), { flag: "wx" });
 }
 
 main().catch((error) => {

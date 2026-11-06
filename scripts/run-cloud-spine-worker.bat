@@ -19,12 +19,14 @@ echo  Scratch: %AI_CITY_SPINE_LOCAL_DIR%
 echo ============================================
 echo.
 echo Real participant photos are sent to external AI models (costs money).
+set WORKERS=1
+set /p WORKERS=How many photos to process at the same time (1-4, default 1): 
 set /p CONFIRM=Type YES to run live with up to 20 model calls per photo, or press Enter for preparation only:
 if /i "%CONFIRM%"=="YES" (
   set "AI_CITY_SPINE_LIVE_CONFIRM=I_AUTHORIZE_REAL_MODEL_CALLS"
-  node scripts/run-cloud-spine-worker.mjs --live --cap=20
+  node scripts/run-cloud-spine-worker.mjs --live --cap=20 --workers=%WORKERS%
 ) else (
-  node scripts/run-cloud-spine-worker.mjs
+  node scripts/run-cloud-spine-worker.mjs --workers=%WORKERS%
 )
 echo.
 echo Worker exited with code %ERRORLEVEL%
