@@ -185,10 +185,12 @@ test("mobile manager toggles AI dialogue through the existing revisioned control
   await page.getByRole("button", { name: "管理画面に接続", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "AI会話の設定" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "ChatWorker の稼働状況" })).toBeVisible();
-  await expect(page.getByTestId("chat-worker-status")).toHaveText("ChatWorker：監視先未設定");
-  await page.getByRole("button", { name: "ChatWorker の状態を確認" }).click();
-  await expect(page.getByTestId("chat-worker-status")).toHaveText("ChatWorker：監視先未設定");
+  await expect(
+    page.getByRole("heading", { name: "DialogueWorker（AI会話）の稼働状況" }),
+  ).toBeVisible();
+  await expect(page.getByTestId("chat-worker-status")).toHaveText("DialogueWorker：監視先未設定");
+  await page.getByRole("button", { name: "DialogueWorker の状態を確認" }).click();
+  await expect(page.getByTestId("chat-worker-status")).toHaveText("DialogueWorker：監視先未設定");
   // New services start with live AI enabled; presets remain usable independently.
   const initial = await (await page.request.get("/api/link/admin")).json();
   expect(initial.control.dialogueEnabled).toBe(true);

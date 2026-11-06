@@ -16,13 +16,15 @@ function clock(iso: string) {
 }
 
 function label(status: Status | null) {
-  if (!status) return "ChatWorker：確認中";
-  if (!status.configured) return "ChatWorker：監視先未設定";
+  if (!status) return "DialogueWorker：確認中";
+  if (!status.configured) return "DialogueWorker：監視先未設定";
   if (!status.online)
-    return status.lastSeenAt ? "ChatWorker：停止・未接続" : "ChatWorker：未接続（起動報告なし）";
-  if (status.phase === "GENERATING") return "ChatWorker：生成中";
-  if (status.phase === "ERROR") return "ChatWorker：エラー発生（接続中）";
-  return "ChatWorker：稼働中（待機中）";
+    return status.lastSeenAt
+      ? "DialogueWorker：停止・未接続"
+      : "DialogueWorker：未接続（起動報告なし）";
+  if (status.phase === "GENERATING") return "DialogueWorker：生成中";
+  if (status.phase === "ERROR") return "DialogueWorker：エラー発生（接続中）";
+  return "DialogueWorker：稼働中（待機中）";
 }
 
 /** A read-only admin poll; never launches a Worker or model call. */
@@ -70,14 +72,14 @@ export default function ChatWorkerStatus() {
 
   return (
     <div className="chat-worker-panel">
-      <h3>ChatWorker の稼働状況</h3>
+      <h3>DialogueWorker（AI会話）の稼働状況</h3>
       <div
         className={`spine-worker ${status?.online && !error ? "spine-ok" : "spine-alert"}`}
         role="status"
         aria-live="polite"
       >
         <strong data-testid="chat-worker-status">
-          {error ? "ChatWorker：状態を確認できません" : label(status)}
+          {error ? "DialogueWorker：状態を確認できません" : label(status)}
         </strong>
         {status?.lastSeenAt && <span>最終応答：{clock(status.lastSeenAt)}</span>}
         {status?.lastGeneratedAt && <span>最終会話生成：{clock(status.lastGeneratedAt)}</span>}
@@ -88,13 +90,14 @@ export default function ChatWorkerStatus() {
         disabled={checking}
         onClick={() => setRefresh((value) => value + 1)}
       >
-        ChatWorker の状態を確認
+        DialogueWorker の状態を確認
       </button>
       <p className="muted">
-        約15秒ごとに状態を確認します。ChatWorker
+        約15秒ごとに状態を確認します。DialogueWorker
         は30秒ごとに生存確認を送信し、約2分間届かなければ未接続と判定します。 AI会話のオン／オフと
         Worker の接続状態は別です。定型会話は Worker が停止していても利用できます。 Worker
-        の起動には PC 側で --chat オプションが必要です（モデル利用料金に注意）。
+        の起動には PC 側で --chat
+        オプションが必要です（モデル利用料金に注意）。監視対象：scripts/dialogue-worker.ts。
       </p>
       {!status?.configured && !checking && !error && (
         <p className="muted">
