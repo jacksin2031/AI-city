@@ -39,6 +39,11 @@ export function getVisitorService(): VisitorService | null {
   return state.aiCityVisitors.service;
 }
 
+/** Shared store for exhibit device sessions; null when persistence is not configured. */
+export function getVisitorStore(): FirestoreVisitorStore | null {
+  return getVisitorService() ? (state.aiCityVisitors?.store ?? null) : null;
+}
+
 export function getSpineJobs(): SpineJobs | null {
   if (!getVisitorService()) return null;
   return state.aiCityVisitors?.store ? new SpineJobs(state.aiCityVisitors.store) : null;
