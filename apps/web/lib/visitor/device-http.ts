@@ -183,7 +183,7 @@ export async function handlePersistentDeviceRequest(
         PhotoUploadAdminSettingsSchema.parse({
           allowUpload,
           available,
-          effective: available && allowUpload,
+          effective: available && allowUpload && (await visitor.photoUploadReady()),
         }),
         { headers: { "Cache-Control": "no-store" } },
       );

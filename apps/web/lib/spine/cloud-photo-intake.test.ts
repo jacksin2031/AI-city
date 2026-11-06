@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { VisitorService } from "../visitor/service";
 import { MemoryVisitorStore } from "../visitor/test-store";
 import { submitCloudPhoto } from "./cloud-photo-intake";
+import { HEARTBEAT_PATH } from "./heartbeat";
 
 const consent = {
   processing: true,
@@ -12,6 +13,7 @@ const consent = {
 };
 async function fixture() {
   const store = new MemoryVisitorStore();
+  await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
   const service = new VisitorService(store);
   const { token } = await service.createOpenSession();
   const photo = await sharp({ create: { width: 4, height: 4, channels: 3, background: "red" } })

@@ -6,7 +6,7 @@ export function PhotoUploadPaused({ onNavigate }: { onNavigate?: () => void }) {
     <section role="status" aria-live="polite" data-testid="photo-upload-paused">
       <h2>現在、写真の受付を停止しています</h2>
       <p>
-        運営の都合により、写真からキャラクターを作る受付をいったんお休みしています。写真は送信されません。
+        写真アップロード機能は現在修復中です。しばらくしてからお試しいただくか、プリセットキャラクターをご利用ください。写真は送信されません。
       </p>
       <p>
         写真なしで、用意されたキャラクターから選んですぐに参加できます。受付が再開されると、このページで写真の送信が選べるようになります。

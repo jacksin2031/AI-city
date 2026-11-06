@@ -51,7 +51,7 @@ export function getSpineJobs(): SpineJobs | null {
 /** Server-side read for pages. Fails closed: an unreadable setting never opens photo upload. */
 export async function photoUploadAllowedForPages(): Promise<boolean> {
   try {
-    return (await getVisitorService()?.photoUploadAllowed()) ?? false;
+    return (await getVisitorService()?.photoUploadReady()) ?? false;
   } catch {
     return false;
   }

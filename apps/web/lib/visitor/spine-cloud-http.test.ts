@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
+import { HEARTBEAT_PATH } from "../spine/heartbeat";
 import { createVisitorBoundary } from "./credentials";
 import { handleVisitorRequest } from "./http";
 import { VisitorService } from "./service";
@@ -9,7 +10,9 @@ const origin = "http://127.0.0.1:3000";
 const security = createVisitorBoundary("test-only-secret".repeat(4), "spine-cloud-http-test");
 
 async function fixture() {
-  const service = new VisitorService(new MemoryVisitorStore());
+  const store = new MemoryVisitorStore();
+  await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
+  const service = new VisitorService(store);
   const { token } = await service.createOpenSession();
   const cookie = `ai-city-visitor=${security.signSession(token)}`;
   const image = await sharp({ create: { width: 4, height: 4, channels: 3, background: "red" } })

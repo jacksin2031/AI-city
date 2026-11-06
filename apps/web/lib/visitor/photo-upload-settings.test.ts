@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { LocalParticipationService } from "../development/service";
 import { DeviceLinkService } from "../link/service";
 import { submitCloudPhoto } from "../spine/cloud-photo-intake";
+import { HEARTBEAT_PATH, OFFLINE_AFTER_MS } from "../spine/heartbeat";
 import { createVisitorBoundary } from "./credentials";
 import { handlePersistentDeviceRequest } from "./device-http";
 import { handleVisitorRequest } from "./http";
@@ -85,10 +86,45 @@ describe("photo upload setting storage", () => {
   });
 });
 
+describe("photo upload worker liveness gate", () => {
+  it("closes on missing or stale heartbeat and reopens automatically on a fresh heartbeat", async () => {
+    const store = new MemoryVisitorStore();
+    const service = new VisitorService(store);
+    const now = Date.now();
+    expect(await service.photoUploadReady()).toBe(false);
+    await store.run(async (tx) =>
+      tx.set(HEARTBEAT_PATH, { seenAt: now - OFFLINE_AFTER_MS - 1, running: 0 }),
+    );
+    expect(await service.photoUploadReady()).toBe(false);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: now, running: 0 }));
+    expect(await service.photoUploadReady()).toBe(true);
+    await service.setPhotoUploadAllowed(false);
+    expect(await service.photoUploadReady()).toBe(false);
+    await service.setPhotoUploadAllowed(true);
+    expect(await service.photoUploadReady()).toBe(true);
+  });
+
+  it("refuses a reservation with an expired heartbeat even if the toggle is on", async () => {
+    const store = new MemoryVisitorStore();
+    const service = new VisitorService(store);
+    const { token } = await service.createOpenSession();
+    await expect(
+      service.reserveCloudPhotoUpload(
+        token,
+        "spine-00000000-0000-4000-8000-000000000009",
+        "a".repeat(64),
+        consent,
+      ),
+    ).rejects.toMatchObject({ code: "PHOTO_UPLOAD_DISABLED", status: 403 });
+    expect(store.dump().has("meta/cloud-photo-uploads")).toBe(false);
+  });
+});
+
 describe("photo upload gate on admission", () => {
   it("rejects a new reservation when OFF, storing nothing, and admits again when ON", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     await service.setPhotoUploadAllowed(false);
     await expect(
@@ -113,6 +149,7 @@ describe("photo upload gate on admission", () => {
   it("closes the race: switching OFF after the HTTP check still stops the photo write", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const f = cloudFixture();
     // The HTTP pre-check has already passed; the admin flips the switch before the reservation.
@@ -125,6 +162,7 @@ describe("photo upload gate on admission", () => {
   it("never cancels work already admitted when switched OFF mid-flight", async () => {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const f = cloudFixture();
     const bytes = await image();
@@ -142,6 +180,7 @@ describe("visitor HTTP", () => {
   async function fixture() {
     const store = new MemoryVisitorStore();
     const service = new VisitorService(store);
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const { token } = await service.createOpenSession();
     const cookie = `ai-city-visitor=${security.signSession(token)}`;
     const f = cloudFixture();
@@ -244,8 +283,9 @@ describe("visitor HTTP", () => {
 });
 
 describe("admin endpoint /api/link/photo-upload-settings", () => {
-  function setup(available = true) {
+  async function setup(available = true) {
     const store = new MemoryVisitorStore();
+    await store.run(async (tx) => tx.set(HEARTBEAT_PATH, { seenAt: Date.now(), running: 0 }));
     const visitor = new VisitorService(store);
     const device = new DeviceLinkService(new LocalParticipationService(), "c".repeat(64));
     const admin = device.login("c".repeat(64));
@@ -274,7 +314,7 @@ describe("admin endpoint /api/link/photo-upload-settings", () => {
     return { store, visitor, admin, display, call };
   }
   it("denies anonymous, tablet and visitor callers before any read or write", async () => {
-    const t = setup();
+    const t = await setup();
     const visitorCookie = `ai-city-visitor=${security.signSession("x".repeat(40))}`;
     for (const body of [undefined, { allowUpload: false }]) {
       expect((await t.call("photo-upload-settings", undefined, body)).status).toBe(401);
@@ -287,11 +327,11 @@ describe("admin endpoint /api/link/photo-upload-settings", () => {
         ).status,
       ).toBe(401);
     }
-    expect(t.store.dump().size).toBe(0);
+    expect(t.store.dump().size).toBe(1);
     expect(await t.visitor.photoUploadAllowed()).toBe(true);
   });
   it("reads and writes the stored value, reporting the actual state with no-store", async () => {
-    const t = setup();
+    const t = await setup();
     const read = await t.call("photo-upload-settings", t.admin);
     expect(read.status).toBe(200);
     expect(read.headers.get("cache-control")).toBe("no-store");
@@ -303,7 +343,7 @@ describe("admin endpoint /api/link/photo-upload-settings", () => {
     expect(await on.json()).toEqual({ allowUpload: true, available: true, effective: true });
   });
   it("reports unavailable (never effective) without real cloud intake", async () => {
-    const t = setup(false);
+    const t = await setup(false);
     expect(await (await t.call("photo-upload-settings", t.admin)).json()).toEqual({
       allowUpload: true,
       available: false,
@@ -311,7 +351,7 @@ describe("admin endpoint /api/link/photo-upload-settings", () => {
     });
   });
   it("validates requests strictly and rejects cross-origin writes", async () => {
-    const t = setup();
+    const t = await setup();
     for (const bad of [
       {},
       { allowUpload: "false" },
@@ -332,7 +372,7 @@ describe("admin endpoint /api/link/photo-upload-settings", () => {
     expect(await t.visitor.photoUploadAllowed()).toBe(true);
   });
   it("does not leak secrets or internals in its response", async () => {
-    const t = setup();
+    const t = await setup();
     const text = await (await t.call("photo-upload-settings", t.admin)).text();
     expect(text).not.toContain(t.admin);
     expect(Object.keys(JSON.parse(text)).sort()).toEqual(["allowUpload", "available", "effective"]);
