@@ -105,4 +105,21 @@ export const SpineAdminActionSchema = z.discriminatedUnion("action", [
 ]);
 export type SpineAdminAction = z.infer<typeof SpineAdminActionSchema>;
 
+/** Admin update of the hosted photo-upload admission switch. Strict: nothing else is accepted. */
+export const PhotoUploadSettingsUpdateSchema = z.strictObject({ allowUpload: z.boolean() });
+export type PhotoUploadSettingsUpdate = z.infer<typeof PhotoUploadSettingsUpdateSchema>;
+/**
+ * Admin view. `allowUpload` is the stored switch; `available` says whether this server has real
+ * cloud intake at all; `effective` is what participants actually get (both must hold).
+ */
+export const PhotoUploadAdminSettingsSchema = z.strictObject({
+  allowUpload: z.boolean(),
+  available: z.boolean(),
+  effective: z.boolean(),
+});
+export type PhotoUploadAdminSettings = z.infer<typeof PhotoUploadAdminSettingsSchema>;
+/** Public view: one boolean, no detail about why. */
+export const PhotoUploadPublicSettingsSchema = z.strictObject({ allowed: z.boolean() });
+export type PhotoUploadPublicSettings = z.infer<typeof PhotoUploadPublicSettingsSchema>;
+
 export { SPINE_PARTS, type SpineAdjustment, SpineAdjustmentSchema, type SpinePart } from "./index";

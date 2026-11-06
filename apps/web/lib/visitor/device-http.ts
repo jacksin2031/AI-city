@@ -11,7 +11,11 @@ import {
   FocusRequestInputSchema,
   FocusStatusResponseSchema,
 } from "@ai-city/contracts/focus-link";
-import { SpineAdminActionSchema } from "@ai-city/contracts/spine";
+import {
+  PhotoUploadAdminSettingsSchema,
+  PhotoUploadSettingsUpdateSchema,
+  SpineAdminActionSchema,
+} from "@ai-city/contracts/spine";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
 import { evaluateChatWorkerHeartbeat } from "../link/chat-worker-health";
@@ -43,6 +47,7 @@ export async function handlePersistentDeviceRequest(
   localBootstrap = false,
   security?: VisitorBoundary | null,
   photos?: () => SpineAdminDeps["photos"],
+  cloudIntakeAvailable?: () => boolean,
 ): Promise<Response> {
   try {
     const focusPath = new URL(request.url).pathname;
@@ -142,6 +147,44 @@ export async function handlePersistentDeviceRequest(
       const totalParticipants = await visitor.resetJoinedTotal();
       return Response.json(
         DeviceParticipantCounterResetSchema.parse({ mode: "MOCK", totalParticipants }),
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    if (
+      enabled &&
+      ["GET", "POST"].includes(request.method) &&
+      focusPath === "/api/link/photo-upload-settings"
+    ) {
+      validateRequestOrigin(request, remoteOrigin);
+      if (new URL(request.url).search) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+      const token = request.headers
+        .get("cookie")
+        ?.split(";")
+        .map((part) => part.trim())
+        .find((part) => part.startsWith("ai-city-link="))
+        ?.slice("ai-city-link=".length);
+      // Administrator only: the participant (visitor) cookie never reaches this branch's checks.
+      device.authorizeParticipant(token);
+      const update =
+        request.method === "POST"
+          ? PhotoUploadSettingsUpdateSchema.parse(await readJsonBody(request))
+          : null;
+      if (!visitor) throw new DevelopmentServiceError("VISITORS_DISABLED", 503);
+      if (update) await visitor.setPhotoUploadAllowed(update.allowUpload);
+      // Report what is stored right now, never what the request asked for.
+      const allowUpload = await visitor.photoUploadAllowed();
+      let available = false;
+      try {
+        available = cloudIntakeAvailable?.() ?? false;
+      } catch {
+        available = false;
+      }
+      return Response.json(
+        PhotoUploadAdminSettingsSchema.parse({
+          allowUpload,
+          available,
+          effective: available && allowUpload,
+        }),
         { headers: { "Cache-Control": "no-store" } },
       );
     }

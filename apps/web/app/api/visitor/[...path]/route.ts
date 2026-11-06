@@ -22,7 +22,11 @@ async function handle(request: Request) {
           ? null
           : await getLocalSpineStorage()
         : null,
-      new URL(request.url).pathname.startsWith("/api/visitor/spine/") ? getCloudSpine() : null,
+      // The public photo-upload switch also needs to know whether real cloud intake exists.
+      new URL(request.url).pathname === "/api/visitor/photo-upload-settings" ||
+        new URL(request.url).pathname.startsWith("/api/visitor/spine/")
+        ? getCloudSpine()
+        : null,
     );
   } catch {
     return Response.json(
