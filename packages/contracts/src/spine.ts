@@ -44,3 +44,9 @@ export const SpineWithdrawalResponseSchema = z.strictObject({
   photoCleanup: z.enum(["PENDING", "COMPLETE"]),
 });
 export type SpineTaskView = z.infer<typeof SpineTaskViewSchema>;
+
+export const SpineWorkerStatusSchema = z.strictObject({
+  online: z.boolean(),
+  lastSeenAt: z.iso.datetime().nullable(),
+});
+export type SpineWorkerStatus = z.infer<typeof SpineWorkerStatusSchema>;

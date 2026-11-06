@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { CloudAssetStorage } from "../apps/web/lib/spine/cloud-asset-storage";
 import { CloudPhotoStorage } from "../apps/web/lib/spine/cloud-photo-storage";
 import { pollCloudSpineTasks } from "../apps/web/lib/spine/cloud-worker";
+import { HEARTBEAT_INTERVAL_MS, HEARTBEAT_PATH } from "../apps/web/lib/spine/heartbeat";
 import { SpineJobs } from "../apps/web/lib/spine/jobs";
 import { LocalSpineStorage } from "../apps/web/lib/spine/local-storage";
 import { createToolLiveExecutor } from "../apps/web/lib/spine/tool-live";
@@ -75,9 +76,29 @@ async function main() {
   const script = join(project, "scripts/prepare-spine-tool-task.py");
   const liveScript = join(project, "scripts/run-spine-live-task.py");
   if (!existsSync(python) || !existsSync(script)) throw new Error("TOOL_NOT_INSTALLED");
-  const execute = live
+  const baseExecute = live
     ? createToolLiveExecutor({ python, script, toolRoot, liveScript, callCap }, jobs, storage)
     : createToolPreflightExecutor({ python, script, toolRoot }, jobs, storage);
+  let running = 0;
+  const execute: typeof baseExecute = async (...input) => {
+    running += 1;
+    try {
+      return await baseExecute(...input);
+    } finally {
+      running -= 1;
+    }
+  };
+
+  // Liveness for the admin monitor: independent of the poll so long tasks keep it fresh.
+  // A failed write is only logged; it never reaches the polling loop.
+  const beat = () =>
+    db
+      .doc(`visitorExhibitions/${namespace}/${HEARTBEAT_PATH}`)
+      .set({ seenAt: Date.now(), running })
+      .catch(() => process.stderr.write("heartbeat write failed\n"));
+  void beat();
+  const heartbeat = setInterval(() => void beat(), HEARTBEAT_INTERVAL_MS);
+  heartbeat.unref();
 
   // Job documents are named `spine-<task>`; only cloud-stored photos are of interest here.
   const listTasks = async () => {
@@ -106,6 +127,7 @@ async function main() {
       if (!stop.signal.aborted) throw new Error("WORKER_WAIT_FAILED");
     }
   } while (!stop.signal.aborted);
+  clearInterval(heartbeat);
   await db.terminate();
 }
 
