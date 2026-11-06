@@ -283,9 +283,6 @@ export function ParticipantExperience({
         <div className="pf-scene">
           <CityScene />
           <header className="pf-header">
-            <Link href="/" aria-label="トップへ">
-              <span className="pf-brand" />
-            </Link>
             <span>開発プレビュー</span>
           </header>
           <div className="pf-intro">
