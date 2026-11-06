@@ -13,6 +13,12 @@ function store() {
   namespaces.push(namespace);
   return { namespace, store: new FirestoreVisitorStore(db, namespace) };
 }
+async function markSpineWorkerOnline(namespace: string) {
+  await db.doc(`visitorExhibitions/${namespace}/meta/spine-worker`).set({
+    seenAt: Date.now(),
+    running: 0,
+  });
+}
 beforeAll(() => {
   if (process.env.FIRESTORE_EMULATOR_HOST !== "127.0.0.1:8080")
     throw new Error("Requires the loopback demo emulator, never cloud");
@@ -43,6 +49,7 @@ describe("real Firestore transaction persistence", () => {
   it("queues a verified synthetic cloud photo through persistent reservations", async () => {
     const { namespace, store: repository } = store();
     const service = new VisitorService(repository);
+    await markSpineWorkerOnline(namespace);
     const { token } = await service.createOpenSession();
     const photo = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAE0lEQVQImWP4z8DwnwGM/zMwAAAf7gP9qS/A4gAAAABJRU5ErkJggg==",
@@ -76,6 +83,7 @@ describe("real Firestore transaction persistence", () => {
     const { namespace, store: repository } = store();
     const service = new VisitorService(repository);
     const second = new VisitorService(new FirestoreVisitorStore(db, namespace));
+    await markSpineWorkerOnline(namespace);
     const { token } = await service.createOpenSession();
     const consent = {
       processing: true,
@@ -97,6 +105,7 @@ describe("real Firestore transaction persistence", () => {
     const { namespace, store: repository } = store();
     const first = new VisitorService(repository);
     const second = new VisitorService(new FirestoreVisitorStore(db, namespace));
+    await markSpineWorkerOnline(namespace);
     const { token } = await first.createOpenSession();
     const task = `spine-${randomUUID()}`;
     const consent = {
