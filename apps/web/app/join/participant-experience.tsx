@@ -739,7 +739,7 @@ export function ParticipantExperience({
                       : "見本の性格"
                   }：${view.preview.personalityLabel}（娯楽用）`}
                   styleLabel={view.preview.personalityLabel}
-                  values={traitValues(answers, view.preview.personalityLabel)}
+                  values={traitValues([], view.preview.personalityLabel)}
                 />
                 <section className="pf-controls" aria-label="平板の操作">
                   <h2>平板の操作</h2>

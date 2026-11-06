@@ -197,6 +197,29 @@ test("AI questionnaire offers three choices and sends only the entertainment res
   await expect(page).toHaveURL(/\/join$/);
 });
 
+test("published sample hexagon stays identical after reloading the participant card", async ({
+  page,
+}) => {
+  test.skip(!codeFree, "Sample photo-free path requires code-free participation");
+  await page.goto("/join");
+  await prepareNewParticipant(page, "六角形テスト", true);
+  await page.getByLabel("アバターをこの展示サイトに公開する", { exact: true }).check();
+  await page.getByLabel("ニックネームを表示する", { exact: true }).check();
+  await page.getByLabel("AIスタイル（遊びの性格）を表示する", { exact: true }).check();
+  await page.getByRole("button", { name: "確認した項目を公開して街に参加", exact: true }).click();
+  const stableHexagon = "性格六角形：挑戦 90、発想 85、柔軟 80、創造 90、好奇心 95、交流 80";
+  await expect(page.getByRole("img", { name: stableHexagon })).toBeVisible();
+  await page.reload();
+  const guard = page.getByTestId("existing-guard");
+  await expect(guard).toBeVisible();
+  await guard.getByRole("button", { name: "自分の参加を続ける" }).click();
+  await expect(page.getByRole("img", { name: stableHexagon })).toBeVisible();
+  // Leave no public resident behind: the next E2E shares this Firestore emulator.
+  await page.getByRole("button", { name: "公開を取り消して、最初からやり直す" }).click();
+  await page.getByRole("button", { name: "取り消して最初からやり直す" }).click();
+  await expect(page).toHaveURL(/\/join$/);
+});
+
 test("the three role entry points have no hyperlinks between them", async ({
   browser,
   page,
