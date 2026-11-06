@@ -1019,6 +1019,8 @@ details.tablet-resident-list > summary {
   left: max(12px, env(safe-area-inset-left));
   max-width: 55vw;
   padding: 4px 8px;
+  transform: scale(2);
+  transform-origin: top left;
   /* No plate: a white halo keeps the text legible over the busy 3D scene. */
   filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px #fff)
     drop-shadow(0 0 10px rgb(255 255 255 / 90%));
@@ -1110,6 +1112,7 @@ details.tablet-resident-list > summary {
 @media (max-width: 600px) {
   .scene-logo {
     padding: 7px 14px 8px 12px;
+    transform: none;
   }
   .scene-logo-pre {
     font-size: 0.82rem;
