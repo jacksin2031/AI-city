@@ -19,6 +19,7 @@ import { LocalPhoto } from "./local-photo";
 import { ParticipantCard } from "./participant-card";
 import { computeStyle, questions } from "./questions";
 import { traitValues } from "./trait-values";
+import { presetIdForAvatar, usePresetPortraits } from "./use-preset-portraits";
 import { useReliableFocus } from "./use-reliable-focus";
 import "./participant.css";
 
@@ -45,13 +46,16 @@ type Stage =
 export function ParticipantExperience({
   spineLocal = false,
   photoHref = "/join/spine",
+  presetOnly = false,
 }: {
   spineLocal?: boolean;
   photoHref?: string;
+  /** Join as a prepared character: no name, no photo, straight to choosing a character. */
+  presetOnly?: boolean;
 }) {
   const client = useMemo(() => createDevelopmentClient({ apiPath: "/api/visitor" }), []);
   const focusRequest = useReliableFocus(client);
-  const [stage, setStage] = useState<Stage>("name");
+  const [stage, setStage] = useState<Stage>(presetOnly ? "custom" : "name");
   const [initializing, setInitializing] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -70,6 +74,8 @@ export function ParticipantExperience({
   const [photoConsent, setPhotoConsent] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState("");
+  const portraits = usePresetPortraits();
+  const chosen = PRESET_CHARACTERS.find((item) => item.id === sample);
   const localPhoto = useRef<LocalPhoto | null>(null);
   localPhoto.current ??= new LocalPhoto({
     create: (file) => URL.createObjectURL(file),
@@ -183,7 +189,7 @@ export function ParticipantExperience({
       const next = await client.createJob({
         eventId: "fixture-event",
         requestId: requestId.current,
-        nickname: nickname.trim(),
+        nickname: presetOnly ? (chosen?.name ?? "ゲスト") : nickname.trim(),
         sampleId: sample,
         aiStyle,
         scenario: "SUCCESS",
@@ -265,6 +271,11 @@ export function ParticipantExperience({
     }
   }
   const dashboard = stage === "published";
+  // A prepared character is drawn from its official Spine skin; anything else keeps the illustration.
+  const portraitFor = (avatarVersion: string) => {
+    const id = presetIdForAvatar(avatarVersion);
+    return (id ? portraits[id] : undefined) ?? characterDataUrl(avatarVersion);
+  };
   return (
     <main className={`pf-page${dashboard ? " pf-page-dashboard" : ""}`}>
       {!dashboard && (
@@ -415,23 +426,34 @@ export function ParticipantExperience({
             )}
             {stage === "custom" && (
               <>
-                <p className="pf-step">ステップ 2 / 4</p>
-                <h2>サンプルをカスタマイズ</h2>
-                <p>街に表示するサンプルと、スマホの色・マークを選びます。</p>
+                <p className="pf-step">{presetOnly ? "ステップ 1 / 3" : "ステップ 2 / 4"}</p>
+                <h2>{presetOnly ? "キャラクターを選ぶ" : "サンプルをカスタマイズ"}</h2>
+                <p>
+                  {presetOnly
+                    ? "用意されたキャラクターから選びます。名前の入力や写真は不要です。"
+                    : "街に表示するサンプルと、スマホの色・マークを選びます。"}
+                </p>
                 <div className={`pf-avatar pf-${color.id}`} aria-hidden="true">
                   {mark.symbol}
                 </div>
-                <fieldset className="pf-options">
-                  <legend>街に表示するサンプル</legend>
+                <fieldset className="pf-options pf-characters">
+                  <legend>街に表示するキャラクター</legend>
                   {PRESET_CHARACTERS.map((item) => (
-                    <label key={item.id}>
+                    <label key={item.id} className="pf-character">
                       <input
                         type="radio"
                         name="sample"
                         checked={sample === item.id}
                         onChange={() => setSample(item.id)}
                       />
-                      {item.name}（{item.personality}）
+                      {portraits[item.id] ? (
+                        <img src={portraits[item.id]} alt="" width="72" height="72" />
+                      ) : (
+                        <span className="pf-character-empty" aria-hidden="true" />
+                      )}
+                      <span>
+                        {item.name}（{item.personality}）
+                      </span>
                     </label>
                   ))}
                 </fieldset>
@@ -476,9 +498,15 @@ export function ParticipantExperience({
                 >
                   このキャラクターで進む
                 </button>
-                <button className="pf-back" type="button" onClick={() => setStage("photo")}>
-                  戻る
-                </button>
+                {presetOnly ? (
+                  <Link className="pf-back" href="/">
+                    最初に戻る
+                  </Link>
+                ) : (
+                  <button className="pf-back" type="button" onClick={() => setStage("photo")}>
+                    戻る
+                  </button>
+                )}
               </>
             )}
             {stage === "questions" && (
@@ -551,13 +579,13 @@ export function ParticipantExperience({
                 <h2>公開する内容を確認</h2>
                 <div className="pf-card">
                   <img
-                    src={characterDataUrl(view.preview.avatarVersion)}
+                    src={portraitFor(view.preview.avatarVersion)}
                     alt="街に表示するサンプル"
                     width="96"
                     height="128"
                   />
                   <strong>{view.preview.nickname}</strong>
-                  <p>仮のイラスト・写真からの生成ではありません</p>
+                  <p>用意されたキャラクター・写真からの生成ではありません</p>
                   <p>
                     {Object.values(aiStyleLabels).includes(view.preview.personalityLabel)
                       ? "スマホのAIスタイル"
@@ -619,7 +647,7 @@ export function ParticipantExperience({
                 </header>
                 <ParticipantCard
                   name={view.preview.nickname}
-                  avatarSrc={characterDataUrl(view.preview.avatarVersion)}
+                  avatarSrc={portraitFor(view.preview.avatarVersion)}
                   tone={hasDecoration ? color.id : "green"}
                   decoration={
                     hasDecoration

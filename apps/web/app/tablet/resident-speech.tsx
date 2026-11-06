@@ -2,7 +2,7 @@
 import { clampSpeechToViewport, type ScenePresentationFrame, speechBounds } from "@ai-city/city";
 import type { PublicResident } from "@ai-city/contracts";
 import { useEffect, useRef, useState } from "react";
-import { traitLabels } from "../join/trait-values";
+import { traitLabels, traitValues } from "../join/trait-values";
 
 /** Corner i of a hexagon, starting at the top and going clockwise. */
 function corner(i: number, radius: number) {
@@ -177,7 +177,10 @@ export function ResidentSpeech({
                       : "仮のイラスト・本人の公開項目のみ"}
                 </p>
               </div>
-              {resident.traits && <TraitHexagon traits={resident.traits} />}
+              {/* Every resident gets the hexagon; without own values it follows the style label. */}
+              <TraitHexagon
+                traits={resident.traits ?? traitValues([], resident.personalityLabel)}
+              />
               <button
                 ref={closeButton}
                 className="tablet-card-close"
