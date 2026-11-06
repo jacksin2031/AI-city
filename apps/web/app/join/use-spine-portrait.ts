@@ -6,9 +6,12 @@ import { useEffect, useState } from "react";
  * figure rather than a stand-in. Returns null while loading or when the character is not
  * available; a failure here must never block the rest of the card.
  */
-export function useSpinePortrait(enabled: boolean): string | null {
+export function useSpinePortrait(enabled: boolean) {
   const [portrait, setPortrait] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt deliberately retries the published bundle fetch.
   useEffect(() => {
     if (!enabled) return;
     const controller = new AbortController();
@@ -23,11 +26,12 @@ export function useSpinePortrait(enabled: boolean): string | null {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("PORTRAIT_BUNDLE_UNAVAILABLE");
         const body: unknown = await response.json();
         const descriptor =
           body && typeof body === "object" && "bundle" in body ? body.bundle : null;
-        if (!descriptor || controller.signal.aborted) return;
+        if (controller.signal.aborted) return;
+        if (!descriptor) throw new Error("PORTRAIT_BUNDLE_UNAVAILABLE");
         bundle = await fetchSpineBundle(
           descriptor as Parameters<typeof fetchSpineBundle>[0],
           controller.signal,
@@ -37,9 +41,13 @@ export function useSpinePortrait(enabled: boolean): string | null {
         // One settled idle frame is enough for a still portrait.
         player.advance("movement/idle-front", "front", 0);
         url = player.canvas.toDataURL("image/png");
-        if (!controller.signal.aborted) setPortrait(url);
+        if (!controller.signal.aborted) {
+          setPortrait(url);
+          setUnavailable(false);
+        }
       } catch {
-        // An unavailable character simply leaves the card without a figure.
+        // Keep the person's published record, but explain the asset failure and allow retry.
+        if (!controller.signal.aborted) setUnavailable(true);
       }
     })();
 
@@ -48,7 +56,15 @@ export function useSpinePortrait(enabled: boolean): string | null {
       player?.dispose();
       bundle?.dispose();
     };
-  }, [enabled]);
+  }, [enabled, attempt]);
 
-  return portrait;
+  return {
+    image: portrait,
+    unavailable,
+    retry: () => {
+      setPortrait(null);
+      setUnavailable(false);
+      setAttempt((previous) => previous + 1);
+    },
+  };
 }

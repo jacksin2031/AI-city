@@ -18,6 +18,7 @@ export async function handleSpineAsset(
   remoteOrigin?: string,
 ) {
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
+  let phase: "origin" | "read" = "origin";
   try {
     if (!jobs || !storage || request.method !== "GET")
       return new Response(null, { status: 404, headers });
@@ -29,13 +30,19 @@ export async function handleSpineAsset(
         url.pathname,
       );
     if (!match?.[1]) return new Response(null, { status: 404, headers });
+    phase = "read";
     const bytes = await readPublishedSpineAsset(
       jobs,
       match[1],
       url.pathname,
       storage.assetReader(match[1]),
     );
-    if (!bytes) return new Response(null, { status: 404, headers });
+    if (!bytes) {
+      // The descriptor may have been withdrawn or an asset may be missing/corrupt.
+      // Never expose task IDs or private storage details to public clients.
+      console.warn("[spine-asset] Published bundle asset unavailable");
+      return new Response(null, { status: 404, headers });
+    }
     const contentType = url.pathname.endsWith(".png")
       ? "image/png"
       : url.pathname.endsWith(".json")
@@ -44,7 +51,13 @@ export async function handleSpineAsset(
     return new Response(Uint8Array.from(bytes), {
       headers: { ...headers, "Content-Type": contentType },
     });
-  } catch {
+  } catch (error) {
+    const code =
+      error instanceof Error &&
+      /^(CLOUD_ASSET_[A-Z_]+|SESSION_EXPIRED|INVALID_TRANSITION|LOCAL_ONLY)$/.test(error.message)
+        ? error.message
+        : "UNEXPECTED";
+    console.error(`[spine-asset] ${phase} failed: ${code}`);
     return new Response(null, { status: 404, headers });
   }
 }
