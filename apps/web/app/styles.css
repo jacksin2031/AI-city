@@ -316,6 +316,24 @@ canvas {
   font: inherit;
   font-weight: 400;
 }
+.code-input {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.code-input input {
+  flex: 1 1 auto;
+  letter-spacing: 0.2em;
+  font-variant-numeric: tabular-nums;
+}
+.code-input button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  white-space: nowrap;
+}
+.field .flow-error {
+  font-weight: 400;
+}
 .check {
   display: flex;
   align-items: flex-start;
