@@ -31,6 +31,7 @@ import {
   makeCloudSpineJob,
   makeSpineJob,
   publishedSpineRecord,
+  SpineJobs,
   withdrawSpineJobRecord,
 } from "../spine/jobs";
 import { removeSpineResident, SpineRosterEntrySchema } from "../spine/roster-index";
@@ -38,6 +39,13 @@ import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
 
 /** The public descriptor of a published Spine bundle; enough to fetch and draw the character. */
 type SpineBundle = z.infer<typeof SpineBundleSchema>;
+
+/** Parsed admin recovery actions; the HTTP layer validates raw input before building one. */
+export type SpineAdminActionInput =
+  | { action: "cancel"; task: string }
+  | { action: "requeue"; task: string; confirmCost: boolean };
+
+export type SpineAdminDeps = { photos?: { exists(task: string): Promise<boolean> } };
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const INVITATION_TTL_MS = 3 * 60 * 1000;
@@ -778,6 +786,37 @@ export class VisitorService {
       tx.set(`requests/spine-owner-${owner}`, { task });
       return { task, state: "QUEUED" as const };
     });
+  }
+
+  /** Admin recovery of one Spine task. Requeue spends model budget again, so it needs confirmCost. */
+  async spineAdminAction(
+    input: SpineAdminActionInput,
+    deps: SpineAdminDeps = {},
+  ): Promise<{ task: string; state: "QUEUED" | "WITHDRAWN" }> {
+    if (!SpineTaskIdSchema.safeParse(input.task).success)
+      throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+    const jobs = new SpineJobs(this.store, this.now);
+    try {
+      if (input.action === "cancel") {
+        await jobs.adminWithdraw(input.task);
+        return { task: input.task, state: "WITHDRAWN" };
+      }
+      if (input.action === "requeue") {
+        if (input.confirmCost !== true) throw new DevelopmentServiceError("COST_UNCONFIRMED", 400);
+        if (!deps.photos || !(await deps.photos.exists(input.task)))
+          throw new DevelopmentServiceError("PHOTO_GONE", 409);
+        await jobs.requeue(input.task);
+        return { task: input.task, state: "QUEUED" };
+      }
+    } catch (error) {
+      if (error instanceof DevelopmentServiceError) throw error;
+      const message = error instanceof Error ? error.message : "";
+      if (message === "NOT_FOUND") throw new DevelopmentServiceError("JOB_NOT_FOUND", 404);
+      if (message === "INVALID_TRANSITION" || message === "NOT_CLOUD_PHOTO")
+        throw new DevelopmentServiceError("INVALID_TRANSITION", 409);
+      throw error;
+    }
+    throw new DevelopmentServiceError("INVALID_REQUEST", 400);
   }
 
   async withdrawSpineJob(token: string, task: string): Promise<{ toolCleanupPending: boolean }> {

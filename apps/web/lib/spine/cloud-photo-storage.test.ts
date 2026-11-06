@@ -129,4 +129,20 @@ describe("private cloud photos", () => {
       new CloudPhotoStorage(bucket, async () => "test-token", fetcher).read(task, 10),
     ).rejects.toThrow();
   });
+  it("reports whether the private photo still exists from metadata only", async () => {
+    const present = vi.fn().mockResolvedValue(response({ generation: "7", size: "10" }));
+    await expect(
+      new CloudPhotoStorage(bucket, async () => "test-token", present).exists(task),
+    ).resolves.toBe(true);
+    expect(present).toHaveBeenCalledTimes(1);
+    expect((present.mock.calls[0] as [string])[0]).not.toContain("alt=media");
+    const gone = vi.fn().mockResolvedValue(new Response(null, { status: 404 }));
+    await expect(
+      new CloudPhotoStorage(bucket, async () => "test-token", gone).exists(task),
+    ).resolves.toBe(false);
+    const broken = vi.fn().mockResolvedValue(new Response(null, { status: 500 }));
+    await expect(
+      new CloudPhotoStorage(bucket, async () => "test-token", broken).exists(task),
+    ).rejects.toThrow("CLOUD_PHOTO_UNAVAILABLE");
+  });
 });

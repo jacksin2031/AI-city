@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { CitySnapshotSchema } from "@ai-city/contracts/development";
 import { beforeEach, describe, expect, it } from "vitest";
+import { makeCloudSpineJob } from "../spine/jobs";
 import { VisitorService } from "./service";
 import type { StoredDocument, VisitorStore, VisitorTransaction } from "./store";
 import { MemoryVisitorStore } from "./test-store";
@@ -593,5 +594,82 @@ describe("persistent anonymous visitors", () => {
       `set:sessions/${secondDigest}`,
       `set:jobs/${secondDigest}`,
     ]);
+  });
+});
+
+describe("spineAdminAction", () => {
+  const owner = "a".repeat(64);
+  const task = "spine-12345678-1234-4123-8123-123456789abc";
+  const live = {
+    processing: true,
+    externalModelUpload: true,
+    automaticPublication: true,
+    version: 2,
+    recordedAt: "2026-11-05T00:00:00.000Z",
+  } as const;
+  async function seed(state: "QUEUED" | "FAILED") {
+    const inner = new MemoryVisitorStore();
+    const store = new RecordingVisitorStore(inner);
+    const job = makeCloudSpineJob(owner, "c".repeat(64), live, 99_999_999, "5", 1_000);
+    await inner.run(async (tx) => {
+      tx.set(`jobs/spine-${task}`, state === "FAILED" ? { ...job, state, worker: "w1" } : job);
+      tx.set("meta/state", {
+        schemaVersion: 1,
+        eventSeq: 1,
+        joinedTotal: 0,
+        residents: [],
+        spineResidents: [{ task, owner, expiresAt: 99_999_999 }],
+      });
+    });
+    return { inner, store, service: new VisitorService(store, () => 5_000) };
+  }
+  const photos = (present: boolean) => ({ exists: async () => present });
+  it("rejects requeue without confirmCost and writes nothing", async () => {
+    const { store, service } = await seed("FAILED");
+    await expect(
+      service.spineAdminAction(
+        { action: "requeue", task, confirmCost: false },
+        { photos: photos(true) },
+      ),
+    ).rejects.toMatchObject({ code: "COST_UNCONFIRMED" });
+    expect(store.writes).toEqual([]);
+  });
+  it("answers PHOTO_GONE and leaves the task unchanged", async () => {
+    const { inner, store, service } = await seed("FAILED");
+    for (const deps of [{ photos: photos(false) }, {}])
+      await expect(
+        service.spineAdminAction({ action: "requeue", task, confirmCost: true }, deps),
+      ).rejects.toMatchObject({ code: "PHOTO_GONE" });
+    expect(store.writes).toEqual([]);
+    expect(await inner.run((tx) => tx.get(`jobs/spine-${task}`))).toMatchObject({
+      state: "FAILED",
+    });
+  });
+  it("requeues a failed task once the cost is confirmed, and only once", async () => {
+    const { inner, service } = await seed("FAILED");
+    const deps = { photos: photos(true) };
+    await expect(
+      service.spineAdminAction({ action: "requeue", task, confirmCost: true }, deps),
+    ).resolves.toEqual({ task, state: "QUEUED" });
+    expect(await inner.run((tx) => tx.get(`jobs/spine-${task}`))).toMatchObject({
+      state: "QUEUED",
+      worker: null,
+    });
+    await expect(
+      service.spineAdminAction({ action: "requeue", task, confirmCost: true }, deps),
+    ).rejects.toMatchObject({ code: "INVALID_TRANSITION" });
+  });
+  it("cancels a task and removes its roster entry", async () => {
+    const { inner, service } = await seed("QUEUED");
+    await service.spineAdminAction({ action: "cancel", task });
+    expect(await inner.run((tx) => tx.get(`jobs/spine-${task}`))).toMatchObject({
+      state: "WITHDRAWN",
+      cleanupPending: true,
+    });
+    const state = (await inner.run((tx) => tx.get("meta/state"))) as { spineResidents: unknown[] };
+    expect(state.spineResidents).toEqual([]);
+    await expect(
+      service.spineAdminAction({ action: "cancel", task: "spine-nope" }),
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
   });
 });

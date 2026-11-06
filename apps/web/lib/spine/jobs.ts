@@ -541,4 +541,39 @@ export class SpineJobs {
       return next;
     });
   }
+  /**
+   * Admin redo of a stuck or failed cloud task. The caller must have confirmed the cost and that the
+   * photo still exists. The live budget counter is deliberately not decremented, so a re-run is
+   * counted again when it is next claimed.
+   */
+  async requeue(task: string) {
+    const path = this.path(task);
+    return this.store.run(async (tx) => {
+      const found = recordSchema.safeParse(await tx.get(path));
+      if (!found.success) throw new Error("NOT_FOUND");
+      const record = found.data;
+      const next = {
+        ...record,
+        ...stamp(transitionProductionJob(record, { type: "REQUEUE" }), this.now()),
+        worker: null,
+        toolFlow: null,
+        liveIntent: false,
+      };
+      if (record.photoStorage !== "CLOUD_PRIVATE") throw new Error("NOT_CLOUD_PHOTO");
+      tx.delete(`requests/spine-live-${task}`);
+      tx.set(path, recordSchema.parse(next));
+    });
+  }
+  /** Admin cancel: the participant withdrawal path, acting for the owner stored in the record. */
+  async adminWithdraw(task: string) {
+    const path = this.path(task);
+    return this.store.run(async (tx) => {
+      const raw = await tx.get(path);
+      const parsed = recordSchema.safeParse(raw);
+      if (!parsed.success) throw new Error("NOT_FOUND");
+      const next = withdrawSpineJobRecord(parsed.data, parsed.data.owner, this.now());
+      await removeSpineResident(tx, task);
+      tx.set(path, next);
+    });
+  }
 }

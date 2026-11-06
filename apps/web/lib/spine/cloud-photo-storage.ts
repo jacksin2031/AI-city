@@ -58,6 +58,11 @@ export class CloudPhotoStorage {
     return metadata.parse(await result.json());
   }
 
+  /** True when the private photo object is still present (metadata only; no bytes are read). */
+  async exists(task: string): Promise<boolean> {
+    return (await this.objectMetadata(this.object(task))) !== null;
+  }
+
   async write(task: string, bytes: Uint8Array): Promise<string> {
     const name = this.object(task);
     if (!bytes.byteLength || bytes.byteLength > MAX_PHOTO) throw new Error("CLOUD_PHOTO_SIZE");

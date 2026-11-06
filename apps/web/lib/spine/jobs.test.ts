@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { VisitorService } from "../visitor/service";
 import { MemoryVisitorStore } from "../visitor/test-store";
-import { makeSpineJob, SpineJobs } from "./jobs";
+import { makeCloudSpineJob, makeSpineJob, SpineJobs } from "./jobs";
 
 const owner = "a".repeat(64);
 const other = "b".repeat(64);
@@ -231,5 +231,92 @@ describe("Spine jobs transaction boundary", () => {
     await visitor.confirm(spineFirst.token, secondReady.job.jobId, visitorConsent);
     expect(await visitor.joinedTotal()).toBe(1);
     expect((await visitor.snapshot()).residents).toHaveLength(4);
+  });
+});
+
+describe("Spine admin requeue and cancel", () => {
+  const cloudTask = "spine-12345678-1234-4123-8123-123456789abc";
+  const live = {
+    processing: true,
+    externalModelUpload: true,
+    automaticPublication: true,
+    version: 2,
+    recordedAt: "2026-11-05T00:00:00.000Z",
+  } as const;
+  async function failedCloudJob(now = () => 9_000) {
+    const store = new MemoryVisitorStore();
+    const jobs = new SpineJobs(store, now);
+    await store.run(async (tx) => {
+      tx.set(
+        `jobs/spine-${cloudTask}`,
+        makeCloudSpineJob(owner, "c".repeat(64), live, 99_999_999, "5", 1_000),
+      );
+      tx.set("meta/spine-live-budget", { maxTasks: 5, reserved: 2 });
+      tx.set(`requests/spine-live-${cloudTask}`, { task: cloudTask, reserved: true });
+    });
+    await store.run(async (tx) => {
+      const raw = await tx.get(`jobs/spine-${cloudTask}`);
+      tx.set(`jobs/spine-${cloudTask}`, {
+        ...raw,
+        state: "FAILED",
+        worker: "worker1",
+        toolFlow: `flow-${"d".repeat(32)}`,
+        liveIntent: true,
+      });
+    });
+    return { store, jobs };
+  }
+  it("requeues a failed cloud task without touching the budget counter", async () => {
+    const { store, jobs } = await failedCloudJob(() => 9_000);
+    await jobs.requeue(cloudTask);
+    const record = await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`));
+    expect(record).toMatchObject({
+      state: "QUEUED",
+      worker: null,
+      toolFlow: null,
+      liveIntent: false,
+      stateSince: 9_000,
+    });
+    expect(await store.run((tx) => tx.get(`requests/spine-live-${cloudTask}`))).toBeNull();
+    expect(await store.run((tx) => tx.get("meta/spine-live-budget"))).toEqual({
+      maxTasks: 5,
+      reserved: 2,
+    });
+  });
+  it("lets only one of two concurrent requeues win", async () => {
+    const { jobs } = await failedCloudJob();
+    const results = await Promise.allSettled([jobs.requeue(cloudTask), jobs.requeue(cloudTask)]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const lost = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
+    expect((lost.reason as Error).message).toBe("INVALID_TRANSITION");
+  });
+  it("refuses published and non-cloud tasks", async () => {
+    const { jobs, store } = await failedCloudJob();
+    await store.run(async (tx) => {
+      const raw = await tx.get(`jobs/spine-${cloudTask}`);
+      tx.set(`jobs/spine-${cloudTask}`, { ...raw, state: "PUBLISHED", bundle: undefined });
+    });
+    await expect(jobs.requeue(cloudTask)).rejects.toThrow();
+    const local = new SpineJobs(new MemoryVisitorStore());
+    await local.create("task1", owner, "c".repeat(64), consent);
+    await local.claim("task1", "worker1");
+    await local.markFailed("task1", "worker1");
+    await expect(local.requeue("task1")).rejects.toThrow("NOT_CLOUD_PHOTO");
+    expect((await local.get("task1", owner)).state).toBe("FAILED");
+  });
+  it("withdraws on behalf of the stored owner", async () => {
+    const jobs = new SpineJobs(new MemoryVisitorStore(), () => 5_000);
+    await jobs.create("task1", owner, "c".repeat(64), consent);
+    await jobs.claim("task1", "worker1");
+    await jobs.adminWithdraw("task1");
+    const record = await jobs.get("task1", owner);
+    expect(record).toMatchObject({
+      state: "WITHDRAWN",
+      cleanupPending: true,
+      toolCleanupPending: true,
+      photoSha256: null,
+      stateSince: 5_000,
+    });
+    await expect(jobs.adminWithdraw("missing")).rejects.toThrow("NOT_FOUND");
   });
 });
