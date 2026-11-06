@@ -148,6 +148,14 @@ export default function Admin({
             <span>
               タブレット {state.connectedDisplays}台を確認・登録 {state.pairedDisplays}台
             </span>
+            {state.pairedDisplays === 0 ? (
+              <span>タブレットは未登録です。接続コードを発行してください。</span>
+            ) : state.connectedDisplays < state.pairedDisplays ? (
+              <span>
+                {state.pairedDisplays - state.connectedDisplays}
+                台が切断中です。タブレットの画面を開いたままにすると自動で再接続します。戻らない場合は新しいコードで接続し直してください。
+              </span>
+            ) : null}
           </div>
           <section className="flow-panel">
             <h2>展示の操作</h2>

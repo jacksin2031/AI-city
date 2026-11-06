@@ -82,7 +82,7 @@ export async function handleLinkRequest(
             ? service.login(DeviceLoginSchema.parse(input).key, client.bucket)
             : service.pair(DevicePairSchema.parse(input).code, client.bucket);
         service.logout(token);
-        return reply({ mode: "MOCK" }, 200, cookie(next, path === "login" ? 3600 : 28800));
+        return reply({ mode: "MOCK" }, 200, cookie(next, path === "login" ? 3600 : 86400));
       }
       if (path === "control") return reply(service.update(token, DeviceUpdateSchema.parse(input)));
       if (path === "preset")

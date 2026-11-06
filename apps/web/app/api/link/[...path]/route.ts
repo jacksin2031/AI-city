@@ -1,29 +1,34 @@
 import { handleDialogueRequest } from "../../../../lib/link/dialogue";
 import { deviceLinkService, dialogueService, previewEnabled } from "../../../../lib/link/runtime";
+import { withSharedDeviceState } from "../../../../lib/link/shared-state";
 import { getCloudSpine } from "../../../../lib/spine/cloud-runtime";
 import { handlePersistentDeviceRequest } from "../../../../lib/visitor/device-http";
-import { getVisitorBoundary, getVisitorService } from "../../../../lib/visitor/runtime";
+import {
+  getVisitorBoundary,
+  getVisitorService,
+  getVisitorStore,
+} from "../../../../lib/visitor/runtime";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 async function handle(request: Request) {
   try {
-    if (new URL(request.url).pathname === "/api/link/dialogue")
-      return await handleDialogueRequest(
-        request,
-        deviceLinkService,
-        dialogueService,
-        previewEnabled,
-        process.env.AI_CITY_PUBLIC_ORIGIN,
-      );
-    return await handlePersistentDeviceRequest(
-      request,
-      deviceLinkService,
-      getVisitorService(),
-      previewEnabled,
-      process.env.AI_CITY_PUBLIC_ORIGIN,
-      process.env.AI_CITY_LOOPBACK_PREVIEW === "1",
-      getVisitorBoundary(),
-      () => getCloudSpine()?.photos,
+    const origin = process.env.AI_CITY_PUBLIC_ORIGIN;
+    // Share sessions through the visitor store when persistence is configured; otherwise stay local.
+    getVisitorService();
+    deviceLinkService.attachStore(getVisitorStore());
+    return await withSharedDeviceState(request, deviceLinkService, origin, () =>
+      new URL(request.url).pathname === "/api/link/dialogue"
+        ? handleDialogueRequest(request, deviceLinkService, dialogueService, previewEnabled, origin)
+        : handlePersistentDeviceRequest(
+            request,
+            deviceLinkService,
+            getVisitorService(),
+            previewEnabled,
+            origin,
+            process.env.AI_CITY_LOOPBACK_PREVIEW === "1",
+            getVisitorBoundary(),
+            () => getCloudSpine()?.photos,
+          ),
     );
   } catch {
     return Response.json(
