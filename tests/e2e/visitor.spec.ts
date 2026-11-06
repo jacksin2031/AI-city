@@ -414,10 +414,14 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
       );
       await feedback.getByRole("button", { name: "あとで" }).click();
       visitor.once("dialog", (dialog) => dialog.dismiss());
-      await visitor.getByRole("button", { name: "やり直す", exact: true }).click();
+      await visitor
+        .getByRole("button", { name: "公開を取り消して、最初からやり直す", exact: true })
+        .click();
       await expect(profile).toBeVisible();
       visitor.once("dialog", (dialog) => dialog.accept());
-      await visitor.getByRole("button", { name: "やり直す", exact: true }).click();
+      await visitor
+        .getByRole("button", { name: "公開を取り消して、最初からやり直す", exact: true })
+        .click();
       await expect(visitor.getByLabel("ニックネーム", { exact: true })).toHaveValue("");
       await expect(profile).toHaveCount(0);
       await expect

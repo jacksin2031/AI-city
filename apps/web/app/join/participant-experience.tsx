@@ -240,26 +240,12 @@ export function ParticipantExperience({
       setBusy(false);
     }
   }
-  async function remove() {
-    if (!view) return;
-    setBusy(true);
-    setError("");
-    try {
-      const next = await client.remove(view.job.jobId);
-      setView(next);
-      setStage("removed");
-    } catch {
-      setError("削除できませんでした。接続を確認してください。");
-    } finally {
-      setBusy(false);
-    }
-  }
   async function leave() {
     setBusy(true);
     setError("");
     try {
       await client.closeSession();
-      window.location.assign("/");
+      window.location.assign("/join");
     } catch {
       setError("参加情報を削除できませんでした。もう一度お試しください。");
       setBusy(false);
@@ -274,6 +260,11 @@ export function ParticipantExperience({
     setError("");
     try {
       await client.closeSession();
+      try {
+        sessionStorage.removeItem("ai-city-nickname");
+      } catch {
+        // Nothing stored.
+      }
       window.location.assign("/join");
     } catch {
       setError("削除できませんでした。通信を確認してもう一度お試しください。");
@@ -343,9 +334,6 @@ export function ParticipantExperience({
                 >
                   次へ
                 </button>
-                <Link className="pf-back" href="/">
-                  最初に戻る
-                </Link>
               </>
             )}
             {stage === "photo" && (
@@ -510,11 +498,7 @@ export function ParticipantExperience({
                 >
                   このキャラクターで進む
                 </button>
-                {presetOnly ? (
-                  <Link className="pf-back" href="/">
-                    最初に戻る
-                  </Link>
-                ) : (
+                {!presetOnly && (
                   <button className="pf-back" type="button" onClick={() => setStage("photo")}>
                     戻る
                   </button>
@@ -690,17 +674,9 @@ export function ParticipantExperience({
                   </p>
                   {focusRequest.message && <p role="status">{focusRequest.message}</p>}
                 </section>
-                <div className="pf-actions">
-                  <button className="pf-back" type="button" disabled={busy} onClick={remove}>
-                    公開を取り消す
-                  </button>
-                  <button className="pf-back" type="button" disabled={busy} onClick={leave}>
-                    参加情報を削除して終了
-                  </button>
-                  <button className="pf-back" type="button" disabled={busy} onClick={restart}>
-                    やり直す
-                  </button>
-                </div>
+                <button className="pf-back" type="button" disabled={busy} onClick={restart}>
+                  公開を取り消して、最初からやり直す
+                </button>
                 {feedbackVisible && (
                   <section
                     className="pf-feedback"
