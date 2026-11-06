@@ -17,7 +17,7 @@ export default function PresetResidents({
     <section className="flow-panel">
       <h2>見本の住民を追加</h2>
       <p className="muted">
-        架空の人物です。AI生成やリアルタイム会話ではありません。参加者の一覧には入りません。
+        Spine公式の非商用サンプルです。AI生成ではなく、参加者の一覧には入りません。
         再起動すると見本の選択は消えます。
       </p>
       <p className="muted">
@@ -25,23 +25,33 @@ export default function PresetResidents({
       </p>
       <div className="preset-list">
         {PRESET_CHARACTERS.map((preset) => {
-          const enabled = selected.includes(preset.id);
+          const count = selected.filter((id) => id === preset.id).length;
           return (
             <div className="preset-row" key={preset.id}>
               <div>
-                <strong>見本・{preset.name}</strong>
+                <strong>
+                  見本・{preset.name}（{preset.officialSkin}）
+                </strong>
                 <p>
-                  {preset.personality}・{preset.interest}
+                  {preset.personality}・{preset.interest} ／ {count}人
                 </p>
               </div>
               <button
                 type="button"
-                className={enabled ? "secondary" : undefined}
-                disabled={busy || (!enabled && availableSlots <= 0)}
-                aria-label={`見本・${preset.name}を${enabled ? "街から外す" : "街に追加"}`}
-                onClick={() => toggle(preset.id, !enabled)}
+                disabled={busy || availableSlots <= 0}
+                aria-label={`見本・${preset.name}を街に追加`}
+                onClick={() => toggle(preset.id, true)}
               >
-                {enabled ? "街から外す" : "街に追加"}
+                街に追加
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy || count === 0}
+                aria-label={`見本・${preset.name}を街から外す`}
+                onClick={() => toggle(preset.id, false)}
+              >
+                街から外す
               </button>
             </div>
           );

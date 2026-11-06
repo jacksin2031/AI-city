@@ -237,6 +237,53 @@ describe("persistent snapshot device authorization", () => {
       base,
     );
     expect((await shown.json()).snapshot.residents).toHaveLength(1);
+    const replacement = device.pair(device.createPairing(admin).code);
+    const reconnected = await handlePersistentDeviceRequest(
+      request("display", replacement),
+      device,
+      visitor,
+      true,
+      base,
+    );
+    const reconnectedState = await reconnected.json();
+    expect(
+      reconnectedState.snapshot.residents.map(
+        (resident: { residentId: string }) => resident.residentId,
+      ),
+    ).toContain(view.resident?.residentId);
+    expect(reconnectedState.totalParticipants).toBe(1);
+    // Recreating the process-local device controller simulates a service restart.
+    // The persisted visitor data survives and is displayed after pairing again.
+    const restarted = new DeviceLinkService(new LocalParticipationService(), "a".repeat(64));
+    const restartedAdmin = restarted.login("a".repeat(64));
+    const restartedDisplay = restarted.pair(restarted.createPairing(restartedAdmin).code);
+    const afterRestart = await (
+      await handlePersistentDeviceRequest(
+        request("display", restartedDisplay),
+        restarted,
+        visitor,
+        true,
+        base,
+      )
+    ).json();
+    expect(afterRestart.control.displayMode).toBe("LIVE");
+    expect(
+      afterRestart.snapshot.residents.map(
+        (resident: { residentId: string }) => resident.residentId,
+      ),
+    ).toContain(view.resident?.residentId);
+    expect(afterRestart.totalParticipants).toBe(1);
+    expect(
+      (
+        await handlePersistentDeviceRequest(
+          request("display", display),
+          device,
+          visitor,
+          true,
+          base,
+        )
+      ).status,
+    ).toBe(401);
     expect(
       (
         await handlePersistentDeviceRequest(
@@ -250,7 +297,7 @@ describe("persistent snapshot device authorization", () => {
     ).toBe(200);
     expect((await new VisitorService(store, () => now).snapshot()).residents).toHaveLength(0);
     const removed = await handlePersistentDeviceRequest(
-      request("focus", display),
+      request("focus", replacement),
       device,
       visitor,
       true,

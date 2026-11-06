@@ -6,6 +6,7 @@ import { CityModeEventSchema } from "./index";
 export const PRESET_CHARACTERS = [
   {
     id: "aoi",
+    officialSkin: "spineboy",
     name: "あおい",
     avatarVersion: "fixture-sora-v1",
     personality: "散歩が好き",
@@ -13,6 +14,7 @@ export const PRESET_CHARACTERS = [
   },
   {
     id: "kaede",
+    officialSkin: "davide",
     name: "かえで",
     avatarVersion: "fixture-haru-v1",
     personality: "好奇心いっぱい",
@@ -20,6 +22,7 @@ export const PRESET_CHARACTERS = [
   },
   {
     id: "minato",
+    officialSkin: "erikari",
     name: "みなと",
     avatarVersion: "fixture-sora-v1",
     personality: "のんびり屋",
@@ -27,6 +30,7 @@ export const PRESET_CHARACTERS = [
   },
   {
     id: "hinata",
+    officialSkin: "harri",
     name: "ひなた",
     avatarVersion: "fixture-haru-v1",
     personality: "街を探検中",
@@ -34,6 +38,7 @@ export const PRESET_CHARACTERS = [
   },
   {
     id: "yui",
+    officialSkin: "luke",
     name: "ゆい",
     avatarVersion: "fixture-sora-v1",
     personality: "音楽好き",
@@ -41,6 +46,7 @@ export const PRESET_CHARACTERS = [
   },
   {
     id: "ren",
+    officialSkin: "misaki",
     name: "れん",
     avatarVersion: "fixture-haru-v1",
     personality: "おだやか",
@@ -83,11 +89,7 @@ export const DeviceRemoveSchema = z.strictObject({
 export const DeviceAdminSchema = z.strictObject({
   control: DeviceControlSchema,
   snapshot: CitySnapshotSchema,
-  presetIds: z
-    .array(DevicePresetIdSchema)
-    .max(6)
-    .refine((ids) => new Set(ids).size === ids.length)
-    .default([]),
+  presetIds: z.array(DevicePresetIdSchema).max(20).default([]),
   pairedDisplays: z.number().int().nonnegative(),
   connectedDisplays: z.number().int().nonnegative(),
 });
@@ -102,6 +104,10 @@ export const DeviceDisplaySchema = z
     value.control.displayMode === "MAINTENANCE" ? value.snapshot === null : value.snapshot !== null,
   );
 export const DeviceOkSchema = z.strictObject({ mode: z.literal("MOCK") });
+export const DeviceParticipantCounterResetSchema = z.strictObject({
+  mode: z.literal("MOCK"),
+  totalParticipants: z.number().int().nonnegative().max(1_000_000),
+});
 export const DeviceBootstrapSchema = z.strictObject({ key: z.string().min(32).max(256) });
 export type DeviceControl = z.infer<typeof DeviceControlSchema>;
 export type DeviceUpdate = z.infer<typeof DeviceUpdateSchema>;

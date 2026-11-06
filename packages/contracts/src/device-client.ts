@@ -9,6 +9,7 @@ import {
   DeviceOkSchema,
   DevicePairingSchema,
   DevicePairSchema,
+  DeviceParticipantCounterResetSchema,
   DevicePresetUpdateSchema,
   DeviceRemoveSchema,
   type DeviceUpdate,
@@ -51,6 +52,8 @@ export function createDeviceClient(options: { signal?: AbortSignal; fetch?: type
       read("focus-ack", FocusStatusResponseSchema, FocusRequestInputSchema.parse({ requestId })),
     pairing: () => read("pairing", DevicePairingSchema, {}),
     visitorInvitation: () => read("visitor-invitation", VisitorInvitationSchema, {}),
+    resetParticipantCount: () =>
+      read("participant-counter-reset", DeviceParticipantCounterResetSchema, {}),
     update: (input: DeviceUpdate) =>
       read("control", DeviceAdminSchema, DeviceUpdateSchema.parse(input)),
     preset: (input: z.infer<typeof DevicePresetUpdateSchema>) =>

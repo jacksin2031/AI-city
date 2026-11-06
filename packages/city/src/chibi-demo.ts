@@ -28,15 +28,10 @@ export async function loadChibiDemo(signal: AbortSignal) {
     ).readSkeletonData(json);
     let disposed = false;
     return {
-      create(): AnimatedCharacter {
+      create(skin = "spineboy"): AnimatedCharacter {
         if (disposed) throw new Error("DEMO_DISPOSED");
         // The official sample already contains its own direction-specific attachment timelines.
-        const player = createSpinePlayer(
-          data,
-          document.createElement("canvas"),
-          () => {},
-          "spineboy",
-        );
+        const player = createSpinePlayer(data, document.createElement("canvas"), () => {}, skin);
         return {
           canvas: player.canvas,
           advance(animation, direction, seconds) {

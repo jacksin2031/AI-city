@@ -21,6 +21,7 @@ export default function Admin({
   const [busy, setBusy] = useState(false);
   const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
   const [revokeConfirm, setRevokeConfirm] = useState(false);
+  const [counterResetConfirm, setCounterResetConfirm] = useState(false);
   const [notice, setNotice] = useState("");
   const [actionError, setActionError] = useState("");
   const [now, setNow] = useState(0);
@@ -71,6 +72,16 @@ export default function Admin({
       return api.admin();
     });
     return remaining;
+  }
+  async function resetParticipantCount() {
+    await run(async (api) => {
+      const result = await api.resetParticipantCount();
+      if (feed.mounted.current) {
+        setCounterResetConfirm(false);
+        setNotice("累計参加者数を0人に戻しました。公開中の住民はそのままです。");
+      }
+      return result;
+    });
   }
   function login(event: FormEvent) {
     event.preventDefault();
@@ -286,7 +297,8 @@ export default function Admin({
               ))}
             </div>
             <p className="muted">
-              現在：{modes[state.control.displayMode]}。参加者の街も仮のイラストです。
+              現在：{modes[state.control.displayMode]}
+              。表示モードを切り替えると、タブレットの表示も更新されます。
             </p>
             <button
               type="button"
@@ -326,6 +338,49 @@ export default function Admin({
               })
             }
           />
+          <section className="flow-panel">
+            <h2>累計参加者数</h2>
+            {persistent ? (
+              <>
+                <p>参加した人の累計をリセットできます。現在公開中の住民は削除されません。</p>
+                {counterResetConfirm ? (
+                  <fieldset className="admin-confirm" aria-label="累計参加者数のリセット確認">
+                    <p>累計参加者数を0人に戻します。以後の新しい参加は1人目から加算されます。</p>
+                    <div className="admin-actions">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void resetParticipantCount()}
+                      >
+                        累計を0人にリセット
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() => setCounterResetConfirm(false)}
+                      >
+                        戻る
+                      </button>
+                    </div>
+                  </fieldset>
+                ) : (
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => setCounterResetConfirm(true)}
+                  >
+                    累計参加者数をリセット
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="muted">
+                永続参加機能が無効のため、この環境では累計参加者数をリセットできません。
+              </p>
+            )}
+          </section>
           <ManagedResidents residents={state.snapshot.residents} busy={busy} remove={withdraw} />
           <details className="flow-panel">
             <summary>接続を終了する</summary>
@@ -392,9 +447,7 @@ export default function Admin({
           </details>
         </>
       )}
-      <p className="muted">
-        開発サンプル・写真やAI生成は未接続です。接続の有効期限が切れた場合は、もう一度接続してください。
-      </p>
+      <p className="muted">接続の有効期限が切れた場合は、もう一度接続してください。</p>
     </main>
   );
 }

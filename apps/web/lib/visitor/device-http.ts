@@ -2,7 +2,10 @@ import {
   EmptyDevelopmentRequestSchema,
   isDevelopmentValidationError,
 } from "@ai-city/contracts/development";
-import { DeviceRemoveSchema } from "@ai-city/contracts/device-link";
+import {
+  DeviceParticipantCounterResetSchema,
+  DeviceRemoveSchema,
+} from "@ai-city/contracts/device-link";
 import {
   FocusNextResponseSchema,
   FocusRequestInputSchema,
@@ -86,6 +89,29 @@ export async function handlePersistentDeviceRequest(
         : null;
       return Response.json({ mode: "MOCK", focus }, { headers: { "Cache-Control": "no-store" } });
     }
+    if (
+      enabled &&
+      request.method === "POST" &&
+      new URL(request.url).pathname === "/api/link/participant-counter-reset"
+    ) {
+      validateRequestOrigin(request, remoteOrigin);
+      const url = new URL(request.url);
+      if (url.search) throw new DevelopmentServiceError("INVALID_REQUEST", 400);
+      const token = request.headers
+        .get("cookie")
+        ?.split(";")
+        .map((v) => v.trim())
+        .find((v) => v.startsWith("ai-city-link="))
+        ?.slice("ai-city-link=".length);
+      device.authorizeParticipant(token);
+      EmptyDevelopmentRequestSchema.parse(await readJsonBody(request));
+      if (!visitor) throw new DevelopmentServiceError("VISITORS_DISABLED", 503);
+      const totalParticipants = await visitor.resetJoinedTotal();
+      return Response.json(
+        DeviceParticipantCounterResetSchema.parse({ mode: "MOCK", totalParticipants }),
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
     if (!visitor) return handleLinkRequest(request, device, enabled, remoteOrigin, localBootstrap);
     if (
       enabled &&
@@ -148,7 +174,10 @@ export async function handlePersistentDeviceRequest(
         mode: "MOCK",
         error: {
           code: invalid ? "INVALID_REQUEST" : known ? error.code : "STORE_UNAVAILABLE",
-          message: "操作を完了できませんでした。接続と入力内容を確認してください。",
+          message:
+            known && error.code === "VISITORS_DISABLED"
+              ? "永続参加機能の保存先を利用できません。設定を確認してください。"
+              : "操作を完了できませんでした。接続と入力内容を確認してください。",
         },
       },
       {

@@ -45,6 +45,7 @@ describe("fictional dialogue boundary", () => {
     const dialogue = new DialogueService({ ...config, enabled: false }, provider);
     const device = new DeviceLinkService(new LocalParticipationService(), key);
     const admin = device.login(key);
+    device.update(admin, { expectedRevision: 0, displayMode: "DEMO" });
     const display = device.pair(device.createPairing(admin).code);
     expect((await handleDialogueRequest(request(undefined), device, dialogue, true)).status).toBe(
       401,
@@ -128,6 +129,7 @@ describe("fictional dialogue boundary", () => {
   it("rejects cross-origin requests and discards results if the display is revoked while waiting", async () => {
     const device = new DeviceLinkService(new LocalParticipationService(), key);
     const admin = device.login(key);
+    device.update(admin, { expectedRevision: 0, displayMode: "DEMO" });
     const display = device.pair(device.createPairing(admin).code);
     let finish!: (response: Response) => void;
     let started!: () => void;

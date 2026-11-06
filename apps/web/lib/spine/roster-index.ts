@@ -10,7 +10,8 @@ export const SpineRosterEntrySchema = z.strictObject({
 });
 const stateSchema = z.looseObject({
   eventSeq: z.number().int().nonnegative().safe(),
-  residents: z.array(z.unknown()).max(200),
+  joinedTotal: z.number().int().nonnegative().default(0),
+  residents: z.array(z.looseObject({ ownerDigest: z.string().regex(/^[a-f0-9]{64}$/) })).max(200),
   spineResidents: z.array(SpineRosterEntrySchema).max(200).optional(),
 });
 
@@ -25,9 +26,11 @@ export async function addSpineResident(
   if (residents.some((item) => item.task === entry.task || item.owner === entry.owner))
     throw new Error("SPINE_ROSTER_CONFLICT");
   if (residents.length + state.residents.length >= 200) throw new Error("SPINE_ROSTER_FULL");
+  const alreadyCounted = state.residents.some((resident) => resident.ownerDigest === entry.owner);
   tx.set("meta/state", {
     ...state,
     eventSeq: state.eventSeq + 1,
+    joinedTotal: state.joinedTotal + (alreadyCounted ? 0 : 1),
     spineResidents: [...residents, parsedEntry],
   });
 }
