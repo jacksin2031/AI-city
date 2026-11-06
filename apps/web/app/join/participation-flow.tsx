@@ -6,6 +6,7 @@ import {
   createDevelopmentClient,
   DevelopmentApiError,
 } from "@ai-city/contracts/development-client";
+import { PRESET_CHARACTERS } from "@ai-city/contracts/device-link";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useReliableFocus } from "./use-reliable-focus";
 
@@ -43,7 +44,7 @@ export function ParticipationFlow({
   const [error, setError] = useState("");
   const [view, setView] = useState<ParticipationView | null>(null);
   const [nickname, setNickname] = useState("そら");
-  const [sampleId, setSampleId] = useState<CreateJobRequest["sampleId"]>("sora");
+  const [sampleId, setSampleId] = useState<CreateJobRequest["sampleId"]>("aoi");
   const [scenario, setScenario] = useState<CreateJobRequest["scenario"]>("SUCCESS");
   const [answerQuestions, setAnswerQuestions] = useState(false);
   const [answers, setAnswers] = useState([1, 1, 1, 1, 1, 1]);
@@ -229,8 +230,11 @@ export function ParticipationFlow({
               value={sampleId}
               onChange={(event) => setSampleId(event.target.value as CreateJobRequest["sampleId"])}
             >
-              <option value="sora">そら</option>
-              <option value="haru">はる</option>
+              {PRESET_CHARACTERS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name}（{preset.personality}）
+                </option>
+              ))}
             </select>
           </label>
           <label className="check">

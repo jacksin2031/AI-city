@@ -397,6 +397,46 @@ const landmarks: Landmark[] = [
     facing: { x: 60, y: 110 },
   },
   {
+    id: "plaza-north",
+    x: 44,
+    y: 95,
+    activity: "stand",
+    seconds: 5,
+    doing: "広場を散歩しています",
+    place: "ソラシティ広場の北側",
+    heading: Math.PI / 2,
+  },
+  {
+    id: "plaza-west",
+    x: 38,
+    y: 108,
+    activity: "stand",
+    seconds: 5,
+    doing: "広場でひと息ついています",
+    place: "広場の西側",
+    heading: 0,
+  },
+  {
+    id: "plaza-centre",
+    x: 52,
+    y: 114,
+    activity: "stand",
+    seconds: 5,
+    doing: "広場の真ん中で空を見上げています",
+    place: "広場の中央",
+    heading: -Math.PI / 2,
+  },
+  {
+    id: "plaza-south",
+    x: 56,
+    y: 126,
+    activity: "stand",
+    seconds: 5,
+    doing: "広場の南で友だちを待っています",
+    place: "広場の南側",
+    heading: -Math.PI / 2,
+  },
+  {
     id: "nikolai",
     x: -38,
     y: 190,
@@ -480,22 +520,22 @@ const shopActivities: Record<string, { place: string; doing: string }[]> = {
 };
 
 /**
- * Where residents first appear: open footways near the station and the plaza. The first two
- * stand in the opening view, in front of JR御茶ノ水駅.
+ * Where residents first appear: the footways of the Sola City plaza. The camera opens on
+ * this plaza.
  */
 const spawnPoints: Point[] = [
-  { x: -125, y: 40 },
-  { x: -104.5, y: 25.5 },
-  { x: -20, y: 60 },
-  { x: -120.5, y: 20.5 },
-  { x: -170, y: 20 },
-  { x: -125.5, y: 29.5 },
-  { x: -20, y: -40 },
-  { x: -80, y: 60 },
-  { x: -83.5, y: 60.5 },
-  { x: -86.5, y: 60.5 },
-  { x: -140, y: 90 },
-  { x: -131.5, y: 89.5 },
+  { x: 44, y: 95 },
+  { x: 38, y: 108 },
+  { x: 52, y: 114 },
+  { x: 56, y: 126 },
+  { x: 46, y: 102 },
+  { x: 40, y: 116 },
+  { x: 42, y: 112 },
+  { x: 48, y: 122 },
+  { x: 36, y: 100 },
+  { x: 60, y: 118 },
+  { x: 50, y: 96 },
+  { x: 50, y: 100 },
 ];
 
 export function createWorld(grid: WalkGrid, shops: Shopfront[]): World {

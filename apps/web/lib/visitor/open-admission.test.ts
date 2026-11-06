@@ -41,7 +41,7 @@ describe("code-free visitor admission", () => {
       eventId: "fixture-event",
       requestId: "open-job",
       nickname: "架空",
-      sampleId: "sora",
+      sampleId: "aoi",
       answers: null,
       scenario: "SUCCESS",
     });

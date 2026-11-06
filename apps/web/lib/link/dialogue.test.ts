@@ -21,6 +21,17 @@ const lines = [
   { residentId: "fixture-sora", text: "こんにちは。" },
   { residentId: "fixture-haru", text: "こんにちは！" },
 ];
+// The demo screen holds no fixture residents any more, so display tests use enabled presets.
+const presetInput = { ...input, residentIds: ["preset-aoi", "preset-kaede"] };
+const presetLines = [
+  { residentId: "preset-aoi", text: "こんにちは。" },
+  { residentId: "preset-kaede", text: "こんにちは！" },
+];
+function showPresets(device: DeviceLinkService, admin: string) {
+  device.update(admin, { expectedRevision: 0, displayMode: "DEMO" });
+  device.setPreset(admin, { expectedRevision: 1, presetId: "aoi", enabled: true });
+  device.setPreset(admin, { expectedRevision: 2, presetId: "kaede", enabled: true });
+}
 const config = {
   enabled: true,
   project: "test-project",
@@ -45,7 +56,7 @@ describe("fictional dialogue boundary", () => {
     const dialogue = new DialogueService({ ...config, enabled: false }, provider);
     const device = new DeviceLinkService(new LocalParticipationService(), key);
     const admin = device.login(key);
-    device.update(admin, { expectedRevision: 0, displayMode: "DEMO" });
+    showPresets(device, admin);
     const display = device.pair(device.createPairing(admin).code);
     expect((await handleDialogueRequest(request(undefined), device, dialogue, true)).status).toBe(
       401,
@@ -56,7 +67,7 @@ describe("fictional dialogue boundary", () => {
     const status = await handleDialogueRequest(request(undefined, display), device, dialogue, true);
     expect(await status.json()).toEqual({ available: false });
     expect(
-      (await handleDialogueRequest(request(input, display), device, dialogue, true)).status,
+      (await handleDialogueRequest(request(presetInput, display), device, dialogue, true)).status,
     ).toBe(503);
     expect(provider).not.toHaveBeenCalled();
   });
@@ -129,7 +140,7 @@ describe("fictional dialogue boundary", () => {
   it("rejects cross-origin requests and discards results if the display is revoked while waiting", async () => {
     const device = new DeviceLinkService(new LocalParticipationService(), key);
     const admin = device.login(key);
-    device.update(admin, { expectedRevision: 0, displayMode: "DEMO" });
+    showPresets(device, admin);
     const display = device.pair(device.createPairing(admin).code);
     let finish!: (response: Response) => void;
     let started!: () => void;
@@ -144,14 +155,14 @@ describe("fictional dialogue boundary", () => {
       return waiting;
     });
     const dialogue = new DialogueService(config, provider, Date.now, async () => "test");
-    const cross = request(input, display);
+    const cross = request(presetInput, display);
     cross.headers.set("origin", "https://other.example");
     expect((await handleDialogueRequest(cross, device, dialogue, true)).status).toBe(403);
     expect(provider).not.toHaveBeenCalled();
-    const pending = handleDialogueRequest(request(input, display), device, dialogue, true);
+    const pending = handleDialogueRequest(request(presetInput, display), device, dialogue, true);
     await providerStarted;
     device.revokeDisplays(admin);
-    finish(response(lines));
+    finish(response(presetLines));
     expect((await pending).status).toBe(401);
   });
 });

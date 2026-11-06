@@ -1,11 +1,12 @@
 import type { CityAction, Direction } from "./simulation";
 
 export function illustrationPalette(avatarVersion: string): "sora" | "haru" | "guest" {
-  return avatarVersion === "fixture-sora-v1"
-    ? "sora"
-    : avatarVersion === "fixture-haru-v1"
-      ? "haru"
-      : "guest";
+  // Prepared characters (sample-<id>-v1) reuse one of the two fixture looks.
+  if (avatarVersion === "fixture-sora-v1" || /^sample-(aoi|minato|yui)-v1$/.test(avatarVersion))
+    return "sora";
+  if (avatarVersion === "fixture-haru-v1" || /^sample-(kaede|hinata|ren)-v1$/.test(avatarVersion))
+    return "haru";
+  return "guest";
 }
 
 type Palette = {
