@@ -194,6 +194,7 @@ describe("persistent visitor HTTP boundary", () => {
   });
   it("fails closed on database failure and rejects oversized bodies", async () => {
     const service = new VisitorService({
+      listJobs: async () => [],
       run: async () => {
         throw new Error("private database error");
       },

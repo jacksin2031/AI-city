@@ -13,6 +13,10 @@ class RecordingVisitorStore implements VisitorStore {
     private readonly rejectPath?: string,
   ) {}
 
+  listJobs(limit: number) {
+    return this.inner.listJobs(limit);
+  }
+
   run<T>(action: (tx: VisitorTransaction) => Promise<T>): Promise<T> {
     return this.inner.run((tx) =>
       action({
