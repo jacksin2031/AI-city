@@ -6,6 +6,7 @@ import { createDeviceClient } from "@ai-city/contracts/device-client";
 import { type DevicePresetId, PRESET_CHARACTERS } from "@ai-city/contracts/device-link";
 import type { SpineAdminAction, SpineAdminTask, SpineAdminView } from "@ai-city/contracts/spine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { adjustmentKey, bundleKey } from "./spine-keys";
 import { describeState, formatSince } from "./spine-labels";
 
 type Bundle = Awaited<ReturnType<typeof fetchSpineBundle>>;
@@ -58,6 +59,41 @@ function drawStill(bundle: Bundle, adjustment: SpineAdjustment | null): string {
   }
 }
 
+/**
+ * Fetches a bundle once per identity (sha256), never per poll. The bundle is disposed only when
+ * its identity changes or on unmount, and state never exposes one that is already disposed.
+ */
+function useBundle(descriptor: Preview["bundle"], enabled: boolean) {
+  const key = bundleKey(descriptor);
+  const latest = useRef(descriptor);
+  latest.current = descriptor;
+  const [entry, setEntry] = useState<{ key: string; bundle: Bundle } | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    const controller = new AbortController();
+    let loaded: Bundle | undefined;
+    fetchSpineBundle(latest.current, controller.signal).then(
+      (value) => {
+        if (controller.signal.aborted) value.dispose();
+        else {
+          loaded = value;
+          setEntry({ key, bundle: value });
+        }
+      },
+      () => {
+        if (!controller.signal.aborted) setFailedKey(key);
+      },
+    );
+    return () => {
+      controller.abort();
+      setEntry(null);
+      loaded?.dispose();
+    };
+  }, [enabled, key]);
+  return { bundle: entry?.key === key ? entry.bundle : null, failed: failedKey === key };
+}
+
 /** Loads the bundle only once the row is on screen; any failure leaves the thumbnail blank. */
 function Thumbnail({ preview }: { preview: Preview }) {
   const holder = useRef<HTMLSpanElement>(null);
@@ -72,24 +108,19 @@ function Thumbnail({ preview }: { preview: Preview }) {
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const descriptor = preview.bundle;
-  const adjustment = preview.adjustment;
+  const { bundle } = useBundle(preview.bundle, visible);
+  const adjustment = useRef(preview.adjustment);
+  adjustment.current = preview.adjustment;
+  const adjustmentId = adjustmentKey(preview.adjustment);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: adjustmentId stands for the adjustment's content
   useEffect(() => {
-    if (!visible) return;
-    const controller = new AbortController();
-    let bundle: Bundle | undefined;
-    void (async () => {
-      try {
-        bundle = await fetchSpineBundle(descriptor, controller.signal);
-        if (!controller.signal.aborted) setUrl(drawStill(bundle, adjustment));
-      } catch {
-        // A thumbnail that cannot load stays blank.
-      } finally {
-        bundle?.dispose();
-      }
-    })();
-    return () => controller.abort();
-  }, [visible, descriptor, adjustment]);
+    if (!bundle) return;
+    try {
+      setUrl(drawStill(bundle, adjustment.current));
+    } catch {
+      // A thumbnail that cannot be drawn stays blank.
+    }
+  }, [bundle, adjustmentId]);
   return (
     <span className="spine-thumb" ref={holder} aria-hidden="true">
       {url && <img src={url} alt="" />}
@@ -105,41 +136,22 @@ function PreviewImage({
   descriptor: Preview["bundle"];
   adjustment: SpineAdjustment;
 }) {
-  const [bundle, setBundle] = useState<Bundle | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { bundle, failed } = useBundle(descriptor, true);
+  const [drawFailed, setDrawFailed] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    let loaded: Bundle | undefined;
-    fetchSpineBundle(descriptor, controller.signal).then(
-      (value) => {
-        if (controller.signal.aborted) value.dispose();
-        else {
-          loaded = value;
-          setBundle(value);
-        }
-      },
-      () => {
-        if (!controller.signal.aborted) setFailed(true);
-      },
-    );
-    return () => {
-      controller.abort();
-      loaded?.dispose();
-    };
-  }, [descriptor]);
   useEffect(() => {
     if (!bundle) return;
     try {
       setUrl(drawStill(bundle, adjustment));
+      setDrawFailed(false);
     } catch {
-      setFailed(true);
+      setDrawFailed(true);
     }
   }, [bundle, adjustment]);
   return (
     <div className="spine-preview">
       {url ? <img src={url} alt="キャラクターのプレビュー" /> : null}
-      {failed && <p className="muted">プレビューを表示できません。</p>}
+      {(failed || drawFailed) && <p className="muted">プレビューを表示できません。</p>}
     </div>
   );
 }
@@ -213,7 +225,7 @@ function Detail({
   disabled: boolean;
   send: (action: SpineAdminAction) => void;
 }) {
-  const [confirm, setConfirm] = useState<"requeue" | "preset" | null>(null);
+  const [confirm, setConfirm] = useState<"cancel" | "requeue" | "preset" | null>(null);
   const [presetId, setPresetId] = useState<DevicePresetId | null>(null);
   const needsHelp = task.needsAttention || describeState(task.state).tone === "alert";
   const preview = task.state === "PUBLISHED" ? task.preview : null;
@@ -226,7 +238,7 @@ function Detail({
               type="button"
               className="secondary"
               disabled={disabled}
-              onClick={() => send({ action: "cancel", task: task.task })}
+              onClick={() => setConfirm("cancel")}
             >
               取り消す
             </button>
@@ -237,6 +249,31 @@ function Detail({
               見本キャラクターに変更
             </button>
           </div>
+          {confirm === "cancel" && (
+            <fieldset className="admin-confirm" aria-label="取り消しの確認">
+              <p>このタスクを取り消します。参加者の写真の消去も始まり、元に戻せません</p>
+              <div className="admin-actions">
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    setConfirm(null);
+                    send({ action: "cancel", task: task.task });
+                  }}
+                >
+                  取り消しを確定
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={disabled}
+                  onClick={() => setConfirm(null)}
+                >
+                  やめる
+                </button>
+              </div>
+            </fieldset>
+          )}
           {confirm === "requeue" && (
             <fieldset className="admin-confirm" aria-label="作り直しの確認">
               <p>外部のAIサービスを再び使用し、費用がかかります</p>
@@ -294,7 +331,10 @@ function Detail({
                   type="button"
                   className="secondary"
                   disabled={disabled}
-                  onClick={() => setConfirm(null)}
+                  onClick={() => {
+                    setConfirm(null);
+                    setPresetId(null);
+                  }}
                 >
                   やめる
                 </button>
@@ -321,6 +361,7 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
   const api = useMemo(() => createDeviceClient(), []);
   const [view, setView] = useState<SpineAdminView | null>(null);
   const [connected, setConnected] = useState<boolean | null>(null);
+  const [stale, setStale] = useState(false);
   const [now, setNow] = useState(0);
   const [open, setOpen] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -332,6 +373,7 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
     alive.current = true;
     const controller = new AbortController();
     const client = createDeviceClient({ signal: controller.signal });
+    let loadedOnce = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     // Each request starts only after the previous one has settled, so polls never overlap.
     async function tick() {
@@ -341,9 +383,20 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
           setView(next);
           setNow(Date.now());
           setConnected(true);
+          setStale(false);
+          loadedOnce = true;
         }
-      } catch {
-        if (!controller.signal.aborted) setConnected(false);
+      } catch (failure) {
+        if (controller.signal.aborted) return;
+        // Only a never-loaded block or a disabled API is 未接続; loaded data stays, marked stale.
+        if (
+          !loadedOnce ||
+          (failure instanceof DevelopmentApiError && failure.code === "VISITORS_DISABLED")
+        ) {
+          setView(null);
+          setConnected(false);
+          loadedOnce = false;
+        } else setStale(true);
       }
       if (!controller.signal.aborted) timer = setTimeout(() => void tick(), POLL_MS);
     }
@@ -381,8 +434,18 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
       <h2>写真生成</h2>
       {connected === null && <p role="status">読み込み中です。</p>}
       {connected === false && <p role="status">未接続</p>}
+      {error && (
+        <p className="flow-error" role="alert">
+          {error}
+        </p>
+      )}
       {connected && view && (
         <>
+          {stale && (
+            <p className="flow-error" role="status">
+              最新の状態を取得できません。再試行しています
+            </p>
+          )}
           <div
             className={`spine-worker ${view.worker.online ? "spine-ok" : "spine-alert"}`}
             role="status"
@@ -398,11 +461,6 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
               順番待ち {view.queued}人・作成中 {view.running}人
             </span>
           </div>
-          {error && (
-            <p className="flow-error" role="alert">
-              {error}
-            </p>
-          )}
           {notice && (
             <p className="admin-notice" role="status">
               {notice}
@@ -443,11 +501,17 @@ export default function SpinePanel({ busy }: { busy: boolean }) {
             <>
               <h3>最近の修復記録</h3>
               <ul className="spine-repairs">
-                {view.repairs.map((entry) => (
-                  <li key={`${entry.at}-${entry.action}-${entry.code}`}>
-                    {clock(entry.at)}　{ACTION_LABELS[entry.action]}　<code>{entry.code}</code>
-                  </li>
-                ))}
+                {view.repairs.map((entry, index) => {
+                  const id = `${entry.at}-${entry.action}-${entry.code}`;
+                  const repeat = view.repairs
+                    .slice(0, index)
+                    .filter((e) => `${e.at}-${e.action}-${e.code}` === id).length;
+                  return (
+                    <li key={`${id}-${repeat}`}>
+                      {clock(entry.at)}　{ACTION_LABELS[entry.action]}　<code>{entry.code}</code>
+                    </li>
+                  );
+                })}
               </ul>
             </>
           )}

@@ -66,6 +66,7 @@ test("phone admin photo panel: offline worker, cost confirmation and no horizont
   });
   await openAdmin(page, request);
   await expect(page.getByText(/Worker 停止？ 最終確認/)).toBeVisible();
+  await expect(page.locator(".spine-worker")).toHaveCSS("color", "rgb(138, 28, 28)");
   const rows = page.locator(".spine-row");
   await expect(rows.first()).toContainText("aaaa1111");
   await expect(rows.nth(1)).toContainText("bbbb2222");
@@ -77,6 +78,11 @@ test("phone admin photo panel: offline worker, cost confirmation and no horizont
   ).toBe(true);
 
   await rows.first().click();
+  await page.getByRole("button", { name: "取り消す", exact: true }).click();
+  await expect(page.getByText(/元に戻せません/)).toBeVisible();
+  expect(posts).toHaveLength(0);
+  await page.getByRole("button", { name: "やめる", exact: true }).click();
+  expect(posts).toHaveLength(0);
   await page.getByRole("button", { name: "作り直す", exact: true }).click();
   await expect(page.getByText("外部のAIサービスを再び使用し、費用がかかります")).toBeVisible();
   await page.getByRole("button", { name: "やめる", exact: true }).click();
@@ -86,6 +92,10 @@ test("phone admin photo panel: offline worker, cost confirmation and no horizont
   await page.getByRole("button", { name: "費用を了承して作り直す", exact: true }).click();
   await expect.poll(() => posts.length).toBe(1);
   expect(posts[0]).toMatchObject({ action: "requeue", task: failedTask, confirmCost: true });
+  await page.getByRole("button", { name: "取り消す", exact: true }).click();
+  await page.getByRole("button", { name: "取り消しを確定", exact: true }).click();
+  await expect.poll(() => posts.length).toBe(2);
+  expect(posts[1]).toMatchObject({ action: "cancel", task: failedTask });
 });
 
 test("phone admin photo panel shows 未接続 when visitors are disabled", async ({
@@ -101,4 +111,28 @@ test("phone admin photo panel shows 未接続 when visitors are disabled", async
   await openAdmin(page, request);
   await expect(page.getByText("未接続", { exact: true })).toBeVisible();
   await expect(page.locator(".spine-row")).toHaveCount(0);
+});
+
+test("a failed poll keeps loaded data and the open detail, with a warning", async ({
+  page,
+  request,
+}) => {
+  let failing = false;
+  await page.route("**/api/link/spine-admin", async (route) => {
+    if (failing)
+      await route.fulfill({
+        status: 500,
+        json: { mode: "MOCK", error: { code: "INTERNAL_ERROR", message: "失敗" } },
+      });
+    else await route.fulfill({ json: view });
+  });
+  await openAdmin(page, request);
+  await page.locator(".spine-row").nth(1).click();
+  await expect(page.getByRole("button", { name: "保存", exact: true })).toBeVisible();
+  failing = true;
+  await expect(page.getByText("最新の状態を取得できません。再試行しています")).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("button", { name: "保存", exact: true })).toBeVisible();
+  await expect(page.getByText("未接続", { exact: true })).toHaveCount(0);
 });
