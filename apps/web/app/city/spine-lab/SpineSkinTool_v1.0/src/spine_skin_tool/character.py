@@ -9,7 +9,7 @@ from .texture import prepare_texture,standard_arm
 from .design import ROOT,DesignError,require,private_path,load_design,required_parts,arm_style,digest
 
 sha=digest
-def region(image,path,width,top,face=False,anchor_x=None,center_x=0):
+def region(image,path,width,top,face=False,anchor_x=None,center_x=0,vertical_scale=1.0):
  w,h=image.size;b=image.getchannel('A').point(lambda a:255 if a>32 else 0).getbbox()
  require(b is not None,'HAIR_MAIN_ALPHA_REQUIRED')
  x0,y0,x1,y1=b
@@ -25,7 +25,8 @@ def region(image,path,width,top,face=False,anchor_x=None,center_x=0):
   if start is not None:runs.append((start,x1))
   internal=[r for r in runs if r[0]>x0+5 and r[1]<x1-5 and r[1]-r[0]>width/scale*.2]
   if internal:anchor_x=sum(max(internal,key=lambda r:r[1]-r[0]))/2
- return {'type':'region','path':path,'x':top-(h/2-y0)*scale,'y':(anchor_x-w/2)*scale-center_x,'width':w*scale,'height':h*scale,'rotation':-90},{'alpha32_bbox':b,'uniform_world_scale':scale,'main_width':width,'top':top,'face_center_pixel':anchor_x}
+ sv=scale*vertical_scale
+ return {'type':'region','path':path,'x':top-(h/2-y0)*sv,'y':(anchor_x-w/2)*scale-center_x,'width':w*scale,'height':h*sv,'rotation':-90},{'alpha32_bbox':b,'uniform_world_scale':scale,'vertical_scale':sv,'main_width':width,'top':top,'face_center_pixel':anchor_x}
 
 def assemble_raw(root,raw_dir,output,layout,has_skirt=False,arm_source='standard',cid='character',integrated_ears=False,hair_overrides=None):
  """Compatibility and designed exports use this same raster/geometry implementation."""
