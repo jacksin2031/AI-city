@@ -672,4 +672,19 @@ describe("spineAdminAction", () => {
       service.spineAdminAction({ action: "cancel", task: "spine-nope" }),
     ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
   });
+  it("answers INVALID_TRANSITION for a withdrawn task and writes nothing", async () => {
+    const { inner, store, service } = await seed("QUEUED");
+    await service.spineAdminAction({ action: "cancel", task });
+    const before = JSON.stringify(await inner.run((tx) => tx.get(`jobs/spine-${task}`)));
+    store.writes.length = 0;
+    for (const action of [
+      { action: "requeue" as const, task, confirmCost: true },
+      { action: "cancel" as const, task },
+    ])
+      await expect(
+        service.spineAdminAction(action, { photos: photos(true) }),
+      ).rejects.toMatchObject({ code: "INVALID_TRANSITION" });
+    expect(store.writes).toEqual([]);
+    expect(JSON.stringify(await inner.run((tx) => tx.get(`jobs/spine-${task}`)))).toBe(before);
+  });
 });

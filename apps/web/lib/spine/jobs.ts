@@ -571,6 +571,7 @@ export class SpineJobs {
       const raw = await tx.get(path);
       const parsed = recordSchema.safeParse(raw);
       if (!parsed.success) throw new Error("NOT_FOUND");
+      if (parsed.data.state === "WITHDRAWN") throw new Error("INVALID_TRANSITION");
       const next = withdrawSpineJobRecord(parsed.data, parsed.data.owner, this.now());
       await removeSpineResident(tx, task);
       tx.set(path, next);

@@ -58,3 +58,16 @@ describe("admin requeue", () => {
       );
   });
 });
+
+describe("requeue of a genuinely withdrawn record", () => {
+  it("reports INVALID_TRANSITION, not CONSENT_REQUIRED", () => {
+    const withdrawn = transitionProductionJob(
+      createProductionJob({ processing: true, automaticPublication: true }),
+      { type: "WITHDRAW" },
+    );
+    expect(withdrawn.processingConsent).toBe(false);
+    expect(() => transitionProductionJob(withdrawn, { type: "REQUEUE" })).toThrow(
+      "INVALID_TRANSITION",
+    );
+  });
+});

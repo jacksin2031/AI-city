@@ -290,13 +290,26 @@ describe("Spine admin requeue and cancel", () => {
     const lost = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
     expect((lost.reason as Error).message).toBe("INVALID_TRANSITION");
   });
-  it("refuses published and non-cloud tasks", async () => {
+  it("refuses a valid published task, leaving the record untouched", async () => {
     const { jobs, store } = await failedCloudJob();
+    const bundle = candidate().descriptor;
     await store.run(async (tx) => {
       const raw = await tx.get(`jobs/spine-${cloudTask}`);
-      tx.set(`jobs/spine-${cloudTask}`, { ...raw, state: "PUBLISHED", bundle: undefined });
+      tx.set(`jobs/spine-${cloudTask}`, { ...raw, state: "PUBLISHED", bundle });
     });
-    await expect(jobs.requeue(cloudTask)).rejects.toThrow();
+    const before = JSON.stringify(await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`)));
+    await expect(jobs.requeue(cloudTask)).rejects.toThrow("INVALID_TRANSITION");
+    expect(JSON.stringify(await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`)))).toBe(before);
+  });
+  it("refuses a record produced by withdrawal, for requeue and for a second cancel", async () => {
+    const { jobs, store } = await failedCloudJob();
+    await jobs.adminWithdraw(cloudTask);
+    const before = JSON.stringify(await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`)));
+    await expect(jobs.requeue(cloudTask)).rejects.toThrow("INVALID_TRANSITION");
+    await expect(jobs.adminWithdraw(cloudTask)).rejects.toThrow("INVALID_TRANSITION");
+    expect(JSON.stringify(await store.run((tx) => tx.get(`jobs/spine-${cloudTask}`)))).toBe(before);
+  });
+  it("refuses non-cloud tasks", async () => {
     const local = new SpineJobs(new MemoryVisitorStore());
     await local.create("task1", owner, "c".repeat(64), consent);
     await local.claim("task1", "worker1");

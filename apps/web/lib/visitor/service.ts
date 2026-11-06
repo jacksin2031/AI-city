@@ -803,6 +803,7 @@ export class VisitorService {
       }
       if (input.action === "requeue") {
         if (input.confirmCost !== true) throw new DevelopmentServiceError("COST_UNCONFIRMED", 400);
+        // Outside the transaction by design: a later claim fails safely if the photo vanishes meanwhile.
         if (!deps.photos || !(await deps.photos.exists(input.task)))
           throw new DevelopmentServiceError("PHOTO_GONE", 409);
         await jobs.requeue(input.task);
