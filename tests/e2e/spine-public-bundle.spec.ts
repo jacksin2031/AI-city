@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { developmentCitySnapshot } from "../../packages/contracts/src/development";
 
 test("a verified public Spine bundle plays in the tablet and a damaged asset falls back", async ({
   browser,
@@ -68,7 +69,10 @@ test("a verified public Spine bundle plays in the tablet and a damaged asset fal
     await page.route("**/api/link/display", async (route) => {
       const response = await route.fetch();
       const body = await response.json();
-      if (body.snapshot?.avatars?.[0]) {
+      if (body.snapshot) {
+        // DEMO has no residents or avatars until an operator adds them. Inject a
+        // synthetic roster so this test actually exercises public bundle loading.
+        body.snapshot = structuredClone(developmentCitySnapshot);
         body.snapshot.mode = "LOCAL_PRIVATE_TEST";
         body.snapshot.avatars[0].assetStatus = "VERIFIED_SPINE";
         body.snapshot.avatars[0].manifest.spine = descriptor;

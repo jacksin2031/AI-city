@@ -1,7 +1,8 @@
 import type { DeviceAdmin } from "@ai-city/contracts/device-link";
 import { expect, test } from "@playwright/test";
+import { developmentCitySnapshot } from "../../packages/contracts/src/development";
 
-test("a real canvas tap opens an enlarged public profile, respects reduced motion and closes with Escape", async ({
+test("the resident picker opens a public profile, canvas dismisses it and Escape closes it", async ({
   browser,
   request,
 }) => {
@@ -32,6 +33,25 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     const pairing = await (
       await manager.request.post("/api/link/pairing", { data: {}, headers: { origin } })
     ).json();
+    // The current DEMO intentionally starts empty. Supply two fixed residents to test
+    // canvas picking and profile layout independently of the operator preset selection.
+    let longName: string | null = null;
+    await page.route("**/api/link/display", async (route) => {
+      const response = await route.fetch();
+      const payload = await response.json();
+      if (payload.snapshot) {
+        payload.snapshot = {
+          ...developmentCitySnapshot,
+          eventSeq: longName ? 1002 : developmentCitySnapshot.eventSeq,
+          residents: developmentCitySnapshot.residents.map((resident) =>
+            resident.residentId === "fixture-haru" && longName
+              ? { ...resident, nickname: longName }
+              : resident,
+          ),
+        };
+      }
+      await route.fulfill({ response, json: payload });
+    });
     await page.goto("/tablet?tools=1");
     await page.getByLabel("8桁の接続コード").fill(pairing.code);
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
@@ -42,8 +62,10 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     });
     const box = await canvas.boundingBox();
     if (!box) throw new Error("Canvas unavailable");
-    // With motion reduced, そら and はる stand still in front of JR御茶ノ水駅 in the opening view.
-    await page.touchscreen.tap(box.x + (689 / 960) * box.width, box.y + (343 / 600) * box.height);
+    // A DEMO starts empty; the injected fixture exposes two stable picker options.
+    // Use the accessible picker for selection rather than a stale screenshot coordinate.
+    await page.getByText("住民のプロフィールを選ぶ").click();
+    await page.getByRole("button", { name: "そらのプロフィール" }).click();
     const profile = page.getByRole("region", { name: "そら", exact: true });
     await expect(profile).toBeVisible({ timeout: 5000 });
     await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -51,8 +73,8 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     await expect(profile).toHaveAttribute("data-actor-x", "480");
     await expect(profile).toHaveAttribute("data-actor-y", "490");
     await expect(profile).toHaveAttribute("data-scale", "0.69");
-    await expect(profile).toHaveAttribute("data-world-x", "-121.5");
-    await expect(profile).toHaveAttribute("data-world-y", "38.5");
+    await expect(profile).toHaveAttribute("data-world-x", "44.5");
+    await expect(profile).toHaveAttribute("data-world-y", "95.5");
     await expect(profile).toHaveAttribute("data-camera-zoom", "5");
     await expect(profile.getByText(/性格/)).toBeVisible();
     await expect(profile).toHaveAttribute("data-animated", "false");
@@ -65,7 +87,7 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     await page.touchscreen.tap(100, 650);
     await expect(profile).toHaveCount(0);
     await expect(page.locator(".tablet-scene-canvas")).toHaveAttribute("data-camera-zoom", "1");
-    await page.touchscreen.tap(box.x + (519 / 960) * box.width, box.y + (330 / 600) * box.height);
+    await page.getByRole("button", { name: "はるのプロフィール" }).click();
     const other = page.getByRole("region", { name: "はる", exact: true });
     await expect(other).toBeVisible();
     await expect(other).toHaveAttribute("data-actor-x", "480");
@@ -83,28 +105,21 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
       path: "output/playwright/tablet-profile-portrait.png",
       fullPage: true,
     });
-    // Long public names scroll inside the same bounded bubble; controls stay visible.
-    const longName = "長い公開ニックネーム".repeat(8).slice(0, 80);
-    await page.route("**/api/link/display", async (route) => {
-      const response = await route.fetch();
-      const payload = await response.json();
-      payload.snapshot.eventSeq += 1000;
-      payload.snapshot.residents = payload.snapshot.residents.map(
-        (resident: { residentId: string; nickname: string }) =>
-          resident.residentId === "fixture-haru" ? { ...resident, nickname: longName } : resident,
-      );
-      await route.fulfill({ response, json: payload });
-    });
+    // Long public names are ellipsized inside the fixed bubble; controls stay visible.
+    longName = "長い公開ニックネーム".repeat(8).slice(0, 80);
     const longProfile = page.getByRole("region", { name: longName, exact: true });
     await expect(longProfile).toBeVisible();
     await expect(
       longProfile.getByRole("button", { name: "拡大を閉じる", exact: true }),
     ).toBeVisible();
-    expect(
-      await longProfile
-        .locator(".tablet-speech-content")
-        .evaluate((element) => element.scrollHeight > element.clientHeight),
-    ).toBe(true);
+    const heading = longProfile.locator(".tablet-speech-content h2");
+    await expect(heading).toBeVisible();
+    expect(await heading.evaluate((element) => getComputedStyle(element).textOverflow)).toBe(
+      "ellipsis",
+    );
+    expect(await heading.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(
+      true,
+    );
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );

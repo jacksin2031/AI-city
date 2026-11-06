@@ -3,6 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { loadToolBundleCandidate } from "../../apps/web/lib/spine/tool-bundle";
+import { developmentCitySnapshot } from "../../packages/contracts/src/development";
 
 // Opt-in: shows an already generated, published tool export in the tablet city. No model calls.
 const directory = process.env.AI_CITY_SPINE_PUBLISHED_DIR ?? "";
@@ -44,7 +45,9 @@ test("a generated participant character is drawn in the tablet city", async ({
     await page.route("**/api/link/display", async (route) => {
       const response = await route.fetch();
       const body = await response.json();
-      if (body.snapshot?.avatars?.[0]) {
+      if (body.snapshot) {
+        // This opt-in renderer test needs a participant in an otherwise empty DEMO.
+        body.snapshot = structuredClone(developmentCitySnapshot);
         body.snapshot.mode = "LOCAL_PRIVATE_TEST";
         body.snapshot.avatars[0].assetStatus = "VERIFIED_SPINE";
         body.snapshot.avatars[0].manifest.spine = descriptor;

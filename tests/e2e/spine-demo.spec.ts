@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { developmentCitySnapshot } from "../../packages/contracts/src/development";
 
 test("the official sample is rendered in the tablet demo city", async ({
   browser,
@@ -31,6 +32,13 @@ test("the official sample is rendered in the tablet demo city", async ({
     const pairing = await (
       await manager.request.post("/api/link/pairing", { data: {}, headers: { origin } })
     ).json();
+    // DEMO no longer includes residents by default; inject a known sample roster.
+    await page.route("**/api/link/display", async (route) => {
+      const response = await route.fetch();
+      const payload = await response.json();
+      if (payload.snapshot) payload.snapshot = structuredClone(developmentCitySnapshot);
+      await route.fulfill({ response, json: payload });
+    });
     await page.goto("/tablet?tools=1");
     await page.getByLabel("8桁の接続コード").fill(pairing.code);
     await page.getByRole("button", { name: "街に接続", exact: true }).click();
