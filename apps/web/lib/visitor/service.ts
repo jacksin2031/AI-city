@@ -33,6 +33,7 @@ import {
   CHAT_WORKER_HEARTBEAT_PATH,
   evaluateChatWorkerHeartbeat,
 } from "../link/chat-worker-health";
+import { addSpineTaskIndex, SPINE_TASK_INDEX_PATH } from "../spine/admin-index";
 import { buildAdminView } from "../spine/admin-view";
 import {
   makeCloudSpineJob,
@@ -70,6 +71,18 @@ const OpenAdmissionSchema = z.strictObject({
   startedAt: z.number().int().nonnegative(),
   count: z.number().int().min(1).max(OPEN_ADMISSIONS_PER_MINUTE),
 });
+/** Admission switch for new hosted photo uploads. A missing document means ON; an unreadable one means OFF. */
+const PHOTO_UPLOAD_SETTINGS_PATH = "meta/photo-upload-settings";
+const PhotoUploadSettingsDocSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  allowUpload: z.boolean(),
+  updatedAt: z.string(),
+});
+function photoUploadAllowedFrom(raw: StoredDocument | null): boolean {
+  if (raw === null) return true;
+  const parsed = PhotoUploadSettingsDocSchema.safeParse(raw);
+  return parsed.success && parsed.data.allowUpload;
+}
 const DIGEST = z.string().regex(/^[a-f0-9]{64}$/);
 const CloudPhotoReservationsSchema = z.strictObject({
   schemaVersion: z.literal(1),
@@ -585,6 +598,8 @@ export class VisitorService {
       const target = await tx.get(`jobs/spine-${task}`);
       const orphan = await tx.get(`requests/spine-orphan-${task}`);
       const rawIndex = await tx.get("meta/cloud-photo-uploads");
+      // Read inside the admitting transaction, so turning uploads off cannot lose a race.
+      const rawSetting = await tx.get(PHOTO_UPLOAD_SETTINGS_PATH);
       const parsed = CloudPhotoReservationsSchema.safeParse(
         rawIndex ?? { schemaVersion: 1, entries: {} },
       );
@@ -596,6 +611,8 @@ export class VisitorService {
           : null;
       if (!validSession(session, owner, state, now))
         throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      if (!photoUploadAllowedFrom(rawSetting))
+        throw new DevelopmentServiceError("PHOTO_UPLOAD_DISABLED", 403);
       if (
         target ||
         orphan ||
@@ -678,12 +695,16 @@ export class VisitorService {
         target
       )
         throw new DevelopmentServiceError("INVALID_REQUEST", 409);
+      // Index only opaque task IDs. The admin viewer uses document get (not collection list)
+      // because its narrow Cloud Run identity cannot enumerate Firestore collections.
+      const oldTaskIndex = await tx.get(SPINE_TASK_INDEX_PATH);
       const entries = { ...parsed.data.entries };
       delete entries[task];
       tx.set(
         `jobs/spine-${task}`,
         makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation, now),
       );
+      tx.set(SPINE_TASK_INDEX_PATH, addSpineTaskIndex(oldTaskIndex, task));
       tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
       return { task, state: "QUEUED" as const };
     });
@@ -789,15 +810,37 @@ export class VisitorService {
           previous.cleanupPending !== false)
       )
         throw new DevelopmentServiceError("ACTIVE_JOB_EXISTS", 409);
+      const oldTaskIndex = await tx.get(SPINE_TASK_INDEX_PATH);
       const acknowledged = acknowledgeSession(state, owner);
       if (acknowledged.changed) setDocument(tx, "meta/state", acknowledged.state);
       tx.set(
         `jobs/spine-${task}`,
         makeSpineJob(owner, photoSha256, recordedConsent, session.expiresAt, now),
       );
+      tx.set(SPINE_TASK_INDEX_PATH, addSpineTaskIndex(oldTaskIndex, task));
       tx.set(`requests/spine-owner-${owner}`, { task });
       return { task, state: "QUEUED" as const };
     });
+  }
+
+  /** Whether new photo submissions are admitted. Throws when the store is unreadable (fail closed). */
+  async photoUploadAllowed(): Promise<boolean> {
+    return photoUploadAllowedFrom(await this.store.run((tx) => tx.get(PHOTO_UPLOAD_SETTINGS_PATH)));
+  }
+
+  /** Admin only. Affects new admissions; queued jobs and published residents are untouched. */
+  async setPhotoUploadAllowed(allowUpload: boolean): Promise<boolean> {
+    await this.store.run(async (tx) => {
+      tx.set(
+        PHOTO_UPLOAD_SETTINGS_PATH,
+        PhotoUploadSettingsDocSchema.parse({
+          schemaVersion: 1,
+          allowUpload,
+          updatedAt: new Date(this.now()).toISOString(),
+        }),
+      );
+    });
+    return allowUpload;
   }
 
   /** Admin-only summary: the Worker writes its own heartbeat; a stale beat is offline. */

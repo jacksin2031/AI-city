@@ -20,7 +20,13 @@ import {
   FocusRequestInputSchema,
   FocusStatusResponseSchema,
 } from "./focus-link";
-import { type SpineAdminAction, SpineAdminActionSchema, SpineAdminViewSchema } from "./spine";
+import {
+  PhotoUploadAdminSettingsSchema,
+  PhotoUploadSettingsUpdateSchema,
+  type SpineAdminAction,
+  SpineAdminActionSchema,
+  SpineAdminViewSchema,
+} from "./spine";
 import { VisitorInvitationSchema } from "./visitor";
 
 export function createDeviceClient(options: { signal?: AbortSignal; fetch?: typeof fetch } = {}) {
@@ -64,6 +70,13 @@ export function createDeviceClient(options: { signal?: AbortSignal; fetch?: type
     spineAdmin: () => read("spine-admin", SpineAdminViewSchema),
     spineAdminAction: (action: SpineAdminAction) =>
       read("spine-admin", SpineAdminViewSchema, SpineAdminActionSchema.parse(action)),
+    photoUploadSettings: () => read("photo-upload-settings", PhotoUploadAdminSettingsSchema),
+    setPhotoUploadAllowed: (allowUpload: boolean) =>
+      read(
+        "photo-upload-settings",
+        PhotoUploadAdminSettingsSchema,
+        PhotoUploadSettingsUpdateSchema.parse({ allowUpload }),
+      ),
     revoke: () => read("revoke", DeviceAdminSchema, {}),
     logout: () => read("logout", DeviceOkSchema, {}),
   };

@@ -5,6 +5,7 @@ import {
   PublishRequestSchema,
 } from "@ai-city/contracts/development";
 import { FocusRequestInputSchema, FocusStatusResponseSchema } from "@ai-city/contracts/focus-link";
+import { PhotoUploadPublicSettingsSchema } from "@ai-city/contracts/spine";
 import { VisitorSessionRequestSchema } from "@ai-city/contracts/visitor";
 import { readJsonBody, validateRequestOrigin } from "../development/http";
 import { DevelopmentServiceError } from "../development/service";
@@ -33,6 +34,8 @@ const messages: Record<string, string> = {
   RATE_LIMITED: "ただいま参加が集中しています。1分ほど待って、もう一度お試しください。",
   PHOTO_INVALID: "写真を読み取れません。JPEG、PNG または WebP を選んでください。",
   PHOTO_SIZE: "写真の容量を確認してください。",
+  PHOTO_UPLOAD_DISABLED:
+    "現在、写真の受付を停止しています。「写真なし」の用意されたキャラクターでご参加ください。",
   PHOTO_CONSENT_REQUIRED:
     "写真の処理、外部AIへの送信、完成したキャラクターの公開について同意を確認してください。",
 };
@@ -126,6 +129,15 @@ export async function handleVisitorRequest(
       return json({ mode: "MOCK" }, 200, cookie(security.signSession(session.token), 86400));
     }
     if (path.startsWith("city/")) throw new DevelopmentServiceError("NOT_FOUND", 404);
+    // Public, session-less, read-only: one effective boolean. Unreadable settings mean "not allowed".
+    if (path === "photo-upload-settings") {
+      if (request.method !== "GET") throw new DevelopmentServiceError("NOT_FOUND", 404);
+      return json(
+        PhotoUploadPublicSettingsSchema.parse({
+          allowed: Boolean(spineCloud) && (await service.photoUploadAllowed()),
+        }),
+      );
+    }
     if (!token) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
     security.allow(`session:${rawCredential}`);
     if (request.method === "POST" && path === "focus-requests") {
@@ -155,6 +167,11 @@ export async function handleVisitorRequest(
         throw new DevelopmentServiceError("PHOTO_CONSENT_REQUIRED", 400);
       if (!/^(image\/(jpeg|png|webp))$/i.test(request.headers.get("content-type") ?? ""))
         throw new DevelopmentServiceError("PHOTO_INVALID", 400);
+      // Refuse before the body is read or any photo is stored. The cloud reservation re-checks
+      // inside its transaction to close the race with an administrator turning uploads off.
+      // Local loopback intake is an isolated private test and is not gated.
+      if (spineCloud && !(await service.photoUploadAllowed()))
+        throw new DevelopmentServiceError("PHOTO_UPLOAD_DISABLED", 403);
       const bytes = await readPhoto(request);
       try {
         const consent = {

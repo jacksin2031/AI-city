@@ -6,6 +6,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 import { removeResidents } from "./actions";
 import ChatWorkerStatus from "./chat-worker-status";
+import PhotoUploadSetting from "./photo-upload-setting";
 import PresetResidents from "./presets";
 import ManagedResidents from "./residents";
 import SpinePanel from "./spine-panel";
@@ -259,6 +260,7 @@ export default function Admin({
             </p>
             <ChatWorkerStatus />
           </section>
+          {persistent && <PhotoUploadSetting />}
           <section className="flow-panel">
             <h2>タブレットをつなぐ</h2>
             <p>タブレットで専用の展示画面を開き、コードを入力します。</p>

@@ -28,6 +28,7 @@ async function handle(request: Request) {
             process.env.AI_CITY_LOOPBACK_PREVIEW === "1",
             getVisitorBoundary(),
             () => getCloudSpine()?.photos,
+            () => getCloudSpine() !== null,
           ),
     );
   } catch {
