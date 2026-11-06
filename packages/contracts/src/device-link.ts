@@ -112,6 +112,8 @@ export const DeviceAdminSchema = z.strictObject({
   presetIds: z.array(DevicePresetIdSchema).max(20).default([]),
   pairedDisplays: z.number().int().nonnegative(),
   connectedDisplays: z.number().int().nonnegative(),
+  // Running count of everyone who joined publicly; absent when persistent joining is off.
+  totalParticipants: z.number().int().nonnegative().max(1_000_000).optional(),
 });
 export const DeviceDisplaySchema = z
   .strictObject({

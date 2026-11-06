@@ -15,11 +15,26 @@ import {
 import Link from "next/link";
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
+import { ExistingGuard } from "./existing-guard";
+import {
+  closeExistingParticipation,
+  type ExistingParticipation,
+  type ExistingProbe,
+  probeExisting,
+} from "./existing-participation";
+import { InlineConfirm } from "./inline-confirm";
 import { LocalPhoto } from "./local-photo";
 import { ParticipantCard } from "./participant-card";
 import { PhotoUploadPaused } from "./photo-upload-paused";
 import { photoPreparationMessage, prepareUploadPhoto } from "./prepare-photo";
 import { computeStyle, questions } from "./questions";
+import {
+  clearDraft,
+  loadDraft,
+  resolveSpineProfile,
+  type SpineProfile,
+  saveDraft,
+} from "./spine-profile";
 import { attentionMessages, estimateProgress } from "./spine-progress";
 import { traitValues } from "./trait-values";
 import { useReliableFocus } from "./use-reliable-focus";
@@ -94,6 +109,13 @@ export function SpineParticipantFlow({
   const [initializing, setInitializing] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState<"withdraw" | "restart" | null>(null);
+  // An earlier participation on this browser, surfaced before the next visitor types anything.
+  const [guard, setGuard] = useState<{
+    probe: ExistingProbe;
+    existing: ExistingParticipation;
+    late: boolean;
+  } | null>(null);
   const [nickname, setNickname] = useState("");
   const [answers, setAnswers] = useState<(number | null)[]>(Array(6).fill(null));
   const [question, setQuestion] = useState(0);
@@ -135,33 +157,94 @@ export function SpineParticipantFlow({
     };
   }, []);
 
+  const readJob = useCallback(async () => {
+    const result = SpineCurrentResponseSchema.parse(await request("spine/jobs/current"));
+    setJob(result.job);
+    return result.job;
+  }, []);
   const refresh = useCallback(async () => {
     try {
-      const result = SpineCurrentResponseSchema.parse(await request("spine/jobs/current"));
-      setJob(result.job);
-      return result.job;
+      return await readJob();
     } catch (failure) {
       if (!(failure instanceof RequestFailure && failure.status === 401))
         setError("接続を確認できませんでした。ページを読み直してください。");
       return null;
     }
-  }, []);
+  }, [readJob]);
 
-  // Resume after a reload: an existing job goes straight back to its progress view.
+  // The typed name and the answers survive a reload in this tab only; they are never sent as such.
+  const draftLoaded = useRef(false);
+  useEffect(() => {
+    if (!draftLoaded.current) return;
+    saveDraft(sessionStorage, { nickname, answers });
+  }, [nickname, answers]);
+
+  // After a reload nothing is resumed silently: an earlier participation (from either flow) is
+  // surfaced first, because the next person on a shared phone may not be its owner.
   useEffect(() => {
     let live = true;
-    void refresh().then((current) => {
+    void probeExisting({ sample: () => client.current(), spine: readJob }).then((probe) => {
       if (!live) return;
-      if (current && current.state !== "WITHDRAWN") {
-        setQuestionsDone(true);
-        setStage(current.state === "PUBLISHED" ? "done" : "progress");
+      if (probe.unreadable) setError("接続を確認できませんでした。ページを読み直してください。");
+      try {
+        const draft = loadDraft(sessionStorage);
+        if (draft) {
+          setNickname(draft.nickname);
+          setAnswers(draft.answers);
+        }
+      } catch {
+        // Storage unavailable: start from an empty draft.
       }
+      draftLoaded.current = true;
+      if (probe.existing) setGuard({ probe, existing: probe.existing, late: false });
       setInitializing(false);
     });
     return () => {
       live = false;
     };
-  }, [refresh]);
+  }, [client, readJob]);
+
+  function continueExisting() {
+    if (!guard) return;
+    if (guard.existing.kind !== "spine" || !guard.probe.spine) {
+      // The earlier participation belongs to the prepared-character flow.
+      window.location.assign("/join?mode=sample");
+      return;
+    }
+    setQuestionsDone(true);
+    setStage(guard.probe.spine.state === "PUBLISHED" ? "done" : "progress");
+    setGuard(null);
+  }
+  /** Ends the earlier participation. A draft typed before a late conflict is kept as it is. */
+  async function restartFromGuard() {
+    if (!guard) return;
+    await closeExistingParticipation(guard.probe, () => client.closeSession());
+    if (!guard.late) {
+      clearDraft(sessionStorage);
+      setNickname("");
+      setAnswers(Array(6).fill(null));
+      setQuestion(0);
+      try {
+        sessionStorage.removeItem("ai-city-nickname");
+      } catch {
+        // Nothing stored.
+      }
+    }
+    profileSent.current = false;
+    setSavedProfile(null);
+    setQuestionsDone(false);
+    setRunningSince(null);
+    setJob(null);
+    setError("");
+    setGuard(null);
+  }
+  /** A conflict reported only at send time: show the same choice, keeping what was typed. */
+  async function raiseLateGuard() {
+    const probe = await probeExisting({ sample: () => client.current(), spine: readJob });
+    // A leftover the server still counts (e.g. a withdrawal awaiting cleanup) is also resolved here.
+    const existing = probe.existing ?? { kind: "spine" as const, phase: "attention" as const };
+    setGuard({ probe, existing, late: true });
+  }
 
   // Until a photo is on its way, follow the administrator's switch while the page stays open.
   const preUpload = stage === "name" || stage === "upload";
@@ -285,6 +368,14 @@ export function SpineParticipantFlow({
         setPublication(false);
         return;
       }
+      if (
+        (failure instanceof RequestFailure || failure instanceof DevelopmentApiError) &&
+        failure.code === "ACTIVE_JOB_EXISTS"
+      ) {
+        // Typed answers and the chosen photo stay in this page while the visitor decides.
+        await raiseLateGuard();
+        return;
+      }
       setError(
         failure instanceof RequestFailure || failure instanceof DevelopmentApiError
           ? failure.message
@@ -297,7 +388,6 @@ export function SpineParticipantFlow({
 
   async function withdraw() {
     if (!job) return;
-    if (!window.confirm("公開を取り消し、送信した写真の消去を依頼しますか？")) return;
     setBusy(true);
     setError("");
     try {
@@ -309,6 +399,7 @@ export function SpineParticipantFlow({
         }),
       );
       setJob({ ...job, state: "WITHDRAWN", photoCleanup: result.photoCleanup });
+      setConfirming(null);
       setStage("closed");
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "取り消せませんでした。");
@@ -318,17 +409,11 @@ export function SpineParticipantFlow({
   }
   /** Withdraw the character, delete the participation and start again from the first page. */
   async function restartAll() {
-    if (!job) return;
-    if (
-      !window.confirm(
-        "公開を取り消し、送信した写真の消去を依頼して、最初からやり直しますか？参加情報も削除されます。",
-      )
-    )
-      return;
     setBusy(true);
     setError("");
     try {
-      if (job.state !== "WITHDRAWN")
+      // Without a loaded job there is nothing to withdraw; the session is still ended.
+      if (job && job.state !== "WITHDRAWN")
         SpineWithdrawalResponseSchema.parse(
           await request(`spine/jobs/${encodeURIComponent(job.task)}/withdraw`, {
             method: "POST",
@@ -342,6 +427,7 @@ export function SpineParticipantFlow({
       } catch {
         // Nothing stored.
       }
+      clearDraft(sessionStorage);
       window.location.assign("/join");
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "取り消せませんでした。");
@@ -353,6 +439,7 @@ export function SpineParticipantFlow({
     setError("");
     try {
       await client.closeSession();
+      clearDraft(sessionStorage);
       window.location.assign("/join");
     } catch {
       setError("参加情報を削除できませんでした。もう一度お試しください。");
@@ -370,26 +457,44 @@ export function SpineParticipantFlow({
   // The finished figure is drawn from the participant's own published bundle.
   const portrait = useSpinePortrait(stage === "done" && job?.state === "PUBLISHED");
   // On the final page the participant's name and style become the public card in the city.
+  // The profile the server holds is the single source for this card and for the tablet.
   const profileSent = useRef(false);
+  const [savedProfile, setSavedProfile] = useState<SpineProfile | null>(null);
   useEffect(() => {
     if (stage !== "done" || job?.state !== "PUBLISHED" || profileSent.current) return;
     profileSent.current = true;
     const choice = answers[5];
     const interest = typeof choice === "number" ? questions[5][1][choice] : undefined;
-    void request("spine/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        nickname: nickname.trim() || "ゲスト",
-        personalityLabel: answered ? styleLabel : null,
-        interests: interest ? [interest] : [],
-        traits: traitValues(answers, styleLabel),
-      }),
-    }).catch(() => {
-      // The city keeps the anonymous card; a later change on this page sends it again.
-      profileSent.current = false;
-    });
-  }, [stage, job?.state, nickname, answers, answered, styleLabel]);
+    void (async () => {
+      try {
+        // Read first: after a reload the local name and answers are gone, so sending them
+        // would overwrite the real profile with the default name and neutral traits.
+        const current = await request("spine/profile");
+        const stored: SpineProfile | null = current?.profile ?? null;
+        const { profile, send } = resolveSpineProfile({
+          stored,
+          nickname,
+          answers,
+          styleLabel,
+          interest,
+        });
+        if (send)
+          await request("spine/profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(profile),
+          });
+        setSavedProfile(profile);
+      } catch {
+        // The city keeps the anonymous card; a later change on this page sends it again.
+        profileSent.current = false;
+      }
+    })();
+  }, [stage, job?.state, nickname, answers, styleLabel]);
+  const shownName = savedProfile?.nickname ?? (nickname.trim() || "ゲスト");
+  const shownLabel = savedProfile ? savedProfile.personalityLabel : answered ? styleLabel : null;
+  const shownTraits =
+    savedProfile?.traits ?? (shownLabel ? traitValues(answers, shownLabel) : undefined);
   const stepLabel = (n: number) => `ステップ ${n} / 4`;
 
   return (
@@ -406,13 +511,22 @@ export function SpineParticipantFlow({
         </div>
       </div>
       <div className="pf-sheet">
-        {error && (
+        {error && !confirming && (
           <div role="alert" className="pf-error">
             {error}
           </div>
         )}
         {initializing ? (
           <p role="status">参加情報を確認しています。</p>
+        ) : guard ? (
+          <ExistingGuard
+            existing={guard.existing}
+            late={guard.late}
+            hasDraft={Boolean(nickname.trim()) || answers.some((answer) => answer !== null)}
+            sameFlow={guard.existing.kind === "spine"}
+            onContinue={continueExisting}
+            onRestart={restartFromGuard}
+          />
         ) : (
           <>
             {preUpload && !uploadAllowed && (
@@ -472,6 +586,9 @@ export function SpineParticipantFlow({
                     完成後、元の写真は削除されます。参加情報は最大24時間で、公開の取り消しと写真の消去をいつでも依頼できます。処理中や外部サービスに送信済みのデータは、すぐには消去できない場合があります。
                   </p>
                 </div>
+                <p className="pf-fine" role="note">
+                  選んだ写真はプライバシー保護のため、この端末の中にも保存しません。送信前にページを再読み込みすると写真は破棄されるので、もう一度選んでください。ニックネームと回答の下書きは、このタブに残ります。
+                </p>
                 <label className="pf-check">
                   <input
                     type="checkbox"
@@ -682,16 +799,39 @@ export function SpineParticipantFlow({
                 ) : (
                   <p role="status">{(state && attentionMessages[state]) ?? ""}</p>
                 )}
-                <button className="pf-back" type="button" disabled={busy} onClick={withdraw}>
-                  参加を取り消して写真の消去を依頼
-                </button>
+                {confirming === "withdraw" ? (
+                  <InlineConfirm
+                    title="参加の取り消し確認"
+                    message="公開を取り消し、送信した写真の消去を依頼します。よろしいですか？"
+                    confirmLabel="取り消しを確定"
+                    busy={busy}
+                    error={error}
+                    onConfirm={() => void withdraw()}
+                    onCancel={() => {
+                      setConfirming(null);
+                      setError("");
+                    }}
+                  />
+                ) : (
+                  <button
+                    className="pf-back"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setError("");
+                      setConfirming("withdraw");
+                    }}
+                  >
+                    参加を取り消して写真の消去を依頼
+                  </button>
+                )}
               </section>
             )}
             {stage === "done" && (
               <>
                 <header className="pf-dashboard-head">
                   <p className="pf-step">YOUR AI CITY</p>
-                  <h1>{nickname.trim() ? `${nickname.trim()}さん、` : ""}街へようこそ</h1>
+                  <h1>{savedProfile || nickname.trim() ? `${shownName}さん、` : ""}街へようこそ</h1>
                   <p>キャラクターが完成し、展示の街に公開されました。</p>
                 </header>
                 {portrait.unavailable && (
@@ -704,16 +844,16 @@ export function SpineParticipantFlow({
                     </button>
                   </div>
                 )}
-                {answered && (
+                {shownLabel && shownTraits && (
                   <ParticipantCard
-                    name={nickname.trim() || "ゲスト"}
+                    name={shownName}
                     avatarSrc={portrait.image ?? TRANSPARENT_PORTRAIT}
                     tone="green"
                     decoration={null}
                     isStyle
-                    styleText={`スマホのAIスタイル：${styleLabel}（娯楽用）`}
-                    styleLabel={styleLabel}
-                    values={traitValues(answers, styleLabel)}
+                    styleText={`スマホのAIスタイル：${shownLabel}（娯楽用）`}
+                    styleLabel={shownLabel}
+                    values={shownTraits}
                   />
                 )}
                 <section className="pf-controls" aria-label="平板の操作">
@@ -731,9 +871,32 @@ export function SpineParticipantFlow({
                   </p>
                   {focusRequest.message && <p role="status">{focusRequest.message}</p>}
                 </section>
-                <button className="pf-back" type="button" disabled={busy} onClick={restartAll}>
-                  参加を取り消して、最初からやり直す
-                </button>
+                {confirming === "restart" ? (
+                  <InlineConfirm
+                    title="最初からやり直す確認"
+                    message="公開を取り消し、送信した写真の消去を依頼して、最初からやり直します。参加情報も削除されます。"
+                    confirmLabel="取り消して最初からやり直す"
+                    busy={busy}
+                    error={error}
+                    onConfirm={() => void restartAll()}
+                    onCancel={() => {
+                      setConfirming(null);
+                      setError("");
+                    }}
+                  />
+                ) : (
+                  <button
+                    className="pf-back"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setError("");
+                      setConfirming("restart");
+                    }}
+                  >
+                    参加を取り消して、最初からやり直す
+                  </button>
+                )}
               </>
             )}
             {stage === "closed" && (

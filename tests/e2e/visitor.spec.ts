@@ -67,7 +67,7 @@ async function prepareNewParticipant(page: Page, name: string, answer = false) {
   await page.getByRole("button", { name: "写真を使わずにカスタマイズ" }).click();
   await page.getByRole("radio", { name: "むらさき" }).check();
   await page.getByRole("radio", { name: "星" }).check();
-  await page.getByRole("radio", { name: "はる" }).check();
+  await page.getByRole("radio", { name: /かえで（好奇心いっぱい）/ }).check();
   await page.getByRole("button", { name: "このキャラクターで進む" }).click();
   await expect(page.getByRole("radio")).toHaveCount(3);
   if (answer) {
@@ -182,10 +182,42 @@ test("AI questionnaire offers three choices and sends only the entertainment res
     answers: null,
   });
   await page.reload();
+  // A reload never reopens the earlier participation on its own: it is announced first, without
+  // the earlier participant's name or card, and resumed by an explicit choice.
+  const guard = page.getByTestId("existing-guard");
+  await expect(guard).toBeVisible();
+  await expect(guard).toContainText(
+    /公開前の確認待ちの参加があります|街に公開されているキャラクターがあります/,
+  );
+  await expect(page.getByText("スマホのAIスタイル：ひらめき探検家（娯楽用）")).toHaveCount(0);
+  await guard.getByRole("button", { name: "自分の参加を続ける" }).click();
   await expect(page.getByText("スマホのAIスタイル：ひらめき探検家（娯楽用）")).toBeVisible();
   expect(Date.now() - submittedAt).toBeGreaterThanOrEqual(3400);
   await page.getByRole("button", { name: "参加を中止して情報を削除" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/join$/);
+});
+
+test("published sample hexagon stays identical after reloading the participant card", async ({
+  page,
+}) => {
+  test.skip(!codeFree, "Sample photo-free path requires code-free participation");
+  await page.goto("/join");
+  await prepareNewParticipant(page, "六角形テスト", true);
+  await page.getByLabel("アバターをこの展示サイトに公開する", { exact: true }).check();
+  await page.getByLabel("ニックネームを表示する", { exact: true }).check();
+  await page.getByLabel("AIスタイル（遊びの性格）を表示する", { exact: true }).check();
+  await page.getByRole("button", { name: "確認した項目を公開して街に参加", exact: true }).click();
+  const stableHexagon = "性格六角形：挑戦 90、発想 85、柔軟 80、創造 90、好奇心 95、交流 80";
+  await expect(page.getByRole("img", { name: stableHexagon })).toBeVisible();
+  await page.reload();
+  const guard = page.getByTestId("existing-guard");
+  await expect(guard).toBeVisible();
+  await guard.getByRole("button", { name: "自分の参加を続ける" }).click();
+  await expect(page.getByRole("img", { name: stableHexagon })).toBeVisible();
+  // Leave no public resident behind: the next E2E shares this Firestore emulator.
+  await page.getByRole("button", { name: "公開を取り消して、最初からやり直す" }).click();
+  await page.getByRole("button", { name: "取り消して最初からやり直す" }).click();
+  await expect(page).toHaveURL(/\/join$/);
 });
 
 test("the three role entry points have no hyperlinks between them", async ({
@@ -330,6 +362,12 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
     const current = await visitorContext.request.get("/api/visitor/jobs/current");
     const jobId = (await current.json()).job.jobId;
     await visitor.reload();
+    if (codeFree) {
+      // The earlier participation is announced first and resumed by an explicit choice.
+      const guard = visitor.getByTestId("existing-guard");
+      await expect(guard).toContainText("公開前の確認待ち");
+      await guard.getByRole("button", { name: "自分の参加を続ける" }).click();
+    }
     await expect(
       visitor.getByRole("heading", {
         name: codeFree ? "公開する内容を確認" : "サンプルを確認",
@@ -413,14 +451,23 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
         /docs\.google\.com\/forms\//,
       );
       await feedback.getByRole("button", { name: "あとで" }).click();
-      visitor.once("dialog", (dialog) => dialog.dismiss());
+      // The confirmation is on the page itself: embedded mobile browsers suppress window.confirm.
+      visitor.on("dialog", () => {
+        throw new Error("window.confirm must not be used");
+      });
       await visitor
         .getByRole("button", { name: "公開を取り消して、最初からやり直す", exact: true })
         .click();
+      const confirm = visitor.getByRole("group", { name: "最初からやり直す確認" });
+      await expect(confirm).toBeVisible();
+      await confirm.getByRole("button", { name: "やめる", exact: true }).click();
       await expect(profile).toBeVisible();
-      visitor.once("dialog", (dialog) => dialog.accept());
       await visitor
         .getByRole("button", { name: "公開を取り消して、最初からやり直す", exact: true })
+        .click();
+      await visitor
+        .getByRole("group", { name: "最初からやり直す確認" })
+        .getByRole("button", { name: "取り消して最初からやり直す", exact: true })
         .click();
       await expect(visitor.getByLabel("ニックネーム", { exact: true })).toHaveValue("");
       await expect(profile).toHaveCount(0);
@@ -483,7 +530,7 @@ test("independent visitor resumes, shares only approved fields and withdraws fro
   }
 });
 
-test("actual Node restart preserves signed visitor identity and publication but requires device login again", async () => {
+test("actual Node restart preserves signed visitor identity, publication and admin session", async () => {
   test.setTimeout(90000);
   const app = fileURLToPath(new URL("../../apps/web/", import.meta.url));
   const require = createRequire(new URL("../../apps/web/package.json", import.meta.url));
@@ -590,8 +637,9 @@ test("actual Node restart preserves signed visitor identity and publication but 
     const restored = await call("/api/visitor/jobs/current", cookie);
     expect(restored.status).toBe(200);
     expect((await restored.json()).publication).toBe("PUBLISHED");
-    expect((await call("/api/link/admin", admin)).status).toBe(401);
-    const nextAdmin = await login();
+    // Admin/tablet sessions now survive Cloud Run process restarts (Issue #58 P9).
+    expect((await call("/api/link/admin", admin)).status).toBe(200);
+    const nextAdmin = admin;
     expect(
       (await (await call("/api/link/admin", nextAdmin)).json()).snapshot.residents,
     ).toHaveLength(1);

@@ -78,12 +78,13 @@ export default function Admin({
   }
   async function resetParticipantCount() {
     await run(async (api) => {
-      const result = await api.resetParticipantCount();
+      await api.resetParticipantCount();
       if (feed.mounted.current) {
         setCounterResetConfirm(false);
         setNotice("累計参加者数を0人に戻しました。公開中の住民はそのままです。");
       }
-      return result;
+      // Read the state again so the visible total follows the reset.
+      return api.admin();
     });
   }
   function login(event: FormEvent) {
@@ -386,6 +387,14 @@ export default function Admin({
             <h2>累計参加者数</h2>
             {persistent ? (
               <>
+                <p aria-live="polite" data-testid="admin-total-participants">
+                  現在の累計：
+                  <strong>
+                    {typeof state.totalParticipants === "number"
+                      ? `${state.totalParticipants}人`
+                      : "確認中"}
+                  </strong>
+                </p>
                 <p>参加した人の累計をリセットできます。現在公開中の住民は削除されません。</p>
                 {counterResetConfirm ? (
                   <fieldset className="admin-confirm" aria-label="累計参加者数のリセット確認">

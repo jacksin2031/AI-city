@@ -261,6 +261,7 @@ export async function handlePersistentDeviceRequest(
       await visitor.removeResident(input.residentId);
       const state = device.adminState(token);
       state.snapshot = await visitor.snapshot();
+      state.totalParticipants = await visitor.joinedTotal();
       return Response.json(state, { headers: { "Cache-Control": "no-store" } });
     }
     const response = await handleLinkRequest(
@@ -279,7 +280,7 @@ export async function handlePersistentDeviceRequest(
       const snapshot = await visitor.snapshot();
       payload.snapshot =
         "pairedDisplays" in payload ? snapshot : device.withPresets(snapshot, "LIVE");
-      if (!("pairedDisplays" in payload)) payload.totalParticipants = await visitor.joinedTotal();
+      payload.totalParticipants = await visitor.joinedTotal();
       return Response.json(payload, { status: response.status, headers: response.headers });
     }
     return response;

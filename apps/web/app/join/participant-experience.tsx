@@ -13,8 +13,17 @@ import {
 } from "@ai-city/contracts/development-client";
 import { PRESET_CHARACTERS } from "@ai-city/contracts/device-link";
 import Link from "next/link";
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CityScene } from "./city-scene";
+import { ExistingGuard } from "./existing-guard";
+import {
+  closeExistingParticipation,
+  type ExistingParticipation,
+  type ExistingProbe,
+  probeExisting,
+  readSpineCurrent,
+} from "./existing-participation";
+import { InlineConfirm } from "./inline-confirm";
 import { LocalPhoto } from "./local-photo";
 import { ParticipantCard } from "./participant-card";
 import { computeStyle, questions } from "./questions";
@@ -45,10 +54,13 @@ type Stage =
 
 export function ParticipantExperience({
   spineLocal = false,
+  spineAvailable = false,
   photoHref = "/join/spine",
   presetOnly = false,
 }: {
   spineLocal?: boolean;
+  /** True when Spine jobs exist, even if the administrator has paused new photo uploads. */
+  spineAvailable?: boolean;
   photoHref?: string;
   /** Join as a prepared character: no name, no photo, straight to choosing a character. */
   presetOnly?: boolean;
@@ -59,6 +71,13 @@ export function ParticipantExperience({
   const [initializing, setInitializing] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [confirmingRestart, setConfirmingRestart] = useState(false);
+  // An earlier participation on this browser, surfaced before the next visitor types anything.
+  const [guard, setGuard] = useState<{
+    probe: ExistingProbe;
+    existing: ExistingParticipation;
+    late: boolean;
+  } | null>(null);
   const [message, setMessage] = useState("");
   const [feedbackVisible, setFeedbackVisible] = useState(false);
   const [feedbackShown, setFeedbackShown] = useState(false);
@@ -130,30 +149,80 @@ export function ParticipantExperience({
     else if (result.status === "invalid") setPhotoError("JPEG・PNG・WebPの写真を選んでください。");
   }
 
+  const showView = useCallback((current: ParticipationView) => {
+    setView(current);
+    if (current.publication === "PUBLISHED") setStage("published");
+    else if (current.publication === "REMOVED" || current.job.state === "CANCELLED")
+      setStage("removed");
+    else if (current.job.state === "READY") setStage("confirm");
+    else setStage("waiting");
+  }, []);
+
+  // After a reload nothing is resumed silently: an earlier participation (from either flow) is
+  // surfaced first, because the next person on a shared phone may not be its owner.
   useEffect(() => {
     let live = true;
-    client
-      .current()
-      .then((current) => {
-        if (!live || !current) return;
-        setView(current);
-        if (current.publication === "PUBLISHED") setStage("published");
-        else if (current.publication === "REMOVED" || current.job.state === "CANCELLED")
-          setStage("removed");
-        else if (current.job.state === "READY") setStage("confirm");
-        else setStage("waiting");
-      })
-      .catch((failure) => {
-        if (live && !(failure instanceof DevelopmentApiError && failure.status === 401))
-          setError("参加情報を確認できませんでした。ページを読み直してください。");
-      })
-      .finally(() => {
-        if (live) setInitializing(false);
-      });
+    void probeExisting({
+      sample: () => client.current(),
+      spine: () => (spineAvailable ? readSpineCurrent() : Promise.resolve(null)),
+    }).then((probe) => {
+      if (!live) return;
+      if (probe.unreadable)
+        setError("参加情報を確認できませんでした。ページを読み直してください。");
+      if (probe.existing) setGuard({ probe, existing: probe.existing, late: false });
+      // A removed or cancelled participation shows nothing public and blocks nothing.
+      else if (probe.sample) showView(probe.sample);
+      setInitializing(false);
+    });
     return () => {
       live = false;
     };
-  }, [client]);
+  }, [client, showView, spineAvailable]);
+
+  function continueExisting() {
+    if (!guard) return;
+    if (guard.existing.kind !== "sample" || !guard.probe.sample) {
+      // The earlier participation belongs to the photo flow.
+      window.location.assign(photoHref);
+      return;
+    }
+    showView(guard.probe.sample);
+    setGuard(null);
+  }
+  /** Ends the earlier participation. A draft typed before a late conflict is kept as it is. */
+  async function restartFromGuard() {
+    if (!guard) return;
+    await closeExistingParticipation(guard.probe, () => client.closeSession());
+    if (!guard.late) {
+      setNickname("");
+      setAnswers(Array(6).fill(null));
+      setQuestion(0);
+      setStage(presetOnly ? "custom" : "name");
+      try {
+        sessionStorage.removeItem("ai-city-nickname");
+      } catch {
+        // Nothing stored.
+      }
+    }
+    // A fresh session: the old request id, consents and view belong to the ended participation.
+    requestId.current = null;
+    setView(null);
+    setAvatarConsent(false);
+    setFields({ nickname: false, personality: false, interests: false });
+    setConfirmingRestart(false);
+    setError("");
+    setGuard(null);
+  }
+  /** A conflict reported only at create time: show the same choice, keeping what was typed. */
+  async function raiseLateGuard() {
+    const probe = await probeExisting({
+      sample: () => client.current(),
+      spine: () => (spineAvailable ? readSpineCurrent() : Promise.resolve(null)),
+    });
+    // A leftover the server still counts is also resolved by ending the old session.
+    const existing = probe.existing ?? { kind: "sample" as const, phase: "attention" as const };
+    setGuard({ probe, existing, late: true });
+  }
 
   useEffect(() => {
     if (stage !== "waiting" || !view) return;
@@ -207,12 +276,17 @@ export function ParticipantExperience({
       });
       setView(next);
     } catch (failure) {
+      // Everything typed stays in this page whatever the failure was.
+      setStage("questions");
+      if (failure instanceof DevelopmentApiError && failure.code === "ACTIVE_JOB_EXISTS") {
+        await raiseLateGuard();
+        return;
+      }
       setError(
         failure instanceof DevelopmentApiError
           ? failure.message
           : "接続できませんでした。もう一度お試しください。",
       );
-      setStage("questions");
     } finally {
       setBusy(false);
     }
@@ -252,10 +326,6 @@ export function ParticipantExperience({
     }
   }
   async function restart() {
-    if (
-      !window.confirm("最初からやり直しますか？街に公開したキャラクターと参加情報が削除されます。")
-    )
-      return;
     setBusy(true);
     setError("");
     try {
@@ -300,13 +370,22 @@ export function ParticipantExperience({
             <Link href={photoHref}>写真からキャラクターを作る（試験運用）</Link>
           </p>
         )}
-        {error && (
+        {error && !confirmingRestart && (
           <div role="alert" className="pf-error">
             {error}
           </div>
         )}
         {initializing ? (
           <p role="status">参加情報を確認しています。</p>
+        ) : guard ? (
+          <ExistingGuard
+            existing={guard.existing}
+            late={guard.late}
+            hasDraft={Boolean(nickname.trim()) || answers.some((answer) => answer !== null)}
+            sameFlow={guard.existing.kind === "sample"}
+            onContinue={continueExisting}
+            onRestart={restartFromGuard}
+          />
         ) : (
           <>
             {stage === "name" && (
@@ -660,7 +739,7 @@ export function ParticipantExperience({
                       : "見本の性格"
                   }：${view.preview.personalityLabel}（娯楽用）`}
                   styleLabel={view.preview.personalityLabel}
-                  values={traitValues(answers, view.preview.personalityLabel)}
+                  values={traitValues([], view.preview.personalityLabel)}
                 />
                 <section className="pf-controls" aria-label="平板の操作">
                   <h2>平板の操作</h2>
@@ -677,9 +756,32 @@ export function ParticipantExperience({
                   </p>
                   {focusRequest.message && <p role="status">{focusRequest.message}</p>}
                 </section>
-                <button className="pf-back" type="button" disabled={busy} onClick={restart}>
-                  公開を取り消して、最初からやり直す
-                </button>
+                {confirmingRestart ? (
+                  <InlineConfirm
+                    title="最初からやり直す確認"
+                    message="最初からやり直しますか？街に公開したキャラクターと参加情報が削除されます。"
+                    confirmLabel="取り消して最初からやり直す"
+                    busy={busy}
+                    error={error}
+                    onConfirm={() => void restart()}
+                    onCancel={() => {
+                      setConfirmingRestart(false);
+                      setError("");
+                    }}
+                  />
+                ) : (
+                  <button
+                    className="pf-back"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setError("");
+                      setConfirmingRestart(true);
+                    }}
+                  >
+                    公開を取り消して、最初からやり直す
+                  </button>
+                )}
                 {feedbackVisible && (
                   <section
                     className="pf-feedback"

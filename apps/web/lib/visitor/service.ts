@@ -1117,8 +1117,60 @@ export class VisitorService {
         typeof task === "string" ? state.spineResidents.find((item) => item.task === task) : null;
       if (!entry || entry.owner !== owner || entry.expiresAt <= now)
         throw new DevelopmentServiceError("JOB_NOT_READY", 409);
-      tx.set(`requests/spine-profile-${owner}`, { task: entry.task, ...profile });
+      // A later save that carries less than the stored profile (a reload that lost the answers)
+      // must not replace real questionnaire results with a default or neutral card.
+      const previous = await tx.get(`requests/spine-profile-${owner}`);
+      const kept = previous?.task === entry.task ? previous : null;
+      const keptTraits: unknown = kept?.traits;
+      const keptLabel: unknown = kept?.personalityLabel;
+      const keptInterests: unknown = kept?.interests;
+      const traits = profile.traits ?? (Array.isArray(keptTraits) ? keptTraits : undefined);
+      const personalityLabel =
+        profile.personalityLabel ?? (typeof keptLabel === "string" ? keptLabel : null);
+      const interests =
+        profile.interests.length || !Array.isArray(keptInterests)
+          ? profile.interests
+          : keptInterests;
+      tx.set(`requests/spine-profile-${owner}`, {
+        task: entry.task,
+        nickname: profile.nickname,
+        personalityLabel,
+        interests,
+        ...(traits ? { traits } : {}),
+      });
       tx.set("meta/state", { ...state, eventSeq: state.eventSeq + 1 });
+    });
+  }
+
+  /** The participant's own saved public profile, so a reloaded page shows what the city shows. */
+  async currentSpineProfile(token: string): Promise<{
+    nickname: string;
+    personalityLabel: string | null;
+    interests: string[];
+    traits?: number[];
+  } | null> {
+    const owner = digestToken(token);
+    if (!owner) throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+    const now = this.now();
+    return this.store.run(async (tx) => {
+      const state = await readState(tx);
+      const session = parseSession(await tx.get(`sessions/${owner}`));
+      if (!validSession(session, owner, state, now))
+        throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
+      const index = await tx.get(`requests/spine-owner-${owner}`);
+      const task = index?.task;
+      const entry =
+        typeof task === "string" ? state.spineResidents.find((item) => item.task === task) : null;
+      if (!entry || entry.owner !== owner || entry.expiresAt <= now) return null;
+      const stored = await tx.get(`requests/spine-profile-${owner}`);
+      if (!stored || stored.task !== entry.task || typeof stored.nickname !== "string") return null;
+      return {
+        nickname: stored.nickname,
+        personalityLabel:
+          typeof stored.personalityLabel === "string" ? stored.personalityLabel : null,
+        interests: Array.isArray(stored.interests) ? stored.interests : [],
+        ...(Array.isArray(stored.traits) ? { traits: stored.traits } : {}),
+      };
     });
   }
 
@@ -1798,7 +1850,8 @@ export class VisitorService {
   async resetJoinedTotal(): Promise<number> {
     return this.store.run(async (tx) => {
       const state = await readState(tx);
-      setDocument(tx, "meta/state", { ...state, joinedTotal: 0 });
+      // Advance the sequence so connected admin and tablet views accept the new total.
+      setDocument(tx, "meta/state", { ...state, joinedTotal: 0, eventSeq: state.eventSeq + 1 });
       return 0;
     });
   }
