@@ -109,6 +109,24 @@ class ReleaseGateTests(unittest.TestCase):
         changed["visual_reviews"][-1]["data"]["defects"] = [{"severity": "MINOR"}]
         self.assertFalse(preview_release_eligible(state, changed, quality, ENV))
 
+    def test_preview_confidence_threshold_is_exactly_eighty_percent(self):
+        state, report, quality = fixture()
+        checks = report["visual_reviews"][-1]["data"]["checks"]
+        checks[3]["confidence"] = 0.8
+        checks[4]["confidence"] = 0.8
+        self.assertTrue(preview_release_eligible(state, report, quality, ENV))
+        checks[3]["confidence"] = 0.799
+        self.assertFalse(preview_release_eligible(state, report, quality, ENV))
+        checks[3]["confidence"] = 0.8
+        checks[5]["result"] = "FAIL"
+        self.assertFalse(preview_release_eligible(state, report, quality, ENV))
+        checks[5]["result"] = "PASS"
+        state["ear_stage"] = "STOPPED"
+        self.assertFalse(preview_release_eligible(state, report, quality, ENV))
+        state["ear_stage"] = None
+        quality["visual_confidence_floor"] = 0.7
+        self.assertFalse(preview_release_eligible(state, report, quality, ENV))
+
     def test_pants_can_be_not_applicable_but_ears_cannot(self):
         state, report, quality = fixture()
         changed = copy.deepcopy(report)

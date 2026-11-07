@@ -3,6 +3,7 @@ import copy
 import datetime as dt
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import statistics
@@ -22,6 +23,15 @@ def policy():
     value=json.loads((ROOT/'runtime/config/quality-policy.json').read_text(encoding='utf-8'))
     require(value['revision']==VERSIONS['product']['quality_policy'],'QUALITY_POLICY_VERSION')
     return value
+
+
+def stage_confidence_floor(environment=None):
+    """Preview-only 0.80 stage gate; never relax the production policy."""
+    env = os.environ if environment is None else environment
+    if (env.get("AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH") == "1"
+            and env.get("AI_CITY_VISITOR_NAMESPACE") == "preview-staging-20261107"):
+        return 0.8
+    return policy()["visual_confidence_floor"]
 
 
 def finding(code,part='CHARACTER',result='FAIL',message='',frame_id=None,direction='all',severity='MAJOR',confidence=1.0):

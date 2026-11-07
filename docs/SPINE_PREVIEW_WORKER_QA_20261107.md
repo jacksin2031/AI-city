@@ -18,7 +18,7 @@ This branch starts at commit 61bdadb (before the **unneeded** 9cedda5 Code Mode 
    - `AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH=1` **and** `AI_CITY_VISITOR_NAMESPACE=preview-staging-20261107`
    - Pipeline DONE, the current candidate/manifest/review match, no errors or stopped ear stage
    - Hard quality PASS **with zero remaining structural defects**, render PASS **with zero defects**, and 20+ actual assembled-alpha frames checked using `assembled-composite-alpha-001` with **zero composite alpha outliers**, plus matching multi-scale render evidence hashes
-   - One successful recorded Codex visual review (source CODEX_SUBSCRIPTION), all required checks complete with confidence at least policy floor (>=0.9), evidence IDs, no visual defects, and no unknown/fail checks; only a permitted skirt-occlusion NOT_APPLICABLE is tolerated
+   - One successful recorded Codex visual review (source CODEX_SUBSCRIPTION), all required checks complete with **Preview-only confidence >=0.80** (the unchanged global policy floor is 0.90), evidence IDs, no visual defects, and no unknown/fail checks; only a permitted skirt-occlusion NOT_APPLICABLE is tolerated
    - The caller already uses `read_review(..., fresh=True)`, pinning photo, design, bundle hashes and policy. The existing publisher still separately revalidates bundle integrity, active session and participant consent.
 
 A failed or absent condition stays `REQUIRES_REVIEW`. This **does not** approve unreviewed jobs or publish earlier UNKNOWN tasks. Actual visual adequacy is not certified by the controlled model calibration: this is an explicit Preview exhibition experiment, not general production release approval.

@@ -115,7 +115,7 @@ def fit_pair(front,back,head,head_image,layout,metrics,current=False,non_uniform
 def stage_gate(root,candidate,front_ears=False):
     """A stage-level advisory gate, never whole-character release approval."""
     import json
-    from .review import read_review,policy
+    from .review import read_review,stage_confidence_floor
     from .design import private_path
     report=read_review(root,candidate['review_id']);fit=json.loads(private_path(root,candidate['output']+'/export/bundle/hair-fit.json').read_text(encoding='utf-8'))
     if fit['revision'] not in ('head-alpha-fit-006','head-alpha-fit-007') or fit['metrics']['status']!='ESTIMATED_NOT_VISUALLY_APPROVED' or report['hard']['status']=='FAIL' or report['render']['status']!='PASS' or report['visual_call']['status']!='COMPLETED_ADVISORY':return False
@@ -125,4 +125,5 @@ def stage_gate(root,candidate,front_ears=False):
         if len(ears)!=2 or not all(e['visible_fraction']>=.4 for e in ears):return False
     latest=report['visual_reviews'][-1]['data'];needed={'hair_fit','hair_consistency'}|({'ear_visibility'} if front_ears else set())
     checks={c['category']:c for c in latest['checks']}
-    return all(k in checks and checks[k]['result']=='PASS' and checks[k]['confidence']>=policy()['visual_confidence_floor'] for k in needed) and not any(d['part'].startswith('HAIR') and d.get('confidence',0)>=policy()['visual_confidence_floor'] for d in latest['defects'])
+    floor=stage_confidence_floor()
+    return all(k in checks and checks[k]['result']=='PASS' and checks[k]['confidence']>=floor for k in needed) and not any(d['part'].startswith('HAIR') and d.get('confidence',0)>=floor for d in latest['defects'])
