@@ -47,3 +47,34 @@ After this patch, both attempts returned PREPARED/exit 0 with the **same flow ID
 - Update only the Preview Worker checkout after existing Preview tasks are idle; do not modify shared Production `node_modules` or Production Worker. First run `python -B scripts/check-spine-references.py` with the Preview Worker virtualenv.
 - **Only if** the result confirms missing references and the worktree is exactly branch `fix/spine-next-round-20261107`, explicitly set `AI_CITY_VISITOR_NAMESPACE=preview-staging-20261107`, then run `python -B scripts/restore-missing-spine-references.py --restore-missing`. Immediately rerun the read-only checker and require `READY`.
 - If the checker finds a hash mismatch, symlink/junction, malformed manifest, or dependency/runtime error, **do not run repair**; retain existing files and report the safe code. No model photo retry until the environment passes verification.
+
+### 2026-11-07 — Preview DESIGN Codex VM failure
+
+Confirmed by Muse on Preview: preparation and bundled docs now pass. A fresh job reached DESIGN then ended UNKNOWN with Python `CalledProcessError`; Codex stderr reported missing `/opt/hatch-image/bin/codex-code-mode-host`, repeated `workspace routing discovery failed`, backend MCP transport failures, and model catalogue timeout. **No proof of a completed model DESIGN call**. Do not requeue the UNKNOWN task.
+
+**Two distinct problems:** Code Mode host executable availability is a local optional runtime dependency; workspace routing is an independent account/backend/network discovery failure. HTTP 200 from `https://chatgpt.com` alone does not validate authenticated Codex routing or inference transport.
+
+New Preview-only source patch: `vision_only_flags()` explicitly sets `-c features.code_mode=false -c features.code_mode_host=false` only in Codex's DESIGN and read-only visual REVIEW commands, including `character_session.command` on both first call and `resume`. These prompts prohibit tool use. Built-in ImageGen/generation commands are **not changed**, since ImageGen's tool capability under disabled Code Mode has not been established. Do not manually download an unofficial host binary or create a symlink to the missing executable.
+
+**VM validation (Preview Worker identity, without photos; one minimal model call is required for authenticated routing diagnosis):**
+```bash
+# On PREVIEW VM with the same operating-system user, PATH, HOME and CODEX_HOME as the Preview Spine Worker:
+command -v codex
+codex --version
+codex features list | grep -E 'code_mode|code_mode_host'
+codex login status
+
+# Probe A — matches Spine's ignore-user-config and model, with both optional Code Mode switches disabled.
+printf '%s\n' 'Return exactly: SPINE_PROBE_OK. Do not use tools or files.' | \
+  codex exec --ignore-user-config --ephemeral --skip-git-repo-check \
+  --sandbox read-only --json -m gpt-6-luna \
+  -c 'forced_login_method="chatgpt"' \
+  -c 'features.code_mode=false' -c 'features.code_mode_host=false' -
+
+# Only if Probe A fails routing, use the same prompt/options but OMIT --ignore-user-config
+# to test whether Spine's config isolation is hiding a required proxy/routing configuration.
+# Run this controlled text-only probe manually, not the photo pipeline.
+```
+Keep Probe A's success/failure, Codex version, effective enabled feature flags and SAFE network error category only. Never share stdout containing personal information, auth credentials, cookies, tokens, or full VM environment values. If Probe A fails `workspace routing discovery failed` even with Code Mode disabled, do not alter production: compare resolved Codex binary, `CODEX_HOME` identity (without printing contents), proxy policy, current backend routing, and Codex CLI/account configuration against DialogueWorker. Do not remove `--ignore-user-config` in production to bypass restrictions.
+
+**Validation gates:** Local tests verify the exact DESIGN/review command construction and image-generation non-regression without calling models. However real authenticated Preview Codex routing and `QUEUED -> RUNNING -> PUBLISHED` remain unverified. No Production deploy/restart.
