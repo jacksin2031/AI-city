@@ -35,10 +35,10 @@
     "@google-cloud/firestore": "9.4.0",
     "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
-    "firebase": "13.1.0",
+    "firebase": "13.2.0",
     "firebase-tools": "15.34.2",
-    "tsx": "4.20.5",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   }
 }
