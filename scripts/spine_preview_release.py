@@ -1,23 +1,30 @@
-"""Opt-in, Preview-only, evidence-bound exhibition release gate.
+"""Opt-in, namespace-locked, evidence-bound exhibition release gate.
 
-The SpineTool quality policy still requires a human for general production
-approval. This narrow integration exception permits only a verified, complete
-Preview exhibition result with no detected image/render/model defect. It does
-not modify any persisted flow/review evidence or invoke any model.
+The internal SpineTool report remains human-review-only. The separate Preview
+and Production exhibition integrations may publish verified, complete outputs
+with zero structural, rendered or visual defects. A server-side publication
+transaction additionally enforces the participant's active automatic-publication
+consent and active session; this Python gate never receives participant data.
 """
 import math
 import re
 
-PREVIEW_NAMESPACE = "preview-staging-20261107"
-# The narrower, opt-in Preview release uses a 0.80 visual confidence floor.
-# Production policy and explicit FAIL/UNKNOWN outcomes remain unchanged.
-PREVIEW_VISUAL_CONFIDENCE_FLOOR = 0.8
+RELEASE_FLAGS = {
+    "preview-staging-20261107": "AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH",
+    "preview-visitors-20261019": "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH",
+}
+# The exhibition release floor is separate from the immutable tool quality policy.
+EXHIBITION_VISUAL_CONFIDENCE_FLOOR = 0.8
+
+
+def exhibition_release_enabled(environment):
+    namespace = environment.get("AI_CITY_VISITOR_NAMESPACE")
+    flag = RELEASE_FLAGS.get(namespace)
+    return bool(flag and environment.get(flag) == "1")
 
 
 def preview_release_eligible(state, report, quality, environment):
-    if environment.get("AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH") != "1":
-        return False
-    if environment.get("AI_CITY_VISITOR_NAMESPACE") != PREVIEW_NAMESPACE:
+    if not exhibition_release_enabled(environment):
         return False
     if state.get("phase") != "DONE" or state.get("status") != "REQUIRES_REVIEW":
         return False
@@ -76,9 +83,9 @@ def preview_release_eligible(state, report, quality, environment):
     if (not isinstance(required, list) or not required or type(policy_floor) not in (float, int)
             or not math.isfinite(policy_floor) or not 0.9 <= policy_floor <= 1.0):
         return False
-    # The base policy remains validated/pinned; only this namespace-locked
-    # exhibition integration may lower its PASS-confidence release threshold.
-    floor = PREVIEW_VISUAL_CONFIDENCE_FLOOR
+    # The base policy remains validated/pinned; only explicitly enabled,
+    # namespace-locked exhibition integrations use the 0.80 release threshold.
+    floor = EXHIBITION_VISUAL_CONFIDENCE_FLOOR
     checks = data.get("checks")
     if not isinstance(checks, list) or len(checks) != len(required):
         return False

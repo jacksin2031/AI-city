@@ -110,11 +110,12 @@ def assembled_alpha_evidence(folder,frames):
 
 
 def preview_rear_mask_calibration(fit,environment=None):
-    """The 2px raster-edge correction is isolated to audited fit008 Preview tests."""
+    """The 2px raster-edge correction requires opted-in exhibition + audited fit008."""
     env=os.environ if environment is None else environment
     metrics=fit.get('metrics',{}) if isinstance(fit,dict) else {}
-    return (env.get('AI_CITY_VISITOR_NAMESPACE')=='preview-staging-20261107'
-            and env.get('AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH')=='1'
+    flag={'preview-staging-20261107':'AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH',
+          'preview-visitors-20261019':'AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH'}.get(env.get('AI_CITY_VISITOR_NAMESPACE'))
+    return (bool(flag) and env.get(flag)=='1'
             and fit.get('revision')=='head-alpha-fit-008'
             and metrics.get('status')=='ESTIMATED_NOT_VISUALLY_APPROVED'
             and isinstance(metrics.get('rear_head_coverage'),(int,float))

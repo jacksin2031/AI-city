@@ -26,10 +26,12 @@ def policy():
 
 
 def stage_confidence_floor(environment=None):
-    """Preview-only 0.80 stage gate; never relax the production policy."""
+    """Explicitly enabled Preview/Production exhibition stage confidence floor."""
     env = os.environ if environment is None else environment
-    if (env.get("AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH") == "1"
-            and env.get("AI_CITY_VISITOR_NAMESPACE") == "preview-staging-20261107"):
+    flag = {"preview-staging-20261107": "AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH",
+            "preview-visitors-20261019": "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH"}.get(
+                env.get("AI_CITY_VISITOR_NAMESPACE"))
+    if flag and env.get(flag) == "1":
         return 0.8
     return policy()["visual_confidence_floor"]
 

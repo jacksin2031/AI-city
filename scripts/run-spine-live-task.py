@@ -121,7 +121,7 @@ def main():
                           auto_publish=approved)
             if approved:
                 # No mutation of the tool's human-review-only report. This status
-                # is a separate explicitly enabled Preview integration decision.
+                # is a separate, explicitly enabled, namespace-locked exhibition decision.
                 result["status"] = "READY_FOR_REVIEWED_EXPORT"
         print(json.dumps(result))
         return 0

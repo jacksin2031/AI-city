@@ -46,8 +46,9 @@ export function toolEnvironment(source: NodeJS.ProcessEnv = process.env): NodeJS
     "HTTPS_PROXY",
     "ALL_PROXY",
     "NO_PROXY",
-    // Explicit operator opt-in. Both markers are required; release gate rejects Production.
+    // Namespace-locked operator opt-in; flags never authorize the other namespace.
     "AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH",
+    "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH",
     "AI_CITY_VISITOR_NAMESPACE",
   ]) {
     if (source[name] !== undefined) env[name] = source[name];

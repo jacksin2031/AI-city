@@ -499,6 +499,10 @@ export class SpineJobs {
     return this.store.run(async (tx) => {
       const record = recordSchema.parse(await tx.get(path));
       if (record.worker !== worker) throw new Error("WORKER_MISMATCH");
+      // Recheck the original participant consent atomically at publication time.
+      // The worker's quality gate cannot authorize publication by itself.
+      if (record.consent?.automaticPublication !== true || !record.publicationConsent)
+        throw new Error("CONSENT_REQUIRED");
       if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
       const at = this.now();
       const next = {

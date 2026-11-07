@@ -17,6 +17,12 @@ class PreviewRearCoverageTests(unittest.TestCase):
         for alternative in ({}, {**env,"AI_CITY_VISITOR_NAMESPACE":"production"},
                             {**env,"AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH":"0"}):
             self.assertFalse(preview_rear_mask_calibration(fit,alternative))
+        production={"AI_CITY_VISITOR_NAMESPACE":"preview-visitors-20261019",
+                    "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH":"1"}
+        self.assertTrue(preview_rear_mask_calibration(fit,production))
+        self.assertFalse(preview_rear_mask_calibration(fit,{
+            "AI_CITY_VISITOR_NAMESPACE":"preview-visitors-20261019",
+            "AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH":"1"}))
         self.assertFalse(preview_rear_mask_calibration(
             {**fit,"revision":"head-alpha-fit-007"},env))
         self.assertFalse(preview_rear_mask_calibration(

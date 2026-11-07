@@ -52,6 +52,32 @@ class ReleaseGateTests(unittest.TestCase):
                     {**ENV, "AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH": "true"}):
             self.assertFalse(preview_release_eligible(state, report, quality, env))
 
+    def test_production_requires_distinct_opt_in_and_same_quality_gate(self):
+        state, report, quality = fixture()
+        production = {
+            "AI_CITY_VISITOR_NAMESPACE": "preview-visitors-20261019",
+            "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH": "1",
+        }
+        self.assertTrue(preview_release_eligible(state, report, quality, production))
+        for env in (
+            {"AI_CITY_VISITOR_NAMESPACE": "preview-visitors-20261019",
+             "AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH": "1"},
+            {"AI_CITY_VISITOR_NAMESPACE": "preview-staging-20261107",
+             "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH": "1"},
+            {**production, "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH": "true"},
+            {**production, "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH": "0"},
+            {**production, "AI_CITY_VISITOR_NAMESPACE": "another-production"},
+        ):
+            self.assertFalse(preview_release_eligible(state, report, quality, env))
+        checks = report["visual_reviews"][-1]["data"]["checks"]
+        checks[0]["confidence"] = 0.8
+        self.assertTrue(preview_release_eligible(state, report, quality, production))
+        checks[0]["confidence"] = 0.799
+        self.assertFalse(preview_release_eligible(state, report, quality, production))
+        checks[0]["confidence"] = 0.9
+        report["hard"]["defects"] = [{"code": "HAIR_COVERAGE", "result": "FAIL"}]
+        self.assertFalse(preview_release_eligible(state, report, quality, production))
+
     def test_never_release_incomplete_unreviewed_or_tampered_candidate(self):
         state, report, quality = fixture()
         for key, value in [("status", "UNKNOWN"), ("phase", "CAPTURE"),
