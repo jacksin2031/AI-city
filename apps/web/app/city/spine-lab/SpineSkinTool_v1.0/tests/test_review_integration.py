@@ -27,6 +27,41 @@ class ReviewIntegrationTests(unittest.TestCase):
     def update_manifest(self,file):
         path=self.bundle/'build-manifest.json';manifest=json.loads(path.read_text(encoding='utf-8'));manifest['files'][file]=digest(self.bundle/file);path.write_bytes(canonical(manifest)+b'\n')
 
+    def test_orientation_guard_survives_linux_newline_behavior(self):
+        """Synthetic assembly preserves the exact fixed Guard bytes on Linux."""
+        original = (ROOT / "ui/orientation.js").read_bytes()
+        self.assertIn(bytes((13, 10)), original)
+        original_write = Path.write_text
+
+        def linux_style_write(path, content, *args, **kwargs):
+            # Linux text reads convert CRLF to LF and writes do not restore CRLF.
+            if path.name == "orientation.js":
+                return path.write_bytes(content.encode(kwargs.get("encoding") or "utf-8"))
+            return original_write(path, content, *args, **kwargs)
+
+        source_record = json.loads(
+            (self.root / self.output / "design.json").read_text(encoding="utf-8")
+        )
+        with patch.object(Path, "write_text", linux_style_write):
+            dispatch("assemble", {
+                "design_id": source_record["design_id"],
+                "raw_directory": "runtime/work/raw",
+                "output": "runtime/work/linux-newline-guard",
+            }, self.root)
+        result = self.root / "runtime/work/linux-newline-guard/export/bundle/orientation.js"
+        self.assertEqual(result.read_bytes(), original)
+        hard, _, _ = hard_checks(self.root, "runtime/work/linux-newline-guard")
+        self.assertNotIn("ORIENTATION_GUARD_CHANGED", [d["code"] for d in hard["defects"]])
+
+    def test_modified_guard_is_still_a_hard_failure(self):
+        """Byte-preserving assembly must not waive real guard modification."""
+        guard = self.bundle / "orientation.js"
+        guard.write_bytes(guard.read_bytes() + bytes((10,)) + b"// unauthorized mutation" + bytes((10,)))
+        self.update_manifest("orientation.js")
+        hard, _, _ = hard_checks(self.root, self.output)
+        self.assertEqual(hard["status"], "FAIL")
+        self.assertIn("ORIENTATION_GUARD_CHANGED", [d["code"] for d in hard["defects"]])
+
     def test_fit008_rear_vertical_scaling_is_applied_to_exported_skeleton(self):
         from spine_skin_tool.character import assemble_raw
         record=json.loads((self.root/self.output/'design.json').read_text(encoding='utf-8'))

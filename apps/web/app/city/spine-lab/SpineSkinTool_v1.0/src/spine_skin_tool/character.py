@@ -42,7 +42,7 @@ def assemble_raw(root,raw_dir,output,layout,has_skirt=False,arm_source='standard
  require(not output.exists(),'OUTPUT_ALREADY_EXISTS')
  source_root=prepare(root)[0].parent
  require(not output.is_relative_to(source_root) and not source_root.is_relative_to(output),'OUTPUT_TEMPLATE_OVERLAP')
- ORIENTATION=(ROOT/'ui/orientation.js').read_text(encoding='utf-8')
+ ORIENTATION=(ROOT/'ui/orientation.js').read_bytes()
  directory=output.resolve();directory.mkdir(parents=True);source=directory/'source';parts=directory/'parts';bundle=directory/'bundle'
  source.mkdir();parts.mkdir();shutil.copytree(source_root,source,dirs_exist_ok=True)
  skeleton=source/'ai-city-original-template.json';atlas=source/'ai-city-original-template.atlas';profile=make_profile(skeleton,atlas)
@@ -88,7 +88,7 @@ def assemble_raw(root,raw_dir,output,layout,has_skirt=False,arm_source='standard
  cleanprofile=make_profile(skeleton,atlas);build(skeleton,atlas,parts,cleanprofile,bundle)
  policy=json.loads((bundle/'orientation-policy.json').read_text(encoding='utf-8'));policy.update(has_skirt=has_skirt,front_order=['body','arm-r','arm-l','head-base'])
  if integrated_ears:policy['ear_mode']='INTEGRATED_SMALL_EARS_IN_HAIR'
- (bundle/'orientation-policy.json').write_bytes(canonical(policy)+b'\n');(bundle/'orientation.js').write_text(ORIENTATION,encoding='utf-8')
+ (bundle/'orientation-policy.json').write_bytes(canonical(policy)+b'\n');(bundle/'orientation.js').write_bytes(ORIENTATION)
  manifest=json.loads((bundle/'build-manifest.json').read_text(encoding='utf-8'));manifest.update(experiment_id=VERSIONS['workflow']['revision'],source_arms=arm_source,status='AWAITING_VISUAL_REVIEW')
  for file in manifest['files']:manifest['files'][file]=sha(bundle/file)
  (bundle/'build-manifest.json').write_bytes(canonical(manifest)+b'\n');verify_bundle(bundle)
