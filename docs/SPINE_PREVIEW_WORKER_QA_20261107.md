@@ -51,3 +51,9 @@ A read-only audit revealed seven old WITHDRAWN records with pending cleanup and 
 `review_render.py` selects a platform-appropriate pinned Python interpreter (`.venv/bin/python` on Linux, `.venv/Scripts/python.exe` on Windows), so the VM's assembled-browser capture no longer incorrectly references a Windows-only path.
 
 For Muse's Preview VM **only** the original six runtime files in the earlier list are required. The extra PC-only queued-test filtering also touches `scripts/cloud-spine-worker.ts` and `apps/web/lib/spine/cloud-worker-report.ts`, but the normal VM Worker does not need the extra flag. Keep production untouched. Do not replay prior held or failed jobs.
+
+## Windows Preview automatic-review launcher
+
+`scripts/run-cloud-spine-worker.bat` is the legacy launcher and is NOT the opt-in QA path for this namespace. Use `scripts/run-preview-spine-worker.bat` for the owner PC instead. The launcher sets `AI_CITY_VISITOR_NAMESPACE=preview-staging-20261107` and `AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH=1` only in its own process environment, uses the dedicated private Preview scratch path, and passes `--preview-queued-only --live --cap=20 --workers=1`. It asks for one explicit `YES` on worker startup because model calls may consume subscription quota or incur provider costs; per-job review/publication thereafter is automatic for strictly eligible candidates.
+
+This mode is **not a forced approval**. A job must have participant consent, a current verified bundle, clean hard/render checks, assembled-alpha evidence and a completed confident Codex visual review. Unsafe, incomplete, unknown, withdrawn or older held work is not auto-approved. An already-running Preview worker must be stopped gracefully before starting a second worker against the same scratch directory; the scratch lock is an additional safeguard.
