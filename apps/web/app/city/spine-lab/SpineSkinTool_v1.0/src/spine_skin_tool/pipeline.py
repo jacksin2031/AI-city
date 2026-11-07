@@ -6,7 +6,7 @@ from .assembly import canonical,verify_bundle
 from .pipeline_store import directory,read,commit,lease,atomic
 from .character_flow import source_profile,prepare_requests,assemble_character,bindings_from_directory,bindings_from_source
 from .repair import harvest_generation,review_is_approved,NOT_SENT
-from .review import create_review,read_review,review_dir,policy
+from .review import create_review,read_review,review_dir,policy,stage_confidence_floor
 from .reference_assets import library_root
 
 DEFAULTS={'max_image_calls':12,'max_visual_calls':3,'max_repair_cycles':2,'live_design':False,'live_generation':False,'live_review':False,'pause_design':False}
@@ -407,7 +407,7 @@ def work(root,s,hook=None):
                     fit=json.loads(private_path(root,candidate['output']+'/export/bundle/hair-fit.json').read_text(encoding='utf-8'))
                     ears=fit['ear_pass']['measurements']['HAIR_BACK'].get('per_ear',[]);review=read_review(root,candidate['review_id'])
                     checks=review['visual_reviews'][-1]['data']['checks'] if review['visual_reviews'] else []
-                    ok=len(ears)==2 and all(e['visible_fraction']>=.4 for e in ears) and any(c['category']=='ear_visibility' and c['result']=='PASS' and c['confidence']>=policy()['visual_confidence_floor'] for c in checks)
+                    ok=len(ears)==2 and all(e['visible_fraction']>=.4 for e in ears) and any(c['category']=='ear_visibility' and c['result']=='PASS' and c['confidence']>=stage_confidence_floor() for c in checks)
                     if not ok:
                         if not s.get('standard_ear_artifact') and retry_ear(root,s,'HAIR_BACK','BACK_EARS_NOT_CONFIRMED',hook):continue
                         s.update(ear_stage='STOPPED',ear_stop_reason='BACK_EARS_NOT_CONFIRMED')

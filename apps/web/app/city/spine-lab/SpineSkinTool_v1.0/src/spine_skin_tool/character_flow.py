@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import os
+import errno
 from pathlib import Path
 import tempfile
 import uuid,time
@@ -40,8 +41,12 @@ def prepare_requests(root,identity):
     plan['plan_id']=hashlib.sha256(canonical(plan)).hexdigest();destination=plans/('plan-'+plan['plan_id'])
     (stage/'requests.json').write_bytes(canonical(plan)+b'\n')
     try:os.rename(stage,destination)
-    except FileExistsError:
-        # Keep the verified duplicate staging directory; never delete user paths.
+    except OSError as error:
+        # Linux raises ENOTEMPTY (errno 39), not FileExistsError, when a previously
+        # prepared nonempty plan directory is reused during ASSEMBLE. Never suppress
+        # unrelated filesystem errors or overwrite a previous plan.
+        if error.errno not in (errno.EEXIST, errno.ENOTEMPTY) or not destination.is_dir():raise
+        # Keep the duplicate staging directory; never delete user paths.
         require((destination/'requests.json').read_bytes()==canonical(plan)+b'\n','REQUEST_PLAN_CHANGED')
     for item in parts.values():
         for ref in item['references']:
@@ -181,7 +186,7 @@ def assemble_character(root,identity,bindings,output,auto_fit=False,fit_revision
             if owner.get('ear_decision_id'):
                 from .ear_policy import load as load_ear_decision
                 choice=load_ear_decision(root,owner['ear_decision_id']);flow.update(ear_decision=choice,ear_policy_revision=choice['revision'])
-    if fitted and fitted['revision'] in ('head-alpha-fit-006','head-alpha-fit-007'):flow['ear_stage']=fitted['metrics']['ear_stage']
+    if fitted and fitted['revision'] in ('head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008'):flow['ear_stage']=fitted['metrics']['ear_stage']
     if flow.get('ear_mode')=='HIDDEN':flow['ear_stage']='HIDDEN'
     if ear_timing:
         from .ear_policy import load as load_ear_decision

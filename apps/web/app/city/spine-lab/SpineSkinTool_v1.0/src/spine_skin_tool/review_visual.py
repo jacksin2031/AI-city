@@ -66,6 +66,20 @@ def output_schema(parts=None):
     return obj({'review_id':string,'evidence_hash':string,'checks':{'type':'array','items':check},'defects':{'type':'array','items':defect},'summary_ja':string})
 
 
+def normalize_defect_bbox(value):
+    """Normalize a narrowly recognized model XYWH slip without removing the defect."""
+    require(isinstance(value,list) and len(value) in (0,4),'VISUAL_BOX')
+    if not value:return []
+    require(all(type(n) in (int,float) and math.isfinite(n) and 0<=n<=1 for n in value),'VISUAL_BOX')
+    left,top,right,bottom=value
+    # Some model outputs give [x,y,width,height]; only recognize the unambiguous
+    # both-axes-reversed case, keeping raw SHA and an audit of the conversion.
+    if right<=left and bottom<=top and left+right<=1 and top+bottom<=1:
+        right,bottom=left+right,top+bottom
+    require(left<right and top<bottom and right<=1 and bottom<=1,'VISUAL_BOX')
+    return [left,top,right,bottom]
+
+
 def validate_visual(root,identity,data):
     data=copy.deepcopy(data)
     report,manifest=evidence(root,identity);context=json.loads((review_dir(root,identity)/'context.json').read_text(encoding='utf-8'))
@@ -127,8 +141,7 @@ def validate_visual(root,identity,data):
         require(item['direction'] in ('front','back','left','right','all') and isinstance(item['frame_id'],str) ,'VISUAL_FRAME_ID')
         item['frame_id']=reference(item['frame_id'])
         require(item['severity'] in ('BLOCKER','MAJOR','MINOR'),'VISUAL_SEVERITY');confidence(item['confidence']);message(item['message_ja'])
-        box=item['bbox'];require(isinstance(box,list) and len(box) in (0,4),'VISUAL_BOX')
-        if box:require(all(type(n) in (int,float) and math.isfinite(n) and 0<=n<=1 for n in box) and box[0]<box[2] and box[1]<box[3],'VISUAL_BOX')
+        item['bbox']=normalize_defect_bbox(item['bbox'])
     message(data['summary_ja']);return copy.deepcopy(data)
 
 
@@ -136,11 +149,12 @@ def import_visual(root,identity,data,source):
     require(source in ('HUMAN','EXTERNAL_MODEL','CODEX_SUBSCRIPTION'),'VISUAL_SOURCE')
     original_hash=hashlib.sha256(canonical(data)).hexdigest();raw=copy.deepcopy(data);data=validate_visual(root,identity,data)
     normalized_parts=[{'original':a['part'],'normalized':b['part'],'reason':'GROUPED_PART_UNLOCATED'} for a,b in zip(raw['defects'],data['defects']) if a['part']!=b['part']]
+    bbox_normalizations=[{'defect_index':i,'original':a['bbox'],'normalized':b['bbox'],'reason':'MODEL_XYWH_TO_XYXY'} for i,(a,b) in enumerate(zip(raw['defects'],data['defects'])) if a['bbox']!=b['bbox']]
     references=[(a,b) for before,after in zip(raw['checks'],data['checks']) for a,b in zip(before['evidence_ids'],after['evidence_ids'])]
     references.extend((a['frame_id'],b['frame_id']) for a,b in zip(raw['defects'],data['defects']))
     normalized_refs=[{'original':a,'normalized':b,'reason':'VERIFIED_SHEET_FRAME'} for a,b in references if a!=b]
     with LOCK:
-        report=read_review(root,identity);report['visual_reviews'].append({'part_normalizations':normalized_parts,'reference_normalizations':normalized_refs,'repair_coordinates_verified':False,'coordinate_space':'ADVISORY_UNVERIFIED','raw_result_sha256':original_hash,'source':source,'recorded_at':dt.datetime.now(dt.timezone.utc).isoformat(),'data':data})
+        report=read_review(root,identity);report['visual_reviews'].append({'part_normalizations':normalized_parts,'bbox_normalizations':bbox_normalizations,'reference_normalizations':normalized_refs,'repair_coordinates_verified':False,'coordinate_space':'ADVISORY_UNVERIFIED','raw_result_sha256':original_hash,'source':source,'recorded_at':dt.datetime.now(dt.timezone.utc).isoformat(),'data':data})
         report['status']=aggregate(report);save_report(root,report)
     return report
 
@@ -175,7 +189,7 @@ def visual_request(root,identity):
         "Clothing fidelity is approximate: tolerate blue/navy/purple-nearby hue and ordinary garment/detail differences. Only a clearly wrong dominant color family or wrong garment TYPE merits COARSE_COLOR_MISMATCH or GARMENT_TYPE_MISMATCH. Do not use legacy PALETTE_MISMATCH for subtle shade differences. STRICT orthographic FRONT/REAR assets, not three-quarter/profile or turned face openings: use VIEW_ANGLE for a genuinely oblique texture, not natural asymmetric bangs or an animated pose. Check isolated texture and the fixed frontal setup separately. Coverage should have a small 1-3% overlap allowance, not fragile one-pixel tangency. The upper torso is a single convex dome with collar marks INSIDE; no shoulders in BODY. Hands are semicircles without fingers. "
         "Original-only creation remains the default. A localized hair TIP repair may use the SAME frozen assembled base as a user-approved limited exception. Preserve crown, fringe, opening and palette; never chain successive edits or stretch one axis. Ear-only work also uses the same frozen composite. A model PASS is advisory, not a release approval. "
         "Every required category must occur exactly once. PASS/FAIL need real evidence IDs. NOT_APPLICABLE is allowed for skirt_occlusion with trousers and for ear_visibility only when the bound flow declares HIDDEN ear mode. "
-        "Defects must include severity, confidence, target part/direction, actual frame ID and bbox normalized to the individual full Runtime frame, NEVER the whole contact sheet (or empty if unlocatable). Do not claim all frames inspected from a small montage.\n"
+        "Defects must include severity, confidence, target part/direction, actual frame ID and bbox as [left,top,right,bottom] normalized to the individual full Runtime frame (0<=left<right<=1 and 0<=top<bottom<=1), NEVER [x,y,width,height], NEVER the whole contact sheet (or [] if unlocatable). Do not claim all frames inspected from a small montage.\n"
         +json.dumps({'normative_criteria':normative_criteria(),'review_id':identity,'evidence_hash':manifest['evidence_hash'],'required_checks':policy()['required_visual_checks'],
             'shown_frame_ids':json.loads((folder/'evidence/sheets.json').read_text(encoding='utf-8')),'design':context['design']['design'],
             'actual_runtime_ear_samples':ear_samples,'ear_decision':flow.get('ear_decision'),'standard_ears':flow.get('standard_ears'),

@@ -113,22 +113,38 @@ class ReviewTests(unittest.TestCase):
             a['defects'][0]['bbox']=box
             with self.assertRaisesRegex(DesignError,'VISUAL_BOX'):validate_visual(self.root,self.rid,a)
 
-    def test_empty_opaque_and_alpha_outlier_are_distinct(self):
+    def test_model_xywh_bbox_keeps_defect_and_records_coordinate_provenance(self):
+        data=self.result('FAIL')
+        data['defects']=[{'code':'EAR_OCCLUDED','part':'HAIR_FRONT','direction':'front','frame_id':'s1-000','bbox':[.35,.28,.30,.14],'severity':'MAJOR','confidence':.99,'message_ja':'耳が隠れています。'}]
+        result=import_visual(self.root,self.rid,data,'CODEX_SUBSCRIPTION')
+        self.assertEqual(result['status'],'FAIL')
+        recorded=result['visual_reviews'][-1]
+        self.assertEqual(recorded['data']['defects'][0]['code'],'EAR_OCCLUDED')
+        self.assertEqual(recorded['data']['defects'][0]['severity'],'MAJOR')
+        self.assertEqual(len(recorded['bbox_normalizations']),1)
+        self.assertEqual(recorded['bbox_normalizations'][0]['reason'],'MODEL_XYWH_TO_XYXY')
+        self.assertAlmostEqual(recorded['data']['defects'][0]['bbox'][2],.65,places=7)
+
+    def test_raw_alpha_outliers_do_not_override_clean_assembled_review(self):
         _,issues=check_part(Image.new('RGBA',(20,30)),'HAIR_FRONT',self.design);self.assertIn('EMPTY_PART',[i['code'] for i in issues])
         _,issues=check_part(Image.new('RGBA',(20,30),'red'),'HAIR_FRONT',self.design);self.assertIn('OPAQUE_BACKGROUND',[i['code'] for i in issues])
         im=Image.new('RGBA',(100,100));im.paste((50,50,50,255),(40,40,60,60));im.putpixel((0,0),(1,1,1,1))
-        _,issues=check_part(im,'HAIR_FRONT',self.design);self.assertTrue(any(i['code']=='ALPHA_OUTLIERS' and i['result']=='UNKNOWN' for i in issues))
+        metrics,issues=check_part(im,'HAIR_FRONT',self.design)
+        self.assertGreater(metrics['outlier_bbox_ratio'],1.15)
+        self.assertFalse(any(i['code']=='ALPHA_OUTLIERS' for i in issues))
 
     def test_erased_skin_outline_is_not_missed_by_rgba_alpha_bbox(self):
-        with Image.open(ROOT.parent/'library/Chibi-Stickers-4.3/extracted/images/harri/arm.png') as source:expected=standard_arm(source,{'sleeve_color':'#F4F0E8','skin_color':'#FFD3BF','sleeve_fraction':.21})
+        from spine_skin_tool.reference_assets import library_root
+        with Image.open(library_root(ROOT)/'Chibi-Stickers-4.3/extracted/images/harri/arm.png') as source:expected=standard_arm(source,{'sleeve_color':'#F4F0E8','skin_color':'#FFD3BF','sleeve_fraction':.21})
         im=expected.copy();im.putpixel((6,100),(255,211,191,255))
         _,issues=check_part(im,'ARM_FRONT',self.design,expected)
         self.assertIn('STANDARD_ARM_OUTLINE_OR_PALETTE',[x['code'] for x in issues])
 
-    def test_wrong_pants_palette_is_reported_as_uncalibrated_warning(self):
+    def test_wrong_part_palette_is_diagnostic_until_assembled_visual_review(self):
         image=Image.new('RGBA',(30,40));image.paste((230,20,20,255),(1,1,29,39))
-        _,issues=check_part(image,'LEG_FRONT',self.design)
-        self.assertTrue(any(i['code']=='PANTS_COLOR_REQUIRES_REVIEW' and i['result']=='UNKNOWN' for i in issues))
+        metrics,issues=check_part(image,'LEG_FRONT',self.design)
+        self.assertTrue(metrics['pants_color_visual_review_advisory'])
+        self.assertFalse(any(i['code']=='PANTS_COLOR_REQUIRES_REVIEW' for i in issues))
 
     def test_frame_rules_catch_actual_missing_hair_not_just_order(self):
         for direction in ('front','back','left','right'):

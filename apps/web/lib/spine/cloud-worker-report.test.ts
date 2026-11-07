@@ -4,6 +4,7 @@ import {
   PollReporter,
   type PollSummary,
   pollWarnings,
+  previewOnlyQueued,
 } from "./cloud-worker-report";
 
 const id = (n: number) => `spine-00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -14,6 +15,20 @@ const doc = (n: number, data: Record<string, unknown>) => ({
 const NOW = 10_000_000;
 
 describe("buildTaskListing", () => {
+  it("Preview-only PC test excludes any previously held or withdrawn task, even with cleanup pending", () => {
+    const docs = [
+      doc(1, { state: "WITHDRAWN", cleanupPending: true, toolCleanupPending: true }),
+      doc(2, { state: "RUNNING" }),
+      doc(3, { state: "UNKNOWN" }),
+      doc(4, { state: "REQUIRES_REVIEW" }),
+      doc(5, { state: "QUEUED", queuedAt: NOW - 5_000 }),
+      doc(6, { state: "QUEUED", queuedAt: NOW - 7_000 }),
+    ];
+    const selected = previewOnlyQueued(docs);
+    expect(selected.map((entry) => entry.id)).toEqual([`spine-${id(5)}`, `spine-${id(6)}`]);
+    expect(buildTaskListing(selected, NOW).tasks).toEqual([id(6), id(5)]);
+    expect(buildTaskListing(selected, NOW).byState).toEqual({ QUEUED: 2 });
+  });
   it("visits queued jobs first, oldest first, then everything that may need cleanup", () => {
     const listing = buildTaskListing(
       [

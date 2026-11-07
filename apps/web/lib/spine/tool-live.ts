@@ -20,9 +20,11 @@ const resultSchema = z.object({
   auto_publish: z.boolean().optional(),
 });
 
-/** Environment the tool needs, without handing it unrelated secrets. */
-function toolEnvironment(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { NODE_ENV: process.env.NODE_ENV };
+/** Forward only the environment the tool needs, including the VM's required egress proxy.
+ * Proxy URLs can contain credentials: never print them, emit them in diagnostics, or pass them to the browser.
+ */
+export function toolEnvironment(source: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { NODE_ENV: source.NODE_ENV };
   for (const name of [
     "PATH",
     "Path",
@@ -36,8 +38,19 @@ function toolEnvironment(): NodeJS.ProcessEnv {
     "APPDATA",
     "LOCALAPPDATA",
     "AI_CITY_SPINE_BROWSER",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    // Explicit operator opt-in. Both markers are required; release gate rejects Production.
+    "AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH",
+    "AI_CITY_VISITOR_NAMESPACE",
   ]) {
-    if (process.env[name] !== undefined) env[name] = process.env[name];
+    if (source[name] !== undefined) env[name] = source[name];
   }
   return env;
 }

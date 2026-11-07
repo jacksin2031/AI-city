@@ -71,7 +71,8 @@ def main():
         from spine_skin_tool.photo_import import import_photo
         from spine_skin_tool.pipeline import advance, create
         from spine_skin_tool.pipeline_store import read
-        from spine_skin_tool.review import read_review
+        from spine_skin_tool.review import read_review, policy
+        from spine_preview_release import preview_release_eligible
 
         photo = regular(directory / "photo.png")
         data = photo.read_bytes()
@@ -115,8 +116,13 @@ def main():
             if workspace not in bundle.parents:
                 raise ValueError("BUNDLE_PATH")
             defects = sorted({str(d.get("code")) for d in review["hard"].get("defects", []) if isinstance(d, dict) and d.get("result") == "FAIL"})[:8]
+            approved = preview_release_eligible(state, review, policy(), os.environ)
             result.update(bundle=bundle.relative_to(directory).as_posix(), render=render, hard=hard, hard_fail_codes=defects, visual_fail=visual_fail,
-                          auto_publish=render == "PASS" and hard != "FAIL" and not visual_fail)
+                          auto_publish=approved)
+            if approved:
+                # No mutation of the tool's human-review-only report. This status
+                # is a separate explicitly enabled Preview integration decision.
+                result["status"] = "READY_FOR_REVIEWED_EXPORT"
         print(json.dumps(result))
         return 0
     except Exception as error:

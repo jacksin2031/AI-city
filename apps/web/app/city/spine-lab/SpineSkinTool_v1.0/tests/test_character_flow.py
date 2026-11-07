@@ -65,6 +65,21 @@ class CharacterFlowTests(unittest.TestCase):
         self.assertIn('No trouser panel',part_description(record['design'],'BODY_BACK'))
         self.assertIn('Separate flared skirt',part_description(record['design'],'SKIRT_BACK'))
 
+    def test_linux_enotempty_reuses_verified_plan_without_overwrite(self):
+        import errno
+        record=self.freeze()
+        original,path=prepare_requests(self.root,record['design_id'])
+        marker=path/'operator-notes-preserve.txt'
+        marker.write_text('preserve',encoding='utf-8')
+        with patch('spine_skin_tool.character_flow.os.rename',side_effect=OSError(errno.ENOTEMPTY,'existing directory')):
+            same,again=prepare_requests(self.root,record['design_id'])
+        self.assertEqual(same,original)
+        self.assertEqual(again,path)
+        self.assertEqual(marker.read_text(encoding='utf-8'),'preserve')
+        with patch('spine_skin_tool.character_flow.os.rename',side_effect=OSError(errno.EACCES,'permission denied')):
+            with self.assertRaises(OSError):
+                prepare_requests(self.root,record['design_id'])
+
     def test_requests_persist_exact_prompts_and_references_without_calls(self):
         record=self.freeze();plan,path=prepare_requests(self.root,record['design_id']);again,_=prepare_requests(self.root,record['design_id'])
         self.assertEqual(plan,again);self.assertTrue((path/'requests.json').is_file());self.assertEqual(plan['model_calls'],0)

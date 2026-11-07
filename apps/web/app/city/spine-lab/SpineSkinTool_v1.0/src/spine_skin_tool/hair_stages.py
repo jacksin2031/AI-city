@@ -115,14 +115,25 @@ def fit_pair(front,back,head,head_image,layout,metrics,current=False,non_uniform
 def stage_gate(root,candidate,front_ears=False):
     """A stage-level advisory gate, never whole-character release approval."""
     import json
-    from .review import read_review,policy
+    from .review import read_review,stage_confidence_floor
     from .design import private_path
     report=read_review(root,candidate['review_id']);fit=json.loads(private_path(root,candidate['output']+'/export/bundle/hair-fit.json').read_text(encoding='utf-8'))
-    if fit['revision'] not in ('head-alpha-fit-006','head-alpha-fit-007') or fit['metrics']['status']!='ESTIMATED_NOT_VISUALLY_APPROVED' or report['hard']['status']=='FAIL' or report['render']['status']!='PASS' or report['visual_call']['status']!='COMPLETED_ADVISORY':return False
+    if fit['revision'] not in ('head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008') or fit['metrics']['status']!='ESTIMATED_NOT_VISUALLY_APPROVED' or report['hard']['status']=='FAIL' or report['render']['status']!='PASS' or report['visual_call']['status']!='COMPLETED_ADVISORY':return False
     if front_ears and (not fit.get('ear_pass') or fit['ear_pass']['measurements']['HAIR_FRONT']['visible_ear_pixels']<10):return False
-    if front_ears and fit['revision']=='head-alpha-fit-007':
+    if front_ears and fit['revision'] in ('head-alpha-fit-007','head-alpha-fit-008'):
         ears=fit['ear_pass']['measurements']['HAIR_FRONT'].get('per_ear',[])
         if len(ears)!=2 or not all(e['visible_fraction']>=.4 for e in ears):return False
     latest=report['visual_reviews'][-1]['data'];needed={'hair_fit','hair_consistency'}|({'ear_visibility'} if front_ears else set())
     checks={c['category']:c for c in latest['checks']}
-    return all(k in checks and checks[k]['result']=='PASS' and checks[k]['confidence']>=policy()['visual_confidence_floor'] for k in needed) and not any(d['part'].startswith('HAIR') and d.get('confidence',0)>=policy()['visual_confidence_floor'] for d in latest['defects'])
+    floor=stage_confidence_floor()
+    if not all(k in checks and checks[k]['result']=='PASS' and checks[k]['confidence']>=floor for k in needed):return False
+    # At the BARE_HAIR stage ears have deliberately not been generated yet.
+    # An ear-occlusion defect on the interim hair-only candidate is expected,
+    # never a waiver for an ear-added/final candidate or a different hair defect.
+    def blocking_hair_defect(defect):
+        if not defect.get('part','').startswith('HAIR'):return False
+        if (not front_ears and fit['metrics'].get('ear_stage')=='BARE_HAIR'
+                and defect.get('code')=='EAR_OCCLUDED'):
+            return False
+        return defect.get('confidence',0)>=floor
+    return not any(blocking_hair_defect(d) for d in latest['defects'])

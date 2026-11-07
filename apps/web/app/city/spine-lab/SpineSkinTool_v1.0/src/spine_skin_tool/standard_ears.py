@@ -32,12 +32,26 @@ def compute(root,identity,data,inspection=None):
   front=part.endswith('FRONT');file=source/'export/bundle'/('ai-city-template-hair-front.png' if front else 'ai-city-template-hair-back.png')
   with Image.open(file) as im:base=im.convert('RGBA')
   require(digest(source/'raw'/f'{part}.png')==fit['raw_sha256'][part],'EAR_BASE_RAW_CHANGED')
-  a=skin[slot][slot];unit=a['width']/base.width;require(abs(unit-a['height']/base.height)<1e-5,'EAR_BASE_UNIFORM_GEOMETRY');left=-a['y']-a['width']/2;top=a['x']+a['height']/2
-  height=max(1,round(head['height']*data['height_head_fraction']/unit));ear=shape.resize((max(1,round(shape.width*height/shape.height)),height),Image.Resampling.LANCZOS)
+  a=skin[slot][slot];unit_x=a['width']/base.width;unit_y=a['height']/base.height
+  # Fit-008 can use separate rear vertical scaling. Validate the exact frozen
+  # transform rather than silently treating a non-uniform attachment as uniform.
+  expected_vertical=layout.get('back_scale_y',1.0) if not front and fit['revision']=='head-alpha-fit-008' else 1.0
+  require(all(isinstance(v,(int,float)) and math.isfinite(v) and v>0 for v in (unit_x,unit_y,expected_vertical)) and abs(unit_y/unit_x-expected_vertical)<1e-5,'EAR_BASE_SCALE_GEOMETRY')
+  if expected_vertical==1.0:
+   # The old uniform path must remain byte-exact for previously saved ears.
+   require(abs(unit_x-unit_y)<1e-5,'EAR_BASE_UNIFORM_GEOMETRY')
+   unit_y=unit_x
+  left=-a['y']-a['width']/2;top=a['x']+a['height']/2
+  height=max(1,round(head['height']*data['height_head_fraction']/unit_y))
+  # Preserve the reference ear's WORLD-space aspect ratio under anisotropic
+  # pixels; the pre-existing base hair pixels are never stretched or cropped.
+  width=max(1,round(shape.width*height/shape.height)) if abs(unit_x-unit_y)<1e-5 else max(1,round(shape.width*head['height']*data['height_head_fraction']/(shape.height*unit_x)))
+  ear=shape.resize((width,height),Image.Resampling.LANCZOS)
   placements=[]
   for index,(wx,wy) in enumerate(roots):
-   sprite=ear if index==0 else ImageOps.mirror(ear);x=round((wx-left)/unit)-(sprite.width if index==0 else 0);y=round((top-wy)/unit-sprite.height/2);placements.append((sprite,x,y))
-  x0=min(0,math.floor((-head['width']/2-left)/unit),*[x for im,x,y in placements]);y0=min(0,math.floor((top-head['x']-head['height']/2)/unit),*[y for im,x,y in placements]);x1=max(base.width,math.ceil((head['width']/2-left)/unit),*[x+im.width for im,x,y in placements]);y1=max(base.height,math.ceil((top-head['x']+head['height']/2)/unit),*[y+im.height for im,x,y in placements])
+   sprite=ear if index==0 else ImageOps.mirror(ear);x=round((wx-left)/unit_x)-(sprite.width if index==0 else 0);y=round((top-wy)/unit_y-sprite.height/2);placements.append((sprite,x,y))
+  x0=min(0,math.floor((-head['width']/2-left)/unit_x),*[x for im,x,y in placements]);y0=min(0,math.floor((top-head['x']-head['height']/2)/unit_y),*[y for im,x,y in placements])
+  x1=max(base.width,math.ceil((head['width']/2-left)/unit_x),*[x+im.width for im,x,y in placements]);y1=max(base.height,math.ceil((top-head['x']+head['height']/2)/unit_y),*[y+im.height for im,x,y in placements])
   size=(x1-x0,y1-y0);require(max(size)<=4096,'STANDARD_EAR_CANVAS_LIMIT');under=Image.new('RGBA',size);over=Image.new('RGBA',size);pieces=[]
   for index,(sprite,x,y) in enumerate(placements):
    x-=x0;y-=y0;one=Image.new('RGBA',size);one.alpha_composite(sprite,(x,y));under.alpha_composite(one)
@@ -45,16 +59,17 @@ def compute(root,identity,data,inspection=None):
    outer=Image.new('L',sprite.size);d=ImageDraw.Draw(outer);cut=round(sprite.width*data['visible_outer_width_fraction']);d.rectangle((0,0,cut-1,sprite.height) if index==0 else (sprite.width-cut,0,sprite.width,sprite.height),fill=255)
    exposed=sprite.copy();exposed.putalpha(ImageChops.multiply(sprite.getchannel('A'),outer));visible_layer=Image.new('RGBA',size);visible_layer.alpha_composite(exposed,(x,y));over.alpha_composite(visible_layer);pieces.append((one.getchannel('A'),visible_layer.getchannel('A')))
   hair=Image.new('RGBA',size);hair.alpha_composite(base,(-x0,-y0));canvas=under.copy();canvas.alpha_composite(hair);canvas.alpha_composite(over);box=canvas.getchannel('A').point(lambda a:255 if a>32 else 0).getbbox()
-  layout.update({('front_width' if front else 'back_width'):(box[2]-box[0])*unit,('top' if front else 'back_top'):top-y0*unit-box[1]*unit,('front_anchor_x' if front else 'back_anchor_x'):-left/unit-x0,('front_center_x' if front else 'back_center_x'):0})
+  layout.update({('front_width' if front else 'back_width'):(box[2]-box[0])*unit_x,('top' if front else 'back_top'):top-y0*unit_y-box[1]*unit_y,('front_anchor_x' if front else 'back_anchor_x'):-left/unit_x-x0,('front_center_x' if front else 'back_center_x'):0})
   each=[]
   for index,(mask,top_mask) in enumerate(pieces):
    actual=ImageChops.lighter(top_mask,ImageChops.multiply(mask,ImageChops.invert(hair.getchannel('A'))));total=sum(v>96 for v in mask.getdata());seen=sum(v>96 for v in actual.getdata());each.append({'side':'left' if index==0 else 'right','total_pixels':total,'visible_pixels':seen,'visible_fraction':round(seen/max(1,total),6)})
   require(len(each)==2 and all(e['visible_fraction']>=.4 for e in each),'STANDARD_EAR_VISIBILITY')
-  measure[part]={'roots_head_local':roots,'visible_ear_pixels':sum(e['visible_pixels'] for e in each),'per_ear':each,'hair_geometry_frozen':True,'both_ears_generated':False,'both_ears_present':True,'source_kind':'STANDARD_REFERENCE_EARS','model_calls':0,'head_units_per_pixel':unit,'hair_base_sha256':fit['raw_sha256'][part],'base_export_sha256':digest(file),'original_hair_resampled':False,'original_hair_cropped':False,'placement':'NEW_EAR_INNER_ROOT_UNDER_SIDE_HAIR_OUTER_EAR_OVER_SIDE_HAIR'}
+  measure[part]={'roots_head_local':roots,'visible_ear_pixels':sum(e['visible_pixels'] for e in each),'per_ear':each,'hair_geometry_frozen':True,'both_ears_generated':False,'both_ears_present':True,'source_kind':'STANDARD_REFERENCE_EARS','model_calls':0,'head_units_per_pixel':unit_x,'hair_base_sha256':fit['raw_sha256'][part],'base_export_sha256':digest(file),'original_hair_resampled':False,'original_hair_cropped':False,'placement':'NEW_EAR_INNER_ROOT_UNDER_SIDE_HAIR_OUTER_EAR_OVER_SIDE_HAIR'}
+  if unit_y!=unit_x:measure[part]['head_units_per_pixel_y']=unit_y
   images[part]=canvas
   if inspection is not None:
    qa=Image.new('RGBA',size,'#edf1f3')
-   with Image.open(head_path) as original:h=original.convert('RGBA').resize((round(head['width']/unit),round(head['height']/unit)),Image.Resampling.LANCZOS)
-   qa.alpha_composite(h,(round((-head['width']/2-left)/unit)-x0,round((top-head['x']-head['height']/2)/unit)-y0));qa.alpha_composite(under);faded=hair.copy();faded.putalpha(faded.getchannel('A').point(lambda v:round(v*.18)));qa.alpha_composite(faded);qa.alpha_composite(over);inspection[part]=qa
+   with Image.open(head_path) as original:h=original.convert('RGBA').resize((round(head['width']/unit_x),round(head['height']/unit_y)),Image.Resampling.LANCZOS)
+   qa.alpha_composite(h,(round((-head['width']/2-left)/unit_x)-x0,round((top-head['x']-head['height']/2)/unit_y)-y0));qa.alpha_composite(under);faded=hair.copy();faded.putalpha(faded.getchannel('A').point(lambda v:round(v*.18)));qa.alpha_composite(faded);qa.alpha_composite(over);inspection[part]=qa
  from .hair_stages import bounds
  final_bounds={p:bounds(images[p],layout,p,head) for p in images};value=copy.deepcopy(fit);value['layout']=layout;value['metrics']['height_alignment'].update(front=final_bounds['HAIR_FRONT'],back=final_bounds['HAIR_BACK'],height_difference_fraction=round(abs(final_bounds['HAIR_FRONT']['head_hair_height']-final_bounds['HAIR_BACK']['head_hair_height'])/final_bounds['HAIR_FRONT']['head_hair_height'],6));value['ear_pass']={'artifact':identity,'source_kind':'STANDARD_REFERENCE_EARS','revision':REVISION,'decision_id':data['decision_id'],'measurements':measure,'stage':'BOTH_EARS','base_fit_id':fit['fit_id'],'model_calls':0};value['metrics']['ear_stage']='BOTH_EARS';value.pop('fit_id',None);value['fit_id']=hashlib.sha256(canonical(value)).hexdigest();return images,layout,value
