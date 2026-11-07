@@ -13,6 +13,7 @@ import { LocalSpineStorage } from "../apps/web/lib/spine/local-storage";
 import { createToolLiveExecutor } from "../apps/web/lib/spine/tool-live";
 import { createToolPreflightExecutor } from "../apps/web/lib/spine/tool-preflight";
 import { FirestoreVisitorStore } from "../apps/web/lib/visitor/firestore";
+import { checkWorkerSpineReferences } from "./spine-reference-preflight";
 
 /**
  * Cloud photo worker, started by hand on a trusted machine. It pulls queued photos from the
@@ -78,7 +79,12 @@ async function main() {
       : join(toolRoot, "runtime/python/.venv/bin/python");
   const script = join(project, "scripts/prepare-spine-tool-task.py");
   const liveScript = join(project, "scripts/run-spine-live-task.py");
-  if (!existsSync(python) || !existsSync(script)) throw new Error("TOOL_NOT_INSTALLED");
+  const referenceCheck = join(project, "scripts/check-spine-references.py");
+  if (!existsSync(python) || !existsSync(script) || !existsSync(referenceCheck))
+    throw new Error("TOOL_NOT_INSTALLED");
+  // A broken tool library must not advertise an online Worker. Its heartbeat will become stale
+  // and /join will automatically turn off photo admission, leaving preset joins available.
+  checkWorkerSpineReferences(python, referenceCheck);
   const baseExecute = live
     ? createToolLiveExecutor({ python, script, toolRoot, liveScript, callCap }, jobs, storage)
     : createToolPreflightExecutor({ python, script, toolRoot }, jobs, storage);

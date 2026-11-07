@@ -30,3 +30,12 @@ After this patch, both attempts returned PREPARED/exit 0 with the **same flow ID
 6. Confirm the already-accepted PR #66 offline/online photo gate and nickname > preset join still work.
 
 **Not yet proven:** the real live model pipeline completing photo-to-PUBLISHED. Do not report full generation as fixed until Muse's end-to-end Preview test actually completes.
+
+## 2026-11-07 08:57 JST Preview E2E reference failure
+
+- New Preview job ended UNKNOWN with `PREPARE_REFERENCE_FAILED` ~3 seconds after Worker claim, before any tool-workspace or model call. The participant image remains private; do not download it for debugging.
+- This code means `verify_bundled(tool)` failed **before** preparation. Local branch verifies 221 manifest assets (no missing bytes/hash mismatches/links). The actual Preview VM checkout is not accessible from the connected desktop and must be tested on the VM itself.
+- New **read-only** diagnostic `scripts/check-spine-references.py` prints only aggregate counts and static reason code. Use the Preview Worker virtualenv Python interpreter: `python -B scripts/check-spine-references.py` from the Preview checkout (no photo/model/credential access).
+- If and **only if** the diagnostic confirms absent tracked references, the Preview branch includes `scripts/restore-missing-spine-references.py`. It requires the exact `fix/spine-next-round-20261107` branch, explicitly set `AI_CITY_VISITOR_NAMESPACE=preview-staging-20261107`, and `--restore-missing`. It reads Git HEAD blobs, validates hashes and lengths against the pinned manifest and uses exclusive-create only; **never overwrites, deletes or follows links**. It fails closed if existing files differ.
+- If missing references prevent the new Worker from starting, the preflight will log a safe code then fail before its first heartbeat. The already-deployed 120-second photo-off fallback will protect participants, and nickname+preset participation remains available.
+- Do not patch or restart Production or its Worker; do not blindly requeue old UNKNOWN tasks.
