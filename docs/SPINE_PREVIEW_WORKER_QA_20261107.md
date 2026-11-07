@@ -1,0 +1,41 @@
+# Spine Preview VM worker-only QA / transport hotfix (2026-11-07)
+
+This branch starts at commit 61bdadb (before the **unneeded** 9cedda5 Code Mode host fallback) and does **not** require any Cloud Run web deployment or contracts changes. Production is LIVE: do not restart/update it to test this. All test images in the source suite are synthetic.
+
+## Findings
+
+- Muse's E2E #6 entered `phase=DONE` and Firestore `REQUIRES_REVIEW`, with one generated candidate and no exception. Admin has no approve/publish action; participant confirmation cannot publish this held item. These are intentional fail-closed states, not a complete staff approval workflow.
+- `review.hard_checks` records `RAW_ALPHA_OUTLIERS` as `MINOR/UNKNOWN`, **not FAIL**. Its status is `FAIL` only if another `result=FAIL` defect exists. If the VM reports `hard.status=FAIL` with ONLY these UNKNOWN defects, inspect its exact `hard.defects[].code/result` and current source revisions; do not guess or bypass it.
+- `aggregate` / `review_is_approved` intentionally require HUMAN review, so relaxing raw alpha alone **will not publish**. No admin approval action currently exists. The preview-only release exception below is separately, explicitly opted in. It is not equivalent to the tool's formally calibrated production approval.
+
+## Worker-side changes
+
+1. `apps/web/lib/spine/tool-live.ts` forwards lower/upper-case HTTP(S)/ALL/NO proxy environment variables to the tool subprocess (plus preview release opt-in and namespace). Does not log credentials or forward unrelated secrets.
+2. `.../spine_skin_tool/character_flow.py` catches exactly `EEXIST` or `ENOTEMPTY` on `os.rename` **only** if the prepared plan directory already exists; verifies its canonical request bytes and all reference hashes; keeps original and duplicate staging data. Other errors still propagate.
+3. `.../spine_skin_tool/review.py` keeps raw-image provenance and metrics but makes faint alpha fringe diagnostic-only **if and only if**: (a) the byte-verified normalized export is identical to the expected normalized image, (b) its normalized alpha-bbox ratio is at/below existing policy threshold (1.15), and (c) removed alpha fraction is at most 0.001. Real surviving alpha corruption, unexpected loss of opaque pixels and any other defects remain blocking or reviewable as before. This is not a global reduction of the threshold.
+4. `scripts/spine_preview_release.py` plus `scripts/run-spine-live-task.py` add a **default-OFF, Preview-namespace-only** integration release gate. The tool's persisted report still says `REQUIRES_REVIEW`; **only the worker result** changes to `READY_FOR_REVIEWED_EXPORT` and `auto_publish=true` if all of these conditions are true:
+   - `AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH=1` **and** `AI_CITY_VISITOR_NAMESPACE=preview-staging-20261107`
+   - Pipeline DONE, the current candidate/manifest/review match, no errors or stopped ear stage
+   - Hard quality PASS **with zero remaining defects**, render PASS **with zero defects**, at least ten captured frames, and matching full scale/evidence hashes
+   - One successful recorded Codex visual review (source CODEX_SUBSCRIPTION), all required checks complete with confidence at least policy floor (>=0.9), evidence IDs, no visual defects, and no unknown/fail checks; only a permitted skirt-occlusion NOT_APPLICABLE is tolerated
+   - The caller already uses `read_review(..., fresh=True)`, pinning photo, design, bundle hashes and policy. The existing publisher still separately revalidates bundle integrity, active session and participant consent.
+
+A failed or absent condition stays `REQUIRES_REVIEW`. This **does not** approve unreviewed jobs or publish earlier UNKNOWN tasks. Actual visual adequacy is not certified by the controlled model calibration: this is an explicit Preview exhibition experiment, not general production release approval.
+
+## VM operator instructions (PREVIEW ONLY)
+
+Wait for current Preview tasks to finish; do not run two workers against one scratch directory. Review the branch diff and update the Preview worker checkout to the exact commit supplied in PR. The required runtime files are:
+
+- `apps/web/lib/spine/tool-live.ts`
+- `apps/web/app/city/spine-lab/SpineSkinTool_v1.0/src/spine_skin_tool/character_flow.py`
+- `apps/web/app/city/spine-lab/SpineSkinTool_v1.0/src/spine_skin_tool/review.py`
+- `scripts/run-spine-live-task.py`
+- `scripts/spine_preview_release.py` (new, must be copied alongside the live runner)
+
+The tracked tool file `.../SpineSkinTool_v1.0/ui/orientation.js` must also exist on the VM; Muse already restored it. This file was never missing in the repository. Do not replace/overwrite runtime asset directories, generated photos, reports, sessions, or completed jobs. Use the Preview worker's own Python virtualenv and its authenticated Codex 0.167.0 PATH, not a second Codex process.
+
+Set `AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH=1` **only in the Preview Spine Worker environment**, confirm the existing `AI_CITY_VISITOR_NAMESPACE=preview-staging-20261107`; do **not** set the flag in the Production worker env. Test only a **fresh, newly consented** Preview photo after the Preview Worker update; do not requeue old held/UNKNOWN tasks.
+
+Expected successful trace: `QUEUED -> RUNNING -> PUBLISHED`, participant card displayed, admin displays published job and public resident, tablet renders character. If held, obtain only safe aggregate state: `hard.status`, `hard.defects[].code/result/severity`, `render.status`, `render.defects[].code/result`, `visual_call.status`, visual checks PASS/UNKNOWN counts, `ear_stage` and `stop_reason`, not personal photos, prompts, tokens, proxy URLs or raw model output. A held result is **not** proof of a crash.
+
+**Do not deploy any web revision to Production or restart Production Worker.** Do not turn on Preview auto-release for Production; a production-ready staff approval/publish feature needs separate authenticated, consent-bound design and approval.

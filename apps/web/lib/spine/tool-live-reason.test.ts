@@ -4,9 +4,36 @@ import {
   classifyToolFailure,
   interpretToolOutput,
   liveDisposition,
+  toolEnvironment,
 } from "./tool-live";
 
 describe("safe Spine failure diagnostic codes", () => {
+  it("passes only approved proxy, preview, and system variables to Codex", () => {
+    const source: NodeJS.ProcessEnv = {
+      NODE_ENV: "test",
+      PATH: "/vm/codex/bin",
+      https_proxy: "http://user:password@private-proxy:1234",
+      HTTPS_PROXY: "http://user:password@private-proxy:1234",
+      NO_PROXY: "localhost",
+      AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH: "1",
+      AI_CITY_VISITOR_NAMESPACE: "preview-staging-20261107",
+      GOOGLE_APPLICATION_CREDENTIALS: "/private/workload-key.json",
+      XAI_API_KEY: "do-not-leak",
+      GITHUB_TOKEN: "do-not-leak",
+    };
+    const passed = toolEnvironment(source);
+    expect(passed).toMatchObject({
+      PATH: "/vm/codex/bin",
+      https_proxy: source.https_proxy,
+      HTTPS_PROXY: source.HTTPS_PROXY,
+      NO_PROXY: source.NO_PROXY,
+      AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH: "1",
+      AI_CITY_VISITOR_NAMESPACE: "preview-staging-20261107",
+    });
+    expect(passed.GOOGLE_APPLICATION_CREDENTIALS).toBeUndefined();
+    expect(passed.XAI_API_KEY).toBeUndefined();
+    expect(passed.GITHUB_TOKEN).toBeUndefined();
+  });
   it("classifies fixed prepare phases without leaking Python errors", () => {
     const failure = (phase: string) =>
       Object.assign(new Error("TOOL_PREPARATION_FAILED"), { phase });

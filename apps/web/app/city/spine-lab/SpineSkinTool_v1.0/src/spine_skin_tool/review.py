@@ -100,7 +100,15 @@ def hard_checks(root,output):
                     if exported.size!=normalized.size or exported.convert('RGBA').tobytes()!=normalized.tobytes():found.append(finding('NORMALIZED_PART_MISMATCH',part,message='原稿と共通処理から再現した画布・画素がエクスポートと一致しません。'))
                 for code,message in [('EMPTY_PART','原稿に有効な不透明部分がありません。'),('OPAQUE_BACKGROUND','原稿が透明背景ではありません。'),('ALPHA_OUTLIERS','原稿の外側に弱い透明画素があります。主体の縮小を確認してください。')]:
                     m=metrics['raw'];bad=(not m['main_alpha_bbox']) if code=='EMPTY_PART' else m['opaque_background'] if code=='OPAQUE_BACKGROUND' else m['outlier_bbox_ratio']>policy()['raw_alpha_outlier_ratio']
-                    if bad:found.append(finding('RAW_'+code,part,'UNKNOWN' if code=='ALPHA_OUTLIERS' else 'FAIL',message,severity='MINOR' if code=='ALPHA_OUTLIERS' else 'MAJOR'))
+                    if bad:
+                        # Tiny raw alpha fringe is diagnostic only if the exported, byte-
+                        # checked normalization removed it completely, without discarding
+                        # meaningful source opacity. Keep the raw hash and metrics unchanged.
+                        cleaned=(code=='ALPHA_OUTLIERS' and metrics['outlier_bbox_ratio']<=policy()['raw_alpha_outlier_ratio']
+                            and normalization['removed_alpha_fraction']<=0.001
+                            and not any(i['code']=='NORMALIZED_PART_MISMATCH' for i in found))
+                        if cleaned:metrics['raw_alpha_outliers_cleaned']=True
+                        else:found.append(finding('RAW_'+code,part,'UNKNOWN' if code=='ALPHA_OUTLIERS' else 'FAIL',message,severity='MINOR' if code=='ALPHA_OUTLIERS' else 'MAJOR'))
             else:found.append(finding('RAW_SNAPSHOT_MISSING',part,message='原稿の保存記録がありません。'))
             parts[part]=metrics;issues.extend(found)
         except (ValueError,OSError):issues.append(finding('PART_INVALID',part,message='部位画像を読み込めません。'))

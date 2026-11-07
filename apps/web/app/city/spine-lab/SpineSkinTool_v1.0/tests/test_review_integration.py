@@ -38,8 +38,9 @@ class ReviewIntegrationTests(unittest.TestCase):
         make_reference_sheet(folder,record['design'],self.root)
         with Image.open(folder/'original-references.png') as image:self.assertEqual(image.size,(800,1200))
         data=json.loads((folder/'reference-sources.json').read_text(encoding='utf-8'));self.assertFalse(data['generator_input']);sources={s['source']:s for s in data['sources']}
+        from spine_skin_tool.reference_assets import library_root
         for source in ('harri/hair-front.png','harri/back-hair.png','davide/hair-front.png','spineboy/hair-front.png','erikari/skirt.png'):
-            self.assertEqual(sources[source]['role'],'original_style_review_only');self.assertEqual(sources[source]['sha256'],digest(ROOT.parent/'library/Chibi-Stickers-4.3/extracted/images'/source))
+            self.assertEqual(sources[source]['role'],'original_style_review_only');self.assertEqual(sources[source]['sha256'],digest(library_root(ROOT)/'Chibi-Stickers-4.3/extracted/images'/source))
 
     def test_self_consistent_but_modified_rig_is_rejected(self):
         path=self.bundle/'skeleton.json';data=json.loads(path.read_text(encoding='utf-8'));data['bones'][0]['x']=999;path.write_bytes(canonical(data)+b'\n');self.update_manifest('skeleton.json')
@@ -58,13 +59,25 @@ class ReviewIntegrationTests(unittest.TestCase):
         hard,_,_=hard_checks(self.root,self.output)
         self.assertIn('NORMALIZED_PART_MISMATCH',[i['code'] for i in hard['defects']]);self.assertEqual(hard['status'],'FAIL')
 
-    def test_raw_alpha_outliers_stay_unknown_after_normalization(self):
+    def test_tiny_raw_alpha_outliers_are_cleared_only_when_normalization_is_proven(self):
         raw=self.root/self.output/'raw/HAIR_FRONT.png'
         with Image.open(raw) as source:content=source.convert('RGBA')
         im=Image.new('RGBA',(content.width*2,content.height*2));im.paste(content,(content.width//2,content.height//2))
         im.putpixel((0,0),(1,1,1,1));im.save(raw)
         hard,_,_=hard_checks(self.root,self.output)
+        self.assertFalse(any(i['code']=='RAW_ALPHA_OUTLIERS' for i in hard['defects']))
+        self.assertTrue(hard['parts']['HAIR_FRONT']['raw_alpha_outliers_cleaned'])
+        self.assertGreater(hard['parts']['HAIR_FRONT']['raw']['outlier_bbox_ratio'],1.15)
+        self.assertLessEqual(hard['parts']['HAIR_FRONT']['outlier_bbox_ratio'],1.15)
+
+    def test_significant_raw_outliers_remain_unknown_not_silently_approved(self):
+        raw=self.root/self.output/'raw/HAIR_FRONT.png'
+        with Image.open(raw) as source:content=source.convert('RGBA')
+        im=Image.new('RGBA',(content.width*2,content.height*2));im.paste(content,(content.width//2,content.height//2))
+        im.putpixel((0,0),(1,1,1,25));im.save(raw)
+        hard,_,_=hard_checks(self.root,self.output)
         self.assertTrue(any(i['code']=='RAW_ALPHA_OUTLIERS' and i['result']=='UNKNOWN' for i in hard['defects']))
+        self.assertFalse(hard['parts']['HAIR_FRONT'].get('raw_alpha_outliers_cleaned'))
 
     def test_real_fourfold_review_accepts_valid_large_hair_without_relaxing_raw_ingestion(self):
         from spine_skin_tool.review_render import scale_bundle
