@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { isAbsolute, join } from "node:path";
+import type { SpineFailureCode } from "@ai-city/contracts/spine";
 import { z } from "zod";
 import type { SpineJobs } from "./jobs";
 import type { LocalSpineStorage } from "./local-storage";
@@ -39,6 +40,66 @@ function toolEnvironment(): NodeJS.ProcessEnv {
     if (process.env[name] !== undefined) env[name] = process.env[name];
   }
   return env;
+}
+
+/** Report only a static, privacy-safe preparation stage. */
+export function classifyPrepareFailure(error: unknown): SpineFailureCode {
+  const phase = error instanceof Error && "phase" in error ? error.phase : null;
+  switch (phase) {
+    case "IMPORTS":
+      return "PREPARE_RUNTIME_FAILED";
+    case "PHOTO_VERIFY":
+    case "PHOTO_IMPORT":
+      return "PREPARE_PHOTO_FAILED";
+    case "REFERENCE_VERIFY":
+    case "REFERENCE_COPY":
+      return "PREPARE_REFERENCE_FAILED";
+    case "WORKSPACE":
+      return "PREPARE_WORKSPACE_FAILED";
+    case "FLOW_CREATE":
+      return "PREPARE_FLOW_FAILED";
+    case "RECEIPT":
+      return "PREPARE_RECEIPT_FAILED";
+    default:
+      return "TOOL_PREPARATION_FAILED";
+  }
+}
+
+/** Collapse private Python diagnostics to a strictly enumerated operator-facing reason. */
+export function classifyToolFailure(code: unknown): SpineFailureCode {
+  if (code === "CODEX_CHATGPT_LOGIN_REQUIRED" || code === "CODEX_CLI_NOT_FOUND")
+    return "MODEL_LOGIN_REQUIRED";
+  if (code === "CODEX_SUBSCRIPTION_LIMIT_REACHED") return "MODEL_QUOTA_REACHED";
+  if (code === "CODEX_EXEC_FAILED_NO_RETRY" || code === "CODEX_TIMEOUT_RESULT_UNKNOWN_NO_RETRY")
+    return "MODEL_EXECUTION_FAILED";
+  if (code === "TOOL_LIVE_INVALID") return "TOOL_LIVE_INVALID";
+  if (code === "TOOL_LIVE_EXIT") return "TOOL_LIVE_EXIT";
+  if (code === "TOOL_RUNTIME_FAILED") return "TOOL_RUNTIME_FAILED";
+  return "TOOL_PIPELINE_FAILED";
+}
+
+/** Accept a structured Python failure even when the subprocess returned exit code 1. */
+export function interpretToolOutput(output: string, code: number | null): unknown {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(output.trim().split("\n").at(-1) ?? "");
+  } catch {
+    throw new Error("TOOL_LIVE_INVALID");
+  }
+  if (code !== 0 && resultSchema.safeParse(payload).data?.status !== "FAILED")
+    throw new Error("TOOL_LIVE_EXIT");
+  return payload;
+}
+
+/** Only an approved, finished pipeline may be published. An unfinished or blocked one is NOT reviewable. */
+export function liveDisposition(
+  status: string,
+  hasBundle: boolean,
+  autoPublish: boolean,
+): "APPROVED" | "REQUIRES_REVIEW" | "UNKNOWN" {
+  if (status === "REQUIRES_REVIEW" && hasBundle) return "REQUIRES_REVIEW";
+  if (status !== "READY_FOR_REVIEWED_EXPORT" || !hasBundle) return "UNKNOWN";
+  return autoPublish ? "APPROVED" : "REQUIRES_REVIEW";
 }
 
 function runLive(
@@ -80,11 +141,12 @@ function runLive(
     });
     child.once("close", (code) => {
       clearTimeout(timer);
-      if (failed || code !== 0) return reject(new Error("TOOL_LIVE_FAILED"));
+      if (failed) return reject(new Error("TOOL_LIVE_EXIT"));
       try {
-        resolve(JSON.parse(text.trim().split("\n").at(-1) ?? ""));
-      } catch {
-        reject(new Error("TOOL_LIVE_INVALID"));
+        // Never echo stderr or private stdout to logs or HTTP responses.
+        resolve(interpretToolOutput(text, code));
+      } catch (error) {
+        reject(error);
       }
     });
     child.stdin.on("error", () => {
@@ -113,28 +175,39 @@ export function createToolLiveExecutor(
   )
     throw new Error("TOOL_CONFIG_INVALID");
   return async (task: string, photo: Uint8Array, worker: string): Promise<ToolOutcome> => {
-    await prepareToolTask(config, jobs, storage, task, worker, photo);
+    try {
+      await prepareToolTask(config, jobs, storage, task, worker, photo);
+    } catch (error) {
+      return { status: "UNKNOWN", failureCode: classifyPrepareFailure(error) };
+    }
     const root = await storage.privateRootForWorker(task);
     const sha = createHash("sha256").update(photo).digest("hex");
     let result: z.infer<typeof resultSchema>;
     try {
       result = resultSchema.parse(await runLive(config, root, task, sha));
-    } catch {
-      return { status: "UNKNOWN" };
+    } catch (error) {
+      return {
+        status: "UNKNOWN",
+        failureCode: classifyToolFailure(error instanceof Error ? error.message : null),
+      };
     }
-    if (result.status === "FAILED") return { status: "UNKNOWN" };
-    // The tool output is untrusted and may contain private data; never log it.
-    if (!result.bundle || !result.auto_publish) {
-      process.stderr.write("Spine task held for review.\n");
-      return { status: "REQUIRES_REVIEW" };
-    }
+    // The tool output is untrusted. WAIT_RESULT, OUTPUT_BLOCKED, CONFIGURATION_BLOCKED,
+    // CANCELLED and all other unfinished states must not be mislabelled as reviewable bundles.
+    const disposition = liveDisposition(
+      result.status,
+      Boolean(result.bundle),
+      result.auto_publish === true,
+    );
+    if (disposition === "UNKNOWN" || !result.bundle)
+      return { status: "UNKNOWN", failureCode: classifyToolFailure(result.error_code) };
+    if (disposition === "REQUIRES_REVIEW") return { status: "REQUIRES_REVIEW" };
     try {
       return {
         status: "APPROVED",
         candidate: await loadToolBundleCandidate(task, join(root, task, result.bundle), true),
       };
     } catch {
-      return { status: "FAILED" };
+      return { status: "UNKNOWN", failureCode: "BUNDLE_INVALID" };
     }
   };
 }

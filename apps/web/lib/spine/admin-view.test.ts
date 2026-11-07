@@ -43,7 +43,7 @@ describe("buildAdminView", () => {
     await put(store, 0xa2, running(now - 60_000)); // healthy RUNNING
     await put(store, 0xa3, running(now - STUCK_AFTER_MS - 1)); // stuck RUNNING
     await put(store, 0xa4, { state: "FAILED", worker: "w1", stateSince: now - 10 });
-    await put(store, 0xa5, { state: "UNKNOWN", worker: "w1" });
+    await put(store, 0xa5, { state: "UNKNOWN", worker: "w1", failureCode: "MODEL_LOGIN_REQUIRED" });
     await put(store, 0xa6, {
       state: "WITHDRAWN",
       processingConsent: false,
@@ -73,6 +73,7 @@ describe("buildAdminView", () => {
       bundle,
       adjustment: null,
     });
+    expect(view.tasks.find((x) => x.state === "UNKNOWN")?.failureCode).toBe("MODEL_LOGIN_REQUIRED");
   });
 
   it("shows the saved adjustment in the preview and ignores a corrupt one", async () => {
@@ -143,7 +144,7 @@ describe("buildAdminView", () => {
     );
     for (const task of view.tasks) {
       expect(Object.keys(task).sort()).toEqual(
-        ["code", "needsAttention", "preview", "state", "stateSince", "task"].sort(),
+        ["code", "failureCode", "needsAttention", "preview", "state", "stateSince", "task"].sort(),
       );
       expect("worker" in task).toBe(false);
       expect("bundle" in task).toBe(false);

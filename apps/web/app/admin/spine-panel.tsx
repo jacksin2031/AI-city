@@ -247,6 +247,11 @@ function Detail({
   const preview = task.state === "PUBLISHED" ? task.preview : null;
   return (
     <div className="spine-detail">
+      {task.failureCode && (
+        <p className="muted" role="status">
+          失敗理由コード：<code>{task.failureCode}</code>（写真や個人情報は表示しません）
+        </p>
+      )}
       {(canCancel || needsHelp) && (
         <>
           <div className="admin-actions">

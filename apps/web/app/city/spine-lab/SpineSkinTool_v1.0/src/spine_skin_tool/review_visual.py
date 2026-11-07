@@ -4,7 +4,7 @@ from pathlib import Path
 from .design import ROOT,private_path,require,DesignError,required_parts,photo_path,digest
 from .assembly import canonical,VERSIONS
 from .review import review_dir,read_review,save_report,aggregate,policy,LOCK
-from .codex_subscription import executable,login_status,clean_environment,SubscriptionError
+from .codex_subscription import executable,login_status,clean_environment,SubscriptionError,vision_only_flags
 
 CODES=('EAR_MODE_MISMATCH','HEIGHT_MISMATCH','EAR_ALIGNMENT','VIEW_ANGLE','STYLE_FAMILY_MISMATCH','COARSE_COLOR_MISMATCH','GARMENT_TYPE_MISMATCH','HAIR_COVERAGE','HAIR_GAP','PROPORTION','STYLE_DRIFT','NOISY_TEXTURE','SHOULDER_WING','BAKED_SLEEVE','ARM_OUTLINE_MISSING','EAR_OCCLUDED','FRONT_BACK_HAIR_MISMATCH','PALETTE_MISMATCH','LEG_GAP','SKIRT_LEG_EXPOSED','OTHER')
 
@@ -22,7 +22,7 @@ def execute_review_request(root,folder,request,spec,timeout):
     schema=folder/'visual-schema.json';last=folder/'visual-result.json';schema.write_bytes(canonical(request['schema'])+b'\n')
     command=[executable(spec),'exec','--ignore-user-config','--ephemeral','--skip-git-repo-check','--sandbox','read-only','--json',
         '-c','forced_login_method="chatgpt"','-c','features.image_generation=false','-c','project_doc_max_bytes=0',
-        '--cd',str(folder),'--output-schema',str(schema),'--output-last-message',str(last)]
+        *vision_only_flags(), '--cd',str(folder),'--output-schema',str(schema),'--output-last-message',str(last)]
     from . import character_session as sessions
     session=sessions.for_review(root,folder);environment=clean_environment();environment.pop('XAI_API_KEY',None);environment.pop('GROK_API_KEY',None)
     with sessions.lock(session) if session else contextlib.nullcontext():

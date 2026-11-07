@@ -13,6 +13,7 @@ import { LocalSpineStorage } from "../apps/web/lib/spine/local-storage";
 import { createToolLiveExecutor } from "../apps/web/lib/spine/tool-live";
 import { createToolPreflightExecutor } from "../apps/web/lib/spine/tool-preflight";
 import { FirestoreVisitorStore } from "../apps/web/lib/visitor/firestore";
+import { checkWorkerSpineReferences } from "./spine-reference-preflight";
 
 /**
  * Cloud photo worker, started by hand on a trusted machine. It pulls queued photos from the
@@ -57,6 +58,20 @@ async function main() {
   if (!fromProject.startsWith("..") && !isAbsolute(fromProject))
     throw new Error("PRIVATE_ROOT_IN_PROJECT");
 
+  // Validate all bundled reference assets before acquiring a lock or creating Firestore clients.
+  // If broken, no Worker heartbeat is advertised and /join's 120s photo gate closes safely.
+  const toolRoot = join(project, "apps/web/app/city/spine-lab/SpineSkinTool_v1.0");
+  const python =
+    process.platform === "win32"
+      ? join(toolRoot, "runtime/python/.venv/Scripts/python.exe")
+      : join(toolRoot, "runtime/python/.venv/bin/python");
+  const script = join(project, "scripts/prepare-spine-tool-task.py");
+  const liveScript = join(project, "scripts/run-spine-live-task.py");
+  const referenceCheck = join(project, "scripts/check-spine-references.py");
+  if (!existsSync(python) || !existsSync(script) || !existsSync(referenceCheck))
+    throw new Error("TOOL_NOT_INSTALLED");
+  checkWorkerSpineReferences(python, referenceCheck);
+
   // One process per scratch directory, as the worker design requires; a dead process's lock is taken over.
   await acquireLock(join(scratch, ".cloud-worker.lock"));
   const db = new Firestore({ projectId: PROJECT });
@@ -71,14 +86,6 @@ async function main() {
   const photos = new CloudPhotoStorage(bucket, token);
   const assets = new CloudAssetStorage(bucket, token);
 
-  const toolRoot = join(project, "apps/web/app/city/spine-lab/SpineSkinTool_v1.0");
-  const python =
-    process.platform === "win32"
-      ? join(toolRoot, "runtime/python/.venv/Scripts/python.exe")
-      : join(toolRoot, "runtime/python/.venv/bin/python");
-  const script = join(project, "scripts/prepare-spine-tool-task.py");
-  const liveScript = join(project, "scripts/run-spine-live-task.py");
-  if (!existsSync(python) || !existsSync(script)) throw new Error("TOOL_NOT_INSTALLED");
   const baseExecute = live
     ? createToolLiveExecutor({ python, script, toolRoot, liveScript, callCap }, jobs, storage)
     : createToolPreflightExecutor({ python, script, toolRoot }, jobs, storage);

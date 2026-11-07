@@ -21,10 +21,19 @@ export class FirestoreVisitorStore implements VisitorStore {
     const base = `visitorExhibitions/${this.namespace}`;
     // Cloud Run's deliberately restricted role has datastore.entities.get, not
     // datastore.entities.list. A collection query makes the entire admin view 503.
-    const [state, index] = await this.db.getAll(
-      this.db.doc(`${base}/meta/state`),
-      this.db.doc(`${base}/${SPINE_TASK_INDEX_PATH}`),
-    );
+    // Normal path: a durable bounded task index avoids reading up to 200 owner documents
+    // on every admin poll. The fallback below exists only for pre-index deployments.
+    const [index] = await this.db.getAll(this.db.doc(`${base}/${SPINE_TASK_INDEX_PATH}`));
+    const indexed = spineTaskIds(index?.data()).reverse();
+    if (indexed.length > 0) {
+      const records = await this.db.getAll(
+        ...indexed.slice(0, limit).map((task) => this.db.doc(`${base}/jobs/spine-${task}`)),
+      );
+      return records.flatMap((record) =>
+        record.exists ? [{ id: record.id, value: record.data() ?? {} }] : [],
+      );
+    }
+    const [state] = await this.db.getAll(this.db.doc(`${base}/meta/state`));
     const active = state?.data()?.activeSessions;
     const owners =
       active && typeof active === "object" && !Array.isArray(active)
@@ -44,7 +53,6 @@ export class FirestoreVisitorStore implements VisitorStore {
       const task = record.data()?.task;
       if (SpineTaskIdSchema.safeParse(task).success) knownTasks.add(task as string);
     }
-    for (const task of spineTaskIds(index?.data()).reverse()) knownTasks.add(task);
     const tasks = [...knownTasks].slice(0, limit);
     if (!tasks.length) return [];
     const records = await this.db.getAll(

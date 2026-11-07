@@ -123,6 +123,7 @@ def public_summary(root,flow):
 
 
 def command(exe,ref,state,job,schema,last,image_generation):
+ from .codex_subscription import vision_only_flags
  cmd=[exe,'exec']
  if state['session_id']:cmd+=['resume',state['session_id']]
  else:cmd+=['--cd',str(ref['folder']),'--sandbox','read-only']
@@ -130,4 +131,5 @@ def command(exe,ref,state,job,schema,last,image_generation):
        '-c','model_reasoning_effort="low"','-c','sandbox_mode="read-only"','-c','forced_login_method="chatgpt"',
        '-c','features.image_generation='+('true' if image_generation else 'false'),'-c','project_doc_max_bytes=0',
        '--output-schema',str(schema),'--output-last-message',str(last)]
+ if not image_generation:cmd+=vision_only_flags()
  return cmd
