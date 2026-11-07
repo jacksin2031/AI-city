@@ -106,7 +106,7 @@ def make(root,record,resolved,revision=None,tip_artifacts=None):
     else:layout,metrics=solve_legacy(*images,head,image) if revision=='head-alpha-fit-001' else solve(*images,head,image,front_cheeks=revision in ('head-alpha-fit-003','head-alpha-fit-004','head-alpha-fit-005'),coverage_margin=.03 if revision in ('head-alpha-fit-004','head-alpha-fit-005') else 0)
     if revision in ('head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008'):
         from .hair_stages import fit_pair
-        layout,metrics=fit_pair(*images,head,image,layout,metrics,current=revision=='head-alpha-fit-007',non_uniform=revision=='head-alpha-fit-008')
+        layout,metrics=fit_pair(*images,head,image,layout,metrics,current=revision in ('head-alpha-fit-007','head-alpha-fit-008'),non_uniform=revision=='head-alpha-fit-008')
         from .ear_geometry import target_roots
         from .character_flow import source_profile
         metrics['shared_ear_targets']=target_roots(source_profile(root)[0],head,image)
