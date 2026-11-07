@@ -27,6 +27,20 @@ class ReviewIntegrationTests(unittest.TestCase):
     def update_manifest(self,file):
         path=self.bundle/'build-manifest.json';manifest=json.loads(path.read_text(encoding='utf-8'));manifest['files'][file]=digest(self.bundle/file);path.write_bytes(canonical(manifest)+b'\n')
 
+    def test_fit008_rear_vertical_scaling_is_applied_to_exported_skeleton(self):
+        from spine_skin_tool.character import assemble_raw
+        record=json.loads((self.root/self.output/'design.json').read_text(encoding='utf-8'))
+        layout={**record['design']['layout'],'back_scale_y':.8}
+        assemble_raw(self.root,self.output+'/raw','runtime/work/scaled',layout)
+        def rear(path):
+            data=json.loads(path.read_text(encoding='utf-8'))
+            skin=next(s for s in data['skins'] if s['name']=='ai-city-original-template')['attachments']
+            return skin['back-hair']['back-hair']
+        base=rear(self.bundle/'skeleton.json')
+        scaled=rear(self.root/'runtime/work/scaled/bundle/skeleton.json')
+        self.assertAlmostEqual(scaled['height']/base['height'],.8,places=6)
+        self.assertAlmostEqual(scaled['width'],base['width'],places=6)
+
     def test_hard_pass_still_requires_review_and_source_change_invalidates(self):
         result=create_review(self.root,self.output);self.assertEqual(result['hard']['status'],'PASS');self.assertEqual(result['status'],'REQUIRES_REVIEW')
         raw=self.root/self.output/'raw/HAIR_FRONT.png';raw.write_bytes(b'changed')

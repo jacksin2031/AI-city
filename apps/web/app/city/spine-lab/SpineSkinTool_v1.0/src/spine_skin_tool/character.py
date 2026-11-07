@@ -61,7 +61,7 @@ def assemble_raw(root,raw_dir,output,layout,has_skirt=False,arm_source='standard
  geometry={}
  widths=(layout['front_width'],layout['back_width'])
  for part,slot,width in [('HAIR_FRONT','hair-front',widths[0]),('HAIR_BACK','back-hair',widths[1])]:
-  with Image.open(parts/profile['parts'][part]['file']) as im:attachment,m=region(im,'ai-city-original-template/'+('hair-front' if slot=='hair-front' else 'hair-back'),width,layout.get('back_top',layout['top']) if part=='HAIR_BACK' else layout['top'],face=part=='HAIR_FRONT',anchor_x=layout.get('front_anchor_x' if part=='HAIR_FRONT' else 'back_anchor_x'),center_x=layout.get('front_center_x' if part=='HAIR_FRONT' else 'back_center_x',0))
+  with Image.open(parts/profile['parts'][part]['file']) as im:attachment,m=region(im,'ai-city-original-template/'+('hair-front' if slot=='hair-front' else 'hair-back'),width,layout.get('back_top',layout['top']) if part=='HAIR_BACK' else layout['top'],face=part=='HAIR_FRONT',anchor_x=layout.get('front_anchor_x' if part=='HAIR_FRONT' else 'back_anchor_x'),center_x=layout.get('front_center_x' if part=='HAIR_FRONT' else 'back_center_x',0),vertical_scale=layout.get('back_scale_y',1.0) if part=='HAIR_BACK' else 1.0)
   skin[slot]={slot:attachment};geometry[part]=m
  # Update full-page atlas dimensions after hair canvas normalization.
  lines=atlas.read_text(encoding='utf-8').splitlines();page=None;pages=inspect_template(source_root/'ai-city-original-template.json',source_root/'ai-city-original-template.atlas')['pages']

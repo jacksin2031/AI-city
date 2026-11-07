@@ -113,6 +113,18 @@ class ReviewTests(unittest.TestCase):
             a['defects'][0]['bbox']=box
             with self.assertRaisesRegex(DesignError,'VISUAL_BOX'):validate_visual(self.root,self.rid,a)
 
+    def test_model_xywh_bbox_keeps_defect_and_records_coordinate_provenance(self):
+        data=self.result('FAIL')
+        data['defects']=[{'code':'EAR_OCCLUDED','part':'HAIR_FRONT','direction':'front','frame_id':'s1-000','bbox':[.35,.28,.30,.14],'severity':'MAJOR','confidence':.99,'message_ja':'耳が隠れています。'}]
+        result=import_visual(self.root,self.rid,data,'CODEX_SUBSCRIPTION')
+        self.assertEqual(result['status'],'FAIL')
+        recorded=result['visual_reviews'][-1]
+        self.assertEqual(recorded['data']['defects'][0]['code'],'EAR_OCCLUDED')
+        self.assertEqual(recorded['data']['defects'][0]['severity'],'MAJOR')
+        self.assertEqual(len(recorded['bbox_normalizations']),1)
+        self.assertEqual(recorded['bbox_normalizations'][0]['reason'],'MODEL_XYWH_TO_XYXY')
+        self.assertAlmostEqual(recorded['data']['defects'][0]['bbox'][2],.65,places=7)
+
     def test_raw_alpha_outliers_do_not_override_clean_assembled_review(self):
         _,issues=check_part(Image.new('RGBA',(20,30)),'HAIR_FRONT',self.design);self.assertIn('EMPTY_PART',[i['code'] for i in issues])
         _,issues=check_part(Image.new('RGBA',(20,30),'red'),'HAIR_FRONT',self.design);self.assertIn('OPAQUE_BACKGROUND',[i['code'] for i in issues])

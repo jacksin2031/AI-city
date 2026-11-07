@@ -229,7 +229,7 @@ def collect_evidence(root,identity):
         fit_file=bundle/'hair-fit.json'
         if fit_file.is_file():
             fit=json.loads(fit_file.read_text(encoding='utf-8'))
-            if fit['revision'] in ('head-alpha-fit-006','head-alpha-fit-007'):
+            if fit['revision'] in ('head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008'):
                 from .ear_pass import render_guide
                 render_guide(root,context['character_output'],evidence/'head-height-guide.png')
                 if fit.get('ear_pass'):

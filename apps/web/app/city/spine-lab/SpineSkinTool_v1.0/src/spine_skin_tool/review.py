@@ -149,7 +149,7 @@ def hard_checks(root,output):
                 from .hair_fit import validate as validate_fit
                 value=json.loads((bundle/'hair-fit.json').read_text(encoding='utf-8'));require(value['fit_id']==flow['geometry_fit']['fit_id'],'FIT_BINDING')
                 layout=validate_fit(root,record,value,{p:private_path(root,output+'/raw/'+p+'.png') for p in ('HAIR_FRONT','HAIR_BACK')})
-                if value['revision'] in ('head-alpha-fit-006','head-alpha-fit-007'):
+                if value['revision'] in ('head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008'):
                     em=value['metrics'];measured=em['post_anchor_coverage']
                     if measured['side_boundary_max_uncovered_run_head_fraction']>.03 or measured['crown_coverage']<.95:issues.append(finding('HAIR_COVERAGE','HAIR_FRONT',message='無耳の髪を頭部に合わせた状態で、頭頂または側頬に隙間があります。耳を基準に動かさず、髪全体を原写真から再設計してください。'))
                     if measured['central_face_occlusion']>.10:issues.append(finding('PROPORTION','HAIR_FRONT',message='前髪が中央の顔を覆いすぎています。'))
@@ -164,7 +164,7 @@ def hard_checks(root,output):
                 raw=private_path(root,output+'/raw/'+part+'.png')
                 with Image.open(raw) as im:normalized,_=prepare_texture(im,tuple(profile['parts'][part]['canvas']),'hair')
                 if ear_overrides:normalized=ear_overrides[part]
-                expected,_=region(normalized,'ai-city-original-template/'+('hair-front' if part=='HAIR_FRONT' else 'hair-back'),width,layout.get('back_top',layout['top']) if part=='HAIR_BACK' else layout['top'],face=part=='HAIR_FRONT',anchor_x=layout.get('front_anchor_x' if part=='HAIR_FRONT' else 'back_anchor_x'),center_x=layout.get('front_center_x' if part=='HAIR_FRONT' else 'back_center_x',0))
+                expected,_=region(normalized,'ai-city-original-template/'+('hair-front' if part=='HAIR_FRONT' else 'hair-back'),width,layout.get('back_top',layout['top']) if part=='HAIR_BACK' else layout['top'],face=part=='HAIR_FRONT',anchor_x=layout.get('front_anchor_x' if part=='HAIR_FRONT' else 'back_anchor_x'),center_x=layout.get('front_center_x' if part=='HAIR_FRONT' else 'back_center_x',0),vertical_scale=layout.get('back_scale_y',1.0) if part=='HAIR_BACK' else 1.0)
                 require(b.get(slot)=={slot:expected},'LAYOUT_GEOMETRY_MISMATCH')
             require(digest(bundle/'orientation.js')==digest(ROOT/'ui/orientation.js'),'ORIENTATION_GUARD_CHANGED')
             for field in ('bones','ik','transform','path'):require(baseline.get(field)==data.get(field),'FIXED_RIG_CHANGED')

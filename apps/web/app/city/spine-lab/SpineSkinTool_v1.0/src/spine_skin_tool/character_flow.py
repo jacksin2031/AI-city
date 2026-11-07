@@ -186,7 +186,7 @@ def assemble_character(root,identity,bindings,output,auto_fit=False,fit_revision
             if owner.get('ear_decision_id'):
                 from .ear_policy import load as load_ear_decision
                 choice=load_ear_decision(root,owner['ear_decision_id']);flow.update(ear_decision=choice,ear_policy_revision=choice['revision'])
-    if fitted and fitted['revision'] in ('head-alpha-fit-006','head-alpha-fit-007'):flow['ear_stage']=fitted['metrics']['ear_stage']
+    if fitted and fitted['revision'] in ('head-alpha-fit-006','head-alpha-fit-007','head-alpha-fit-008'):flow['ear_stage']=fitted['metrics']['ear_stage']
     if flow.get('ear_mode')=='HIDDEN':flow['ear_stage']='HIDDEN'
     if ear_timing:
         from .ear_policy import load as load_ear_decision
