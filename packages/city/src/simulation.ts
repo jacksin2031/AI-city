@@ -19,13 +19,28 @@ export type Actor = {
 };
 /** Walking pace in metres per second. */
 const speed = 1.35;
-/** Residents pick their next stop within a few minutes' walk, so the crowd stays together. */
-const NEARBY = 45;
+/** Local legs stay compact; scheduled landmark excursions can cover the larger town. */
+const NEARBY = 65;
+const LANDMARK_EXCURSIONS = new Set([
+  "jr-hijiri",
+  "jr-ocha",
+  "bridge",
+  "photo",
+  "nikolai",
+  "yushima",
+  "riverwalk",
+  "hospital",
+  "meiji",
+  "subway",
+  "dhu",
+]);
 
-/**
- * The Sola City plaza and the crossing beside it. Destinations are limited to this box so the
- * crowd stays in the part of town the exhibition shows, rather than scattering across the map.
- */
+/** A tested subset of the exported 790 x 730 m navigation map, including both JR gates. */
+export function inRoamingDistrict(point: Point): boolean {
+  return point.x >= -385 && point.x <= 145 && point.y >= -115 && point.y <= 275;
+}
+
+/** The original Sola City plaza focus area, retained for spawn and regression checks. */
 export function inCentralDistrict(point: Point): boolean {
   return point.x >= -10 && point.x <= 120 && point.y >= 55 && point.y <= 150;
 }
@@ -37,7 +52,11 @@ export function poiById(world: World, id: string | null): Poi | undefined {
 export function createActor(world: World, index: number): Actor {
   const start = world.spawns[index % Math.max(1, world.spawns.length)] ?? { x: 0, y: 0 };
   const offset = Math.floor(index / Math.max(1, world.spawns.length)) * 1.2;
-  const spot = nearestWalkable(world.grid, { x: start.x + offset, y: start.y }, 6) ?? start;
+  const candidate = nearestWalkable(world.grid, { x: start.x + offset, y: start.y }, 6) ?? start;
+  // Extra visitors must not snap into a tiny isolated walkable island beside the plaza.
+  // This is a short local check; never accept a disconnected spawn merely because its
+  // grid cell is marked walkable.
+  const spot = findPath(world.grid, start, candidate, 3_000).length ? candidate : start;
   return {
     ...spot,
     // Facing the camera, which looks from the north-west.
@@ -62,13 +81,24 @@ function nextDestinations(world: World, actor: Actor, inView?: (point: Point) =>
   // Small LCG: stable sequences per resident, varied between residents.
   const seed = (actor.seed * 1103 + 12345) % 9973;
   const others = world.pois.filter((poi) => poi.id !== actor.goal);
-  const central = others.filter(inCentralDistrict);
-  const district = central.length ? central : others;
+  const roaming = others.filter(inRoamingDistrict);
+  const district = roaming.length ? roaming : others;
   const near = district.filter((poi) => Math.hypot(poi.x - actor.x, poi.y - actor.y) < NEARBY);
   const nearby = near.length ? near : district;
   const visible = inView ? nearby.filter(inView) : [];
+  // Roughly one walk in three is a real station/bridge/landmark excursion instead
+  // of remaining in the same plaza. The other walks explore nearby shops and paths.
+  // All destinations are existing snapped POIs; A* still validates each full route.
+  const excursions =
+    seed % 3 === 0
+      ? district.filter(
+          (poi) =>
+            LANDMARK_EXCURSIONS.has(poi.id) &&
+            Math.hypot(poi.x - actor.x, poi.y - actor.y) >= NEARBY,
+        )
+      : [];
   const ordered: Poi[] = [];
-  for (const group of [visible, nearby, district]) {
+  for (const group of [excursions, visible, nearby, district]) {
     for (let offset = 0; offset < group.length; offset++) {
       const poi = group[(seed + offset) % group.length];
       if (poi && !ordered.some((item) => item.id === poi.id)) ordered.push(poi);
