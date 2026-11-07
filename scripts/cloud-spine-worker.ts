@@ -6,13 +6,18 @@ import { setTimeout as delay } from "node:timers/promises";
 import { CloudAssetStorage } from "../apps/web/lib/spine/cloud-asset-storage";
 import { CloudPhotoStorage } from "../apps/web/lib/spine/cloud-photo-storage";
 import { pollCloudSpineTasks } from "../apps/web/lib/spine/cloud-worker";
-import { buildTaskListing, PollReporter } from "../apps/web/lib/spine/cloud-worker-report";
+import {
+  buildTaskListing,
+  PollReporter,
+  previewOnlyQueued,
+} from "../apps/web/lib/spine/cloud-worker-report";
 import { HEARTBEAT_INTERVAL_MS, HEARTBEAT_PATH } from "../apps/web/lib/spine/heartbeat";
 import { SpineJobs } from "../apps/web/lib/spine/jobs";
 import { LocalSpineStorage } from "../apps/web/lib/spine/local-storage";
 import { createToolLiveExecutor } from "../apps/web/lib/spine/tool-live";
 import { createToolPreflightExecutor } from "../apps/web/lib/spine/tool-preflight";
 import { FirestoreVisitorStore } from "../apps/web/lib/visitor/firestore";
+import { checkWorkerSpineReferences } from "./spine-reference-preflight";
 
 /**
  * Cloud photo worker, started by hand on a trusted machine. It pulls queued photos from the
@@ -31,12 +36,17 @@ const { GoogleAuth } = requireWeb("google-auth-library");
 async function main() {
   const args = process.argv.slice(2);
   const live = args.includes("--live");
+  const previewQueuedOnly = args.includes("--preview-queued-only");
   const capArg = args.find((arg) => arg.startsWith("--cap="));
   const workersArg = args.find((arg) => arg.startsWith("--workers="));
   if (
     args.some(
       (arg) =>
-        arg !== "--once" && arg !== "--live" && !arg.startsWith("--cap=") && arg !== workersArg,
+        arg !== "--once" &&
+        arg !== "--live" &&
+        arg !== "--preview-queued-only" &&
+        !arg.startsWith("--cap=") &&
+        arg !== workersArg,
     )
   )
     throw new Error("WORKER_ARGUMENTS");
@@ -52,10 +62,30 @@ async function main() {
   const bucket = process.env.AI_CITY_SPINE_PHOTO_BUCKET;
   const scratch = process.env.AI_CITY_SPINE_LOCAL_DIR;
   if (!namespace || !bucket || !scratch || !isAbsolute(scratch)) throw new Error("WORKER_CONFIG");
+  if (
+    previewQueuedOnly &&
+    (namespace !== "preview-staging-20261107" ||
+      process.env.AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH !== "1")
+  )
+    throw new Error("PREVIEW_QUEUED_ONLY_UNAUTHORIZED");
   const project = resolve(process.cwd());
   const fromProject = relative(project, scratch);
   if (!fromProject.startsWith("..") && !isAbsolute(fromProject))
     throw new Error("PRIVATE_ROOT_IN_PROJECT");
+
+  // Validate all bundled reference assets before acquiring a lock or creating Firestore clients.
+  // If broken, no Worker heartbeat is advertised and /join's 120s photo gate closes safely.
+  const toolRoot = join(project, "apps/web/app/city/spine-lab/SpineSkinTool_v1.0");
+  const python =
+    process.platform === "win32"
+      ? join(toolRoot, "runtime/python/.venv/Scripts/python.exe")
+      : join(toolRoot, "runtime/python/.venv/bin/python");
+  const script = join(project, "scripts/prepare-spine-tool-task.py");
+  const liveScript = join(project, "scripts/run-spine-live-task.py");
+  const referenceCheck = join(project, "scripts/check-spine-references.py");
+  if (!existsSync(python) || !existsSync(script) || !existsSync(referenceCheck))
+    throw new Error("TOOL_NOT_INSTALLED");
+  checkWorkerSpineReferences(python, referenceCheck);
 
   // One process per scratch directory, as the worker design requires; a dead process's lock is taken over.
   await acquireLock(join(scratch, ".cloud-worker.lock"));
@@ -71,14 +101,6 @@ async function main() {
   const photos = new CloudPhotoStorage(bucket, token);
   const assets = new CloudAssetStorage(bucket, token);
 
-  const toolRoot = join(project, "apps/web/app/city/spine-lab/SpineSkinTool_v1.0");
-  const python =
-    process.platform === "win32"
-      ? join(toolRoot, "runtime/python/.venv/Scripts/python.exe")
-      : join(toolRoot, "runtime/python/.venv/bin/python");
-  const script = join(project, "scripts/prepare-spine-tool-task.py");
-  const liveScript = join(project, "scripts/run-spine-live-task.py");
-  if (!existsSync(python) || !existsSync(script)) throw new Error("TOOL_NOT_INSTALLED");
   const baseExecute = live
     ? createToolLiveExecutor({ python, script, toolRoot, liveScript, callCap }, jobs, storage)
     : createToolPreflightExecutor({ python, script, toolRoot }, jobs, storage);
@@ -120,13 +142,12 @@ async function main() {
         "toolCleanupPending",
       )
       .get();
-    return buildTaskListing(
-      snapshot.docs.map((doc: { id: string; data(): Record<string, unknown> }) => ({
-        id: doc.id,
-        data: doc.data(),
-      })),
-      Date.now(),
-    );
+    const docs = snapshot.docs.map((doc: { id: string; data(): Record<string, unknown> }) => ({
+      id: doc.id,
+      data: doc.data(),
+    }));
+    // During PC Preview E2E, preserve all previous participants and cleanup state.
+    return buildTaskListing(previewQueuedOnly ? previewOnlyQueued(docs) : docs, Date.now());
   };
 
   const stop = new AbortController();

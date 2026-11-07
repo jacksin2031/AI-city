@@ -71,6 +71,9 @@ describe("Firestore admin task listing without collection list permission", () =
     const { store, reads } = restrictedFirestore(docs);
     expect((await store.listJobs(201)).map((j) => j.id)).toEqual([`spine-${historical}`]);
     expect(reads).toContain(`${root}/jobs/spine-${historical}`);
+    // The indexed path must not fan out into active session reads: admin polls have a 4s deadline.
+    expect(reads).not.toContain(`${root}/meta/state`);
+    expect(reads).not.toContain(`${root}/requests/spine-owner-${owner}`);
   });
 
   it("does not attempt Firestore reads for invalid limits or absent task IDs", async () => {

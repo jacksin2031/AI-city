@@ -27,6 +27,20 @@ class ReviewIntegrationTests(unittest.TestCase):
     def update_manifest(self,file):
         path=self.bundle/'build-manifest.json';manifest=json.loads(path.read_text(encoding='utf-8'));manifest['files'][file]=digest(self.bundle/file);path.write_bytes(canonical(manifest)+b'\n')
 
+    def test_fit008_rear_vertical_scaling_is_applied_to_exported_skeleton(self):
+        from spine_skin_tool.character import assemble_raw
+        record=json.loads((self.root/self.output/'design.json').read_text(encoding='utf-8'))
+        layout={**record['design']['layout'],'back_scale_y':.8}
+        assemble_raw(self.root,self.output+'/raw','runtime/work/scaled',layout)
+        def rear(path):
+            data=json.loads(path.read_text(encoding='utf-8'))
+            skin=next(s for s in data['skins'] if s['name']=='ai-city-original-template')['attachments']
+            return skin['back-hair']['back-hair']
+        base=rear(self.bundle/'skeleton.json')
+        scaled=rear(self.root/'runtime/work/scaled/bundle/skeleton.json')
+        self.assertAlmostEqual(scaled['height']/base['height'],.8,places=6)
+        self.assertAlmostEqual(scaled['width'],base['width'],places=6)
+
     def test_hard_pass_still_requires_review_and_source_change_invalidates(self):
         result=create_review(self.root,self.output);self.assertEqual(result['hard']['status'],'PASS');self.assertEqual(result['status'],'REQUIRES_REVIEW')
         raw=self.root/self.output/'raw/HAIR_FRONT.png';raw.write_bytes(b'changed')
@@ -38,8 +52,9 @@ class ReviewIntegrationTests(unittest.TestCase):
         make_reference_sheet(folder,record['design'],self.root)
         with Image.open(folder/'original-references.png') as image:self.assertEqual(image.size,(800,1200))
         data=json.loads((folder/'reference-sources.json').read_text(encoding='utf-8'));self.assertFalse(data['generator_input']);sources={s['source']:s for s in data['sources']}
+        from spine_skin_tool.reference_assets import library_root
         for source in ('harri/hair-front.png','harri/back-hair.png','davide/hair-front.png','spineboy/hair-front.png','erikari/skirt.png'):
-            self.assertEqual(sources[source]['role'],'original_style_review_only');self.assertEqual(sources[source]['sha256'],digest(ROOT.parent/'library/Chibi-Stickers-4.3/extracted/images'/source))
+            self.assertEqual(sources[source]['role'],'original_style_review_only');self.assertEqual(sources[source]['sha256'],digest(library_root(ROOT)/'Chibi-Stickers-4.3/extracted/images'/source))
 
     def test_self_consistent_but_modified_rig_is_rejected(self):
         path=self.bundle/'skeleton.json';data=json.loads(path.read_text(encoding='utf-8'));data['bones'][0]['x']=999;path.write_bytes(canonical(data)+b'\n');self.update_manifest('skeleton.json')
@@ -58,13 +73,31 @@ class ReviewIntegrationTests(unittest.TestCase):
         hard,_,_=hard_checks(self.root,self.output)
         self.assertIn('NORMALIZED_PART_MISMATCH',[i['code'] for i in hard['defects']]);self.assertEqual(hard['status'],'FAIL')
 
-    def test_raw_alpha_outliers_stay_unknown_after_normalization(self):
+    def test_faint_raw_alpha_does_not_block_structural_review(self):
         raw=self.root/self.output/'raw/HAIR_FRONT.png'
         with Image.open(raw) as source:content=source.convert('RGBA')
         im=Image.new('RGBA',(content.width*2,content.height*2));im.paste(content,(content.width//2,content.height//2))
         im.putpixel((0,0),(1,1,1,1));im.save(raw)
         hard,_,_=hard_checks(self.root,self.output)
-        self.assertTrue(any(i['code']=='RAW_ALPHA_OUTLIERS' and i['result']=='UNKNOWN' for i in hard['defects']))
+        self.assertFalse(any(i['code']=='RAW_ALPHA_OUTLIERS' for i in hard['defects']))
+        # Normalization removes alpha=1 entirely; only deliberate raw-source
+        # tampering is blocked through the pinned flow SHA, not alpha quality.
+        self.assertNotIn('NORMALIZED_PART_MISMATCH',[i['code'] for i in hard['defects']])
+        self.assertIn('INPUT_PROVENANCE',[i['code'] for i in hard['defects']])
+        self.assertGreater(hard['parts']['HAIR_FRONT']['raw']['outlier_bbox_ratio'],1.15)
+        self.assertLessEqual(hard['parts']['HAIR_FRONT']['outlier_bbox_ratio'],1.15)
+
+    def test_raw_alpha_outliers_need_a_real_assembled_capture_to_judge(self):
+        raw=self.root/self.output/'raw/HAIR_FRONT.png'
+        with Image.open(raw) as source:content=source.convert('RGBA')
+        im=Image.new('RGBA',(content.width*2,content.height*2));im.paste(content,(content.width//2,content.height//2))
+        im.putpixel((0,0),(1,1,1,25));im.save(raw)
+        hard,_,_=hard_checks(self.root,self.output)
+        self.assertFalse(any(i['code'] in ('RAW_ALPHA_OUTLIERS','ALPHA_OUTLIERS') for i in hard['defects']))
+        # Existing bundle no longer matches this changed raw image; the structural
+        # integrity check still blocks it. A newly assembled bundle instead
+        # receives its alpha decision from genuine transparent frame captures.
+        self.assertIn('NORMALIZED_PART_MISMATCH',[i['code'] for i in hard['defects']])
 
     def test_real_fourfold_review_accepts_valid_large_hair_without_relaxing_raw_ingestion(self):
         from spine_skin_tool.review_render import scale_bundle

@@ -7,6 +7,13 @@ import { SpineTaskIdSchema } from "@ai-city/contracts/spine";
  */
 export type ListedDoc = { id: string; data: Record<string, unknown> };
 
+/** Operator-only Preview test: never visit withdrawn, running or previously held jobs. */
+export function previewOnlyQueued(docs: ListedDoc[]): ListedDoc[] {
+  return docs.filter(
+    (doc) => doc.data.photoStorage === "CLOUD_PRIVATE" && doc.data.state === "QUEUED",
+  );
+}
+
 export type TaskListing = {
   /** Tasks that may need work, queued ones first and oldest first. */
   tasks: string[];

@@ -213,9 +213,12 @@ describe("Spine jobs transaction boundary", () => {
     await jobs.create("task1", owner, "c".repeat(64), consent);
     await jobs.claim("task1", "worker1");
     await expect(jobs.markUnknown("task1", "worker2")).rejects.toThrow();
-    await jobs.markUnknown("task1", "worker1");
+    await jobs.markUnknown("task1", "worker1", "TOOL_PREPARATION_FAILED");
     await expect(jobs.claim("task1", "worker2")).rejects.toThrow();
-    expect((await jobs.get("task1", owner)).state).toBe("UNKNOWN");
+    expect(await jobs.get("task1", owner)).toMatchObject({
+      state: "UNKNOWN",
+      failureCode: "TOOL_PREPARATION_FAILED",
+    });
   });
   it("binds a tool flow to the claimed task and exact photo without allowing replacement", async () => {
     const jobs = new SpineJobs(new MemoryVisitorStore());

@@ -7,6 +7,8 @@ cd /d "%~dp0.."
 set "TOOLCHAIN=%CD%\apps\web\app\city\spine-lab\SpineSkinTool_v1.0\runtime\bin\toolchain"
 set "PATH=%TOOLCHAIN%\uv;%TOOLCHAIN%\node\node-v22.17.1-win-x64;%PATH%"
 set "AI_CITY_VISITOR_NAMESPACE=preview-visitors-20261019"
+REM Explicit production exhibition auto-publication (quality gate + participant consent).
+set "AI_CITY_SPINE_PRODUCTION_AUTO_PUBLISH=1"
 set "AI_CITY_SPINE_PHOTO_BUCKET=ai-city-511822-spine-photos"
 set "AI_CITY_SPINE_LOCAL_DIR=%LOCALAPPDATA%\ai-city-spine-scratch"
 if not exist "%AI_CITY_SPINE_LOCAL_DIR%" mkdir "%AI_CITY_SPINE_LOCAL_DIR%"
