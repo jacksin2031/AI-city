@@ -25,6 +25,9 @@ def fixture():
               "hard": {"status": "PASS", "defects": [], "parts": {"HAIR_FRONT": {}}},
               "render": {"status": "PASS", "defects": [], "frame_count": 64,
                          "scales": [1, 2, 4],
+                         "assembled_alpha_revision": "assembled-composite-alpha-001",
+                         "assembled_alpha_frames": 110,
+                         "assembled_alpha_outlier_frames": 0,
                          "evidence_hash": evidence},
               "visual_call": {"status": "COMPLETED_ADVISORY", "model_calls_reserved": 1},
               "visual_reviews": [{"source": "CODEX_SUBSCRIPTION", "data": {
@@ -63,6 +66,17 @@ class ReleaseGateTests(unittest.TestCase):
         for key, value in [("status", "NOT_RUN"), ("defects", [{"code":"BAD","result":"UNKNOWN"}])]:
             changed = copy.deepcopy(report)
             changed["render"][key] = value
+            self.assertFalse(preview_release_eligible(state, changed, quality, ENV))
+
+    def test_prior_review_without_composite_proof_cannot_auto_release(self):
+        state, report, quality = fixture()
+        for field, value in (
+            ("assembled_alpha_revision", None),
+            ("assembled_alpha_frames", 0),
+            ("assembled_alpha_outlier_frames", 1),
+        ):
+            changed = copy.deepcopy(report)
+            changed["render"][field] = value
             self.assertFalse(preview_release_eligible(state, changed, quality, ENV))
 
     def test_visual_review_must_be_complete_and_confident(self):

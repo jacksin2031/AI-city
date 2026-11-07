@@ -35,9 +35,9 @@ def preview_release_eligible(state, report, quality, environment):
         return False
     hard = report.get("hard", {})
     render = report.get("render", {})
-    # No other UNKNOWN/MINOR warnings may slip through. A raw alpha fringe
-    # is ignored only when review.hard_checks has PROVEN its normalized export
-    # clean, byte-for-byte identical to the deterministic conversion.
+    # Raw images are checked for structure/provenance; alpha decisions now
+    # come from genuine assembled transparent Spine frames, not raw textures.
+    # Reject old reviews that lack the verified composite-check revision.
     if hard.get("status") != "PASS" or hard.get("defects"):
         return False
     if render.get("status") != "PASS" or render.get("defects"):
@@ -47,6 +47,11 @@ def preview_release_eligible(state, report, quality, environment):
     if not isinstance(render.get("frame_count"), int) or render["frame_count"] < 10:
         return False
     if render.get("scales") != quality.get("render_scales"):
+        return False
+    if (render.get("assembled_alpha_revision") != "assembled-composite-alpha-001"
+            or type(render.get("assembled_alpha_frames")) is not int
+            or render["assembled_alpha_frames"] < 20
+            or render.get("assembled_alpha_outlier_frames") != 0):
         return False
     if not re.fullmatch(r"[0-9a-f]{64}", str(render.get("evidence_hash", ""))):
         return False

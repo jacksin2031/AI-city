@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image,ImageChops,ImageDraw,ImageOps,ImageFilter
 from .assembly import canonical,verify_bundle,VERSIONS
 from .design import ROOT,private_path,require,digest,DesignError
-from .review import (policy,review_dir,read_review,save_report,aggregate,finding,LOCK)
+from .review import (policy,review_dir,read_review,save_report,aggregate,finding,image_metrics,LOCK)
 from .reference_assets import library_root
 
 
@@ -63,6 +63,43 @@ def frame_issues(frame,has_skirt,integrated_ears=False):
     if back:
         if slots.get('hair-front') or slots.get('eye-l') or at('back-hair')<at('head-base'):add('REAR_HEAD_RULE','背面に顔・正面の髪が残っているか、後髪が頭部を覆っていません。')
     return issues
+
+
+def assess_assembled_alpha(image,frame):
+    """Judge stray alpha on the ACTUAL composed Spine character, not input parts."""
+    measured=image_metrics(image)
+    issues=[]
+    identity=frame['frame_id'];direction=frame['direction']
+    if not measured['main_alpha_bbox']:
+        issues.append(finding('ASSEMBLED_EMPTY_ALPHA',message='合成キャラクターに不透明な本体がありません。',
+            frame_id=identity,direction=direction))
+    elif measured['opaque_background']:
+        issues.append(finding('ASSEMBLED_OPAQUE_BACKGROUND',message='キャラクターの背景が透明ではありません。',
+            frame_id=identity,direction=direction))
+    elif measured['outlier_bbox_ratio']>policy()['raw_alpha_outlier_ratio']:
+        issues.append(finding('ASSEMBLED_ALPHA_OUTLIERS',result='UNKNOWN',severity='MINOR',
+            message='合成後のキャラクター画面に弱い透過画素が外側に残っています。',
+            frame_id=identity,direction=direction))
+    return measured,issues
+
+
+def assembled_alpha_evidence(folder,frames):
+    """Read composited transparent PNGs at 1x across ALL captured animations/directions."""
+    baseline=[f for f in frames if f.get('scale')==1]
+    require(len(baseline)>=20,'ASSEMBLED_ALPHA_EVIDENCE_MISSING')
+    readings=[];issues=[]
+    for frame in baseline:
+        path=(folder/frame['screenshot']).resolve()
+        require(path.is_relative_to(folder.resolve()) and path.is_file(),'ASSEMBLED_ALPHA_EVIDENCE_INVALID')
+        with Image.open(path) as image:
+            require(image.format=='PNG' and image.mode=='RGBA' and image.size==(512,512),'ASSEMBLED_ALPHA_EVIDENCE_INVALID')
+            metrics,found=assess_assembled_alpha(image,frame)
+        readings.append({'frame_id':frame['frame_id'],'direction':frame['direction'],
+            'outlier_bbox_ratio':metrics['outlier_bbox_ratio'],
+            'main_alpha_bbox':metrics['main_alpha_bbox'],
+            'has_outliers':bool(found)})
+        issues.extend(found)
+    return issues,readings
 
 
 def mask_metrics(folder,frame):
@@ -170,6 +207,17 @@ def collect_evidence(root,identity):
         for frame in frames:
             issues.extend(frame_issues(frame,has_skirt,integrated_ears));m=mask_metrics(evidence,frame)
             if m:metrics.append({'frame_id':frame['frame_id'],'direction':frame['direction'],**m})
+        # This is the first stage where the character is genuinely composited.
+        # The raw inputs are kept for SHA/provenance only; do not reject them
+        # based on faint alpha that the real renderer never shows.
+        alpha_issues,alpha_readings=assembled_alpha_evidence(evidence,frames)
+        issues.extend(alpha_issues)
+        (evidence/'assembled-alpha-metrics.json').write_bytes(canonical({
+            'revision':'assembled-composite-alpha-001',
+            'source':'transparent-Spine-runtime-RGBA-frames',
+            'scale':1,
+            'frames':alpha_readings,
+        })+b'\n')
         make_sheets(evidence,context,root)
         fit_file=bundle/'hair-fit.json'
         if fit_file.is_file():
@@ -206,7 +254,9 @@ def collect_evidence(root,identity):
         (evidence/'manifest.json').write_bytes(canonical(manifest)+b'\n')
         with LOCK:
             report=read_review(root,identity);report['render']={'status':'FAIL' if any(x['result']=='FAIL' for x in issues) else 'PASS',
-                'defects':issues,'frame_count':len(frames),'evidence_hash':manifest['evidence_hash'],'metrics_count':len(metrics),'scales':policy()['render_scales']}
+                'defects':issues,'frame_count':len(frames),'evidence_hash':manifest['evidence_hash'],'metrics_count':len(metrics),'scales':policy()['render_scales'],
+                'assembled_alpha_revision':'assembled-composite-alpha-001','assembled_alpha_frames':len(alpha_readings),
+                'assembled_alpha_outlier_frames':sum(v['has_outliers'] for v in alpha_readings)}
             report['status']=aggregate(report);save_report(root,report)
     except Exception as error:
         with LOCK:

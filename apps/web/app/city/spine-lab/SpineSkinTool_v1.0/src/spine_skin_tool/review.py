@@ -49,15 +49,18 @@ def check_part(image,part,design,expected_arm=None):
     metrics=image_metrics(image);issues=[]
     if not metrics['main_alpha_bbox']:issues.append(finding('EMPTY_PART',part,message='有効な不透明部分がありません。'))
     if metrics['opaque_background']:issues.append(finding('OPAQUE_BACKGROUND',part,message='透明背景ではありません。'))
-    if metrics['outlier_bbox_ratio']>policy()['raw_alpha_outlier_ratio']:
-        issues.append(finding('ALPHA_OUTLIERS',part,'UNKNOWN','弱い透明画素が外側にあります。主体が縮小されていないか確認してください。',severity='MINOR'))
+    # Only structural validity belongs to the individual normalized export.
+    # Alpha fringe is checked on the fully assembled Spine animation captures,
+    # not raw ImageGen inputs or separately laid-out texture pages.
     if expected_arm is not None and (image.size!=expected_arm.size or image.convert('RGBA').tobytes()!=expected_arm.tobytes()):
         issues.append(finding('STANDARD_ARM_OUTLINE_OR_PALETTE',part,message='標準の腕の形・袖線・肌色線が確定設計と一致しません。'))
     if design['appearance']['lower']['kind']=='pants' and part.startswith(('BODY','LEG')):
         delta=palette_distance(image,design['appearance']['lower']['color'],(.75,1) if part.startswith('BODY') else (.15,.6))
         metrics['locked_pants_color_distance']=delta
+        # This uncalibrated part-only palette sample is a diagnostic metric.
+        # The assembled visual review judges garment colors in full context.
         if delta is None or delta>policy()['palette_distance_warning']:
-            issues.append(finding('PANTS_COLOR_REQUIRES_REVIEW',part,'UNKNOWN','裾の色帯と脚の色を確認してください。影と基調色の判別は未校正です。',severity='MINOR'))
+            metrics['pants_color_visual_review_advisory']=True
     return metrics,issues
 
 
@@ -98,17 +101,15 @@ def hard_checks(root,output):
                 metrics['expected_export_canvas']=list(normalized.size);metrics['normalization']=normalization
                 with Image.open(path) as exported:
                     if exported.size!=normalized.size or exported.convert('RGBA').tobytes()!=normalized.tobytes():found.append(finding('NORMALIZED_PART_MISMATCH',part,message='原稿と共通処理から再現した画布・画素がエクスポートと一致しません。'))
-                for code,message in [('EMPTY_PART','原稿に有効な不透明部分がありません。'),('OPAQUE_BACKGROUND','原稿が透明背景ではありません。'),('ALPHA_OUTLIERS','原稿の外側に弱い透明画素があります。主体の縮小を確認してください。')]:
-                    m=metrics['raw'];bad=(not m['main_alpha_bbox']) if code=='EMPTY_PART' else m['opaque_background'] if code=='OPAQUE_BACKGROUND' else m['outlier_bbox_ratio']>policy()['raw_alpha_outlier_ratio']
-                    if bad:
-                        # Tiny raw alpha fringe is diagnostic only if the exported, byte-
-                        # checked normalization removed it completely, without discarding
-                        # meaningful source opacity. Keep the raw hash and metrics unchanged.
-                        cleaned=(code=='ALPHA_OUTLIERS' and metrics['outlier_bbox_ratio']<=policy()['raw_alpha_outlier_ratio']
-                            and normalization['removed_alpha_fraction']<=0.001
-                            and not any(i['code']=='NORMALIZED_PART_MISMATCH' for i in found))
-                        if cleaned:metrics['raw_alpha_outliers_cleaned']=True
-                        else:found.append(finding('RAW_'+code,part,'UNKNOWN' if code=='ALPHA_OUTLIERS' else 'FAIL',message,severity='MINOR' if code=='ALPHA_OUTLIERS' else 'MAJOR'))
+                # Individual raw ImageGen images are *not* the published character.
+                # Keep raw provenance, structural alpha checks and byte-exact normalized
+                # export validation. Outlier pixels are assessed only on the assembled
+                # Spine animation frames after CAPTURE in review_render.py.
+                m=metrics['raw']
+                if not m['main_alpha_bbox']:
+                    found.append(finding('RAW_EMPTY_PART',part,message='原稿に有効な不透明部分がありません。'))
+                if m['opaque_background']:
+                    found.append(finding('RAW_OPAQUE_BACKGROUND',part,message='原稿が透明背景ではありません。'))
             else:found.append(finding('RAW_SNAPSHOT_MISSING',part,message='原稿の保存記録がありません。'))
             parts[part]=metrics;issues.extend(found)
         except (ValueError,OSError):issues.append(finding('PART_INVALID',part,message='部位画像を読み込めません。'))

@@ -59,25 +59,31 @@ class ReviewIntegrationTests(unittest.TestCase):
         hard,_,_=hard_checks(self.root,self.output)
         self.assertIn('NORMALIZED_PART_MISMATCH',[i['code'] for i in hard['defects']]);self.assertEqual(hard['status'],'FAIL')
 
-    def test_tiny_raw_alpha_outliers_are_cleared_only_when_normalization_is_proven(self):
+    def test_faint_raw_alpha_does_not_block_structural_review(self):
         raw=self.root/self.output/'raw/HAIR_FRONT.png'
         with Image.open(raw) as source:content=source.convert('RGBA')
         im=Image.new('RGBA',(content.width*2,content.height*2));im.paste(content,(content.width//2,content.height//2))
         im.putpixel((0,0),(1,1,1,1));im.save(raw)
         hard,_,_=hard_checks(self.root,self.output)
         self.assertFalse(any(i['code']=='RAW_ALPHA_OUTLIERS' for i in hard['defects']))
-        self.assertTrue(hard['parts']['HAIR_FRONT']['raw_alpha_outliers_cleaned'])
+        # Normalization removes alpha=1 entirely; only deliberate raw-source
+        # tampering is blocked through the pinned flow SHA, not alpha quality.
+        self.assertNotIn('NORMALIZED_PART_MISMATCH',[i['code'] for i in hard['defects']])
+        self.assertIn('INPUT_PROVENANCE',[i['code'] for i in hard['defects']])
         self.assertGreater(hard['parts']['HAIR_FRONT']['raw']['outlier_bbox_ratio'],1.15)
         self.assertLessEqual(hard['parts']['HAIR_FRONT']['outlier_bbox_ratio'],1.15)
 
-    def test_significant_raw_outliers_remain_unknown_not_silently_approved(self):
+    def test_raw_alpha_outliers_need_a_real_assembled_capture_to_judge(self):
         raw=self.root/self.output/'raw/HAIR_FRONT.png'
         with Image.open(raw) as source:content=source.convert('RGBA')
         im=Image.new('RGBA',(content.width*2,content.height*2));im.paste(content,(content.width//2,content.height//2))
         im.putpixel((0,0),(1,1,1,25));im.save(raw)
         hard,_,_=hard_checks(self.root,self.output)
-        self.assertTrue(any(i['code']=='RAW_ALPHA_OUTLIERS' and i['result']=='UNKNOWN' for i in hard['defects']))
-        self.assertFalse(hard['parts']['HAIR_FRONT'].get('raw_alpha_outliers_cleaned'))
+        self.assertFalse(any(i['code'] in ('RAW_ALPHA_OUTLIERS','ALPHA_OUTLIERS') for i in hard['defects']))
+        # Existing bundle no longer matches this changed raw image; the structural
+        # integrity check still blocks it. A newly assembled bundle instead
+        # receives its alpha decision from genuine transparent frame captures.
+        self.assertIn('NORMALIZED_PART_MISMATCH',[i['code'] for i in hard['defects']])
 
     def test_real_fourfold_review_accepts_valid_large_hair_without_relaxing_raw_ingestion(self):
         from spine_skin_tool.review_render import scale_bundle
