@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image
 
 from spine_skin_tool.review import image_metrics
-from spine_skin_tool.review_render import assess_assembled_alpha, assembled_alpha_evidence
+from spine_skin_tool.review_render import assess_assembled_alpha, assembled_alpha_evidence, renderer_python_executable
 from spine_skin_tool.texture import prepare_texture
 
 
@@ -23,6 +23,12 @@ def assembled_sprite():
 
 
 class AssembledAlphaTests(unittest.TestCase):
+    def test_renderer_python_path_matches_worker_os(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            self.assertEqual(renderer_python_executable(root, 'nt'),root/'runtime/python/.venv/Scripts/python.exe')
+            self.assertEqual(renderer_python_executable(root, 'posix'),root/'runtime/python/.venv/bin/python')
+
     def test_faint_raw_corner_pixels_removed_by_normalization_never_block_clean_composite(self):
         raw = Image.new("RGBA", (128, 128))
         raw.paste((80, 65, 60, 255), (32, 28, 96, 108))

@@ -41,3 +41,13 @@ Set `AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH=1` **only in the Preview Spine Worker en
 Expected successful trace: `QUEUED -> RUNNING -> PUBLISHED`, participant card displayed, admin displays published job and public resident, tablet renders character. If held, obtain only safe aggregate state: `hard.status`, `hard.defects[].code/result/severity`, `render.status`, `render.defects[].code/result`, `render.assembled_alpha_frames`, `render.assembled_alpha_outlier_frames`, `visual_call.status`, visual checks PASS/UNKNOWN counts, `ear_stage` and `stop_reason`, not personal photos, prompts, tokens, proxy URLs or raw model output. A held result is **not** proof of a crash.
 
 **Do not deploy any web revision to Production or restart Production Worker.** Do not turn on Preview auto-release for Production; a production-ready staff approval/publish feature needs separate authenticated, consent-bound design and approval.
+
+## 2026-11-07 PC Preview E2E preparation
+
+The Windows owner-PC worker was configured with official Codex 0.167.0 (including codex-code-mode-host.exe), an independent Spine Python venv (Pillow 12.0.0), offline-installed pinned Playwright/Spine dependencies, Chrome for 1x/2x/4x rendering, ADC for ai-city-511822, and dedicated Preview scratch. The Preview job namespace remained preview-staging-20261107. No Production process or Cloud Run revision was changed.
+
+A read-only audit revealed seven old WITHDRAWN records with pending cleanup and one old RUNNING job. Therefore the owner-PC test uses an **extra opt-in CLI flag** `--preview-queued-only` in `scripts/cloud-spine-worker.ts`. It is rejected outside the exact Preview namespace and explicit `AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH=1`. Only new QUEUED cloud-photo jobs enter the worker listing; withdrawn, UNKNOWN and RUNNING tasks cannot be processed or cleaned by this trial worker. The default Worker behavior is unchanged. Both the filtered job-list unit test and actual PC Worker startup/no-queued-job dry run passed.
+
+`review_render.py` selects a platform-appropriate pinned Python interpreter (`.venv/bin/python` on Linux, `.venv/Scripts/python.exe` on Windows), so the VM's assembled-browser capture no longer incorrectly references a Windows-only path.
+
+For Muse's Preview VM **only** the original six runtime files in the earlier list are required. The extra PC-only queued-test filtering also touches `scripts/cloud-spine-worker.ts` and `apps/web/lib/spine/cloud-worker-report.ts`, but the normal VM Worker does not need the extra flag. Keep production untouched. Do not replay prior held or failed jobs.

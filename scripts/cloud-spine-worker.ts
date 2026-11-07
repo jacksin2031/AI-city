@@ -6,7 +6,11 @@ import { setTimeout as delay } from "node:timers/promises";
 import { CloudAssetStorage } from "../apps/web/lib/spine/cloud-asset-storage";
 import { CloudPhotoStorage } from "../apps/web/lib/spine/cloud-photo-storage";
 import { pollCloudSpineTasks } from "../apps/web/lib/spine/cloud-worker";
-import { buildTaskListing, PollReporter } from "../apps/web/lib/spine/cloud-worker-report";
+import {
+  buildTaskListing,
+  PollReporter,
+  previewOnlyQueued,
+} from "../apps/web/lib/spine/cloud-worker-report";
 import { HEARTBEAT_INTERVAL_MS, HEARTBEAT_PATH } from "../apps/web/lib/spine/heartbeat";
 import { SpineJobs } from "../apps/web/lib/spine/jobs";
 import { LocalSpineStorage } from "../apps/web/lib/spine/local-storage";
@@ -32,12 +36,17 @@ const { GoogleAuth } = requireWeb("google-auth-library");
 async function main() {
   const args = process.argv.slice(2);
   const live = args.includes("--live");
+  const previewQueuedOnly = args.includes("--preview-queued-only");
   const capArg = args.find((arg) => arg.startsWith("--cap="));
   const workersArg = args.find((arg) => arg.startsWith("--workers="));
   if (
     args.some(
       (arg) =>
-        arg !== "--once" && arg !== "--live" && !arg.startsWith("--cap=") && arg !== workersArg,
+        arg !== "--once" &&
+        arg !== "--live" &&
+        arg !== "--preview-queued-only" &&
+        !arg.startsWith("--cap=") &&
+        arg !== workersArg,
     )
   )
     throw new Error("WORKER_ARGUMENTS");
@@ -53,6 +62,12 @@ async function main() {
   const bucket = process.env.AI_CITY_SPINE_PHOTO_BUCKET;
   const scratch = process.env.AI_CITY_SPINE_LOCAL_DIR;
   if (!namespace || !bucket || !scratch || !isAbsolute(scratch)) throw new Error("WORKER_CONFIG");
+  if (
+    previewQueuedOnly &&
+    (namespace !== "preview-staging-20261107" ||
+      process.env.AI_CITY_SPINE_PREVIEW_AUTO_PUBLISH !== "1")
+  )
+    throw new Error("PREVIEW_QUEUED_ONLY_UNAUTHORIZED");
   const project = resolve(process.cwd());
   const fromProject = relative(project, scratch);
   if (!fromProject.startsWith("..") && !isAbsolute(fromProject))
@@ -127,13 +142,12 @@ async function main() {
         "toolCleanupPending",
       )
       .get();
-    return buildTaskListing(
-      snapshot.docs.map((doc: { id: string; data(): Record<string, unknown> }) => ({
-        id: doc.id,
-        data: doc.data(),
-      })),
-      Date.now(),
-    );
+    const docs = snapshot.docs.map((doc: { id: string; data(): Record<string, unknown> }) => ({
+      id: doc.id,
+      data: doc.data(),
+    }));
+    // During PC Preview E2E, preserve all previous participants and cleanup state.
+    return buildTaskListing(previewQueuedOnly ? previewOnlyQueued(docs) : docs, Date.now());
   };
 
   const stop = new AbortController();

@@ -8,6 +8,13 @@ from .review import (policy,review_dir,read_review,save_report,aggregate,finding
 from .reference_assets import library_root
 
 
+def renderer_python_executable(tool_root=ROOT,platform=None):
+    """The preview subprocess must use the VM's own pinned Python interpreter."""
+    name=os.name if platform is None else platform
+    require(name in ('nt','posix'),'REVIEW_OS_UNSUPPORTED')
+    return tool_root/('runtime/python/.venv/Scripts/python.exe' if name=='nt' else 'runtime/python/.venv/bin/python')
+
+
 def scale_bundle(source,destination,scale):
     require(scale in (1,2,4),'REVIEW_SCALE');manifest=copy.deepcopy(verify_bundle(source))
     require(not destination.exists(),'OUTPUT_ALREADY_EXISTS');destination.mkdir(parents=True)
@@ -197,7 +204,7 @@ def collect_evidence(root,identity):
         evidence=folder/'evidence';evidence.mkdir();variants={}
         for scale in policy()['render_scales']:
             variant=folder/'variants'/str(scale);scale_bundle(bundle,variant,scale);variants[str(scale)]=str(variant)
-        config={'review_id':identity,'variants':variants,'output':str(evidence),'python':str(ROOT/'runtime/python/.venv/Scripts/python.exe')}
+        config={'review_id':identity,'variants':variants,'output':str(evidence),'python':str(renderer_python_executable())}
         (folder/'capture-config.json').write_bytes(canonical(config)+b'\n')
         with (folder/'render-stdout.log').open('wb') as stdout,(folder/'render-stderr.log').open('wb') as stderr:
             subprocess.run(['node',str(ROOT/'scripts/capture_review.cjs'),str(folder/'capture-config.json')],cwd=ROOT,stdout=stdout,stderr=stderr,timeout=600,check=True)
