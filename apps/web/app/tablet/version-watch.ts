@@ -4,6 +4,11 @@ export const CONFIRMATIONS = 2;
 export type VersionWatch = { known: string | null; pending: string | null; count: number };
 export const initialWatch: VersionWatch = { known: null, pending: null, count: 0 };
 
+/** A runtime server-rendered version anchors the client even if the first API poll is newer. */
+export function watchForRenderedVersion(version: string): VersionWatch {
+  return version && version !== "dev" ? { known: version, pending: null, count: 0 } : initialWatch;
+}
+
 /**
  * Decide from one poll whether the page should reload. The first answer is remembered as the
  * running version. A different answer only counts once it repeats, so a deploy that is still

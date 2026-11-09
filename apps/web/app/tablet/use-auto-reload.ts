@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { initialWatch, observeVersion } from "./version-watch";
+import { observeVersion, watchForRenderedVersion } from "./version-watch";
 
 const POLL_MS = 60_000;
 /** Never reload twice within this window, whatever the server says. */
@@ -11,9 +11,9 @@ const STAMP = "ai-city-auto-reload-at";
  * someone reloads it. This checks which deployment is serving and reloads once a newer one has
  * been seen twice in a row. A failed check changes nothing.
  */
-export function useAutoReload() {
+export function useAutoReload(renderedVersion: string) {
   useEffect(() => {
-    let state = initialWatch;
+    let state = watchForRenderedVersion(renderedVersion);
     let stopped = false;
     async function check() {
       try {
@@ -43,5 +43,5 @@ export function useAutoReload() {
       stopped = true;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [renderedVersion]);
 }
