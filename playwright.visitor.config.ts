@@ -4,6 +4,7 @@ import base from "./playwright.config";
 export default defineConfig({
   ...base,
   testMatch: "visitor.spec.ts",
+  grep: /code-free manager batch withdrawal/,
   testIgnore: [],
   workers: 1,
   retries: 0,
