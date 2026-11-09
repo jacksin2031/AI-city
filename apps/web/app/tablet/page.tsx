@@ -4,8 +4,10 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useDeviceFeed } from "../device-feed";
 import { TabletCity } from "./city";
 import { pairingCodeProblem } from "./pairing-code";
+import { useAutoReload } from "./use-auto-reload";
 export default function Tablet() {
   const feed = useDeviceFeed("display");
+  useAutoReload();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [codeHidden, setCodeHidden] = useState(false);
