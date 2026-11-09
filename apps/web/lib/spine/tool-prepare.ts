@@ -11,6 +11,16 @@ const resultSchema = z.strictObject({
   model_calls: z.literal(0),
 });
 export type ToolPrepareConfig = { python: string; script: string; toolRoot: string };
+const preparePhase = z.enum([
+  "IMPORTS",
+  "PHOTO_VERIFY",
+  "REFERENCE_VERIFY",
+  "WORKSPACE",
+  "RECEIPT",
+  "REFERENCE_COPY",
+  "PHOTO_IMPORT",
+  "FLOW_CREATE",
+]);
 
 export async function runToolHelper(
   python: string,
@@ -57,8 +67,21 @@ export async function runToolHelper(
     });
     child.once("close", (code) => {
       clearTimeout(timer);
-      if (failed || code !== 0) reject(new Error("TOOL_PREPARATION_FAILED"));
-      else resolve(text);
+      if (failed || code !== 0) {
+        const failure = new Error("TOOL_PREPARATION_FAILED") as Error & { phase?: string };
+        if (!failed) {
+          // The Python failure envelope is allowlisted. Ignore all free-form stderr/stdout.
+          try {
+            const parsed = z
+              .object({ status: z.literal("NOT_PREPARED"), phase: preparePhase })
+              .safeParse(JSON.parse(text));
+            if (parsed.success) failure.phase = parsed.data.phase;
+          } catch {
+            // Invalid or private output is never included in diagnostics.
+          }
+        }
+        reject(failure);
+      } else resolve(text);
     });
     child.stdin.on("error", () => {
       failed = true;

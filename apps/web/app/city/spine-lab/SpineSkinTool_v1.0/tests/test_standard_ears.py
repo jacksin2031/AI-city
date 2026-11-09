@@ -37,6 +37,38 @@ class StandardEarsTests(unittest.TestCase):
    for wx,wy in fit['metrics']['shared_ear_targets']['points']:draw.rectangle(((wx-head['height']*.16-old_left)/u,(old_top-wy-head['height']*.10)/u,(wx+head['height']*.16-old_left)/u,(old_top-wy+head['height']*.10)/u),fill=0)
    self.assertIsNone(mask.getbbox());m=fit['ear_pass']['measurements'][part];self.assertTrue(m['both_ears_present']);self.assertFalse(m['original_hair_resampled']);self.assertTrue(all(e['visible_fraction']>=.4 for e in m['per_ear']))
   self.assertEqual(fit['ear_pass']['measurements']['HAIR_FRONT']['roots_head_local'],fit['ear_pass']['measurements']['HAIR_BACK']['roots_head_local'])
+ def test_fit008_nonuniform_rear_scale_keeps_frozen_hair_and_visible_ears(self):
+  import hashlib
+  from spine_skin_tool.assembly import verify_bundle
+  bundle=self.root/self.f.base/'export/bundle'
+  original_raw={part:digest(self.root/self.f.base/'raw'/f'{part}.png') for part in ('HAIR_FRONT','HAIR_BACK')}
+  fit=json.loads((bundle/'hair-fit.json').read_text(encoding='utf-8'))
+  fit['revision']='head-alpha-fit-008';fit['layout']['back_scale_y']=.78
+  fit.pop('fit_id',None);fit['fit_id']=hashlib.sha256(canonical(fit)).hexdigest()
+  (bundle/'hair-fit.json').write_bytes(canonical(fit)+b'\n')
+  skeleton=json.loads((bundle/'skeleton.json').read_text(encoding='utf-8'))
+  skin=next(x for x in skeleton['skins'] if x['name']=='ai-city-original-template')['attachments']
+  skin['back-hair']['back-hair']['height']*=.78
+  (bundle/'skeleton.json').write_bytes(canonical(skeleton)+b'\n')
+  flow=json.loads((bundle/'flow-manifest.json').read_text(encoding='utf-8'))
+  flow['geometry_fit']={'fit_id':fit['fit_id'],'revision':'head-alpha-fit-008','status':fit['metrics']['status']};flow['ear_stage']='BARE_HAIR'
+  (bundle/'flow-manifest.json').write_bytes(canonical(flow)+b'\n')
+  manifest=json.loads((bundle/'build-manifest.json').read_text(encoding='utf-8'))
+  for name in ('hair-fit.json','skeleton.json','flow-manifest.json'):manifest['files'][name]=digest(bundle/name)
+  (bundle/'build-manifest.json').write_bytes(canonical(manifest)+b'\n')
+  verify_bundle(bundle)
+  artifact_id=self.artifact()
+  images,layout,result=compute(self.root,artifact_id)
+  self.assertAlmostEqual(layout['back_scale_y'],.78)
+  for part,details in result['ear_pass']['measurements'].items():
+   self.assertEqual(len(details['per_ear']),2)
+   self.assertTrue(all(e['visible_fraction']>=.4 for e in details['per_ear']))
+   self.assertFalse(details['original_hair_resampled'])
+   self.assertEqual(details['hair_base_sha256'],original_raw[part])
+  self.assertNotIn('head_units_per_pixel_y',result['ear_pass']['measurements']['HAIR_FRONT'])
+  self.assertLess(result['ear_pass']['measurements']['HAIR_BACK']['head_units_per_pixel_y'],result['ear_pass']['measurements']['HAIR_BACK']['head_units_per_pixel'])
+  self.assertEqual(original_raw,{part:digest(self.root/self.f.base/'raw'/f'{part}.png') for part in original_raw})
+
  def test_real_shared_assembly_keeps_all_raw_parts_and_has_bound_ear_provenance(self):
   output=self.build();source=self.root/self.f.base;target=self.root/output
   for p in (source/'raw').glob('*.png'):self.assertEqual(digest(p),digest(target/'raw'/p.name))

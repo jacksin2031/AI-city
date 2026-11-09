@@ -60,11 +60,34 @@ export const SpineRepairEntrySchema = z.strictObject({
 });
 export type SpineRepairEntry = z.infer<typeof SpineRepairEntrySchema>;
 
+/** Static, privacy-safe failure classification. No free-form tool error or photo information. */
+export const SpineFailureCodeSchema = z.enum([
+  "TOOL_PREPARATION_FAILED",
+  "PREPARE_RUNTIME_FAILED",
+  "PREPARE_PHOTO_FAILED",
+  "PREPARE_REFERENCE_FAILED",
+  "PREPARE_WORKSPACE_FAILED",
+  "PREPARE_FLOW_FAILED",
+  "PREPARE_RECEIPT_FAILED",
+  "TOOL_RUNTIME_FAILED",
+  "TOOL_LIVE_INVALID",
+  "TOOL_LIVE_EXIT",
+  "TOOL_PIPELINE_FAILED",
+  "MODEL_LOGIN_REQUIRED",
+  "MODEL_QUOTA_REACHED",
+  "MODEL_EXECUTION_FAILED",
+  "BUNDLE_INVALID",
+  "PHOTO_INTEGRITY_FAILED",
+  "WORKER_EXECUTION_ERROR",
+]);
+export type SpineFailureCode = z.infer<typeof SpineFailureCodeSchema>;
+
 export const SpineAdminTaskSchema = z.strictObject({
   task: SpineTaskIdSchema,
   code: z.string().length(8),
   state: SpineTaskStateSchema,
   stateSince: z.iso.datetime().nullable(),
+  failureCode: SpineFailureCodeSchema.nullable(),
   needsAttention: z.boolean(),
   /** Only PUBLISHED tasks; the bundle descriptor is already public to tablets. */
   preview: z

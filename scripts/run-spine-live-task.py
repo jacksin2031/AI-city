@@ -66,11 +66,13 @@ def main():
     # The tool's renderer only accepts private work paths under this base.
     os.environ["AI_CITY_SPINE_WORK_BASE"] = str(workspace)
     sys.path.insert(0, str(tool / "src"))
+    phase = "PRECHECK"
     try:
         from spine_skin_tool.photo_import import import_photo
         from spine_skin_tool.pipeline import advance, create
         from spine_skin_tool.pipeline_store import read
-        from spine_skin_tool.review import read_review
+        from spine_skin_tool.review import read_review, policy
+        from spine_preview_release import preview_release_eligible
 
         photo = regular(directory / "photo.png")
         data = photo.read_bytes()
@@ -79,18 +81,22 @@ def main():
         receipt = json.loads((workspace / "integration-receipt.json").read_text(encoding="utf-8"))
         if receipt["task"] != task or receipt["photo_sha256"] != expected:
             raise ValueError("RECEIPT_MISMATCH")
+        phase = "SETUP"
         write_settings(workspace, cap)
         live_path = workspace / "live-receipt.json"
         if live_path.exists():
             flow = json.loads(live_path.read_text(encoding="utf-8"))["flow"]
         else:
+            phase = "PHOTO_IMPORT"
             imported = import_photo(workspace, data)
             # A small cap keeps one design call, the part images (with retry slack) and a single review, no repairs.
             small = cap <= 12
             limits = {"max_image_calls": min(14, cap - 2 if small else cap - 4), "max_visual_calls": 1 if small else 3, "max_repair_cycles": 0 if small else 1, "live_design": True, "live_generation": True, "live_review": True, "pause_design": False}
+            phase = "FLOW_CREATE"
             flow = create(workspace, {"mode": "GENERATE", "photo": imported["photo"], "character_id": task, "limits": limits})["id"]
             with live_path.open("x", encoding="utf-8") as stream:
                 json.dump({"task": task, "flow": flow}, stream)
+        phase = "PIPELINE_ADVANCE"
         state = read(workspace, flow)
         for _ in range(4):
             state = advance(workspace, flow)
@@ -99,6 +105,7 @@ def main():
                 break
         result = {"status": state["status"], "phase": state["phase"], "flow": flow, "bundle": None, "auto_publish": False,
                   "image_calls": state["initial_image_calls_reserved"], "visual_calls": state["initial_visual_calls_reserved"], "analysis_calls": state["analysis_calls_reserved"], "error_code": state.get("error_code")}
+        phase = "BUNDLE_REVIEW"
         output = state.get("best_output")
         if output:
             review = read_review(workspace, state["review_id"])
@@ -109,12 +116,26 @@ def main():
             if workspace not in bundle.parents:
                 raise ValueError("BUNDLE_PATH")
             defects = sorted({str(d.get("code")) for d in review["hard"].get("defects", []) if isinstance(d, dict) and d.get("result") == "FAIL"})[:8]
+            approved = preview_release_eligible(state, review, policy(), os.environ)
             result.update(bundle=bundle.relative_to(directory).as_posix(), render=render, hard=hard, hard_fail_codes=defects, visual_fail=visual_fail,
-                          auto_publish=render == "PASS" and hard != "FAIL" and not visual_fail)
+                          auto_publish=approved)
+            if approved:
+                # No mutation of the tool's human-review-only report. This status
+                # is a separate, explicitly enabled, namespace-locked exhibition decision.
+                result["status"] = "READY_FOR_REVIEWED_EXPORT"
         print(json.dumps(result))
         return 0
-    except (OSError, ValueError, KeyError, TypeError, ImportError) as error:
-        print(json.dumps({"status": "FAILED", "code": getattr(error, "code", type(error).__name__)}))
+    except Exception as error:
+        # Never print exception text, paths, model output or private data. A bounded phase and
+        # approved static code are all that the parent process may persist for the operator.
+        safe_codes = {
+            "CODEX_CHATGPT_LOGIN_REQUIRED", "CODEX_CLI_NOT_FOUND",
+            "CODEX_SUBSCRIPTION_LIMIT_REACHED", "CODEX_EXEC_FAILED_NO_RETRY",
+            "CODEX_TIMEOUT_RESULT_UNKNOWN_NO_RETRY",
+        }
+        raw_code = getattr(error, "code", None)
+        code = raw_code if isinstance(raw_code, str) and raw_code in safe_codes else "TOOL_PIPELINE_FAILED"
+        print(json.dumps({"status": "FAILED", "phase": phase, "error_code": code}))
         return 1
 
 

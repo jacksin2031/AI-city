@@ -80,6 +80,20 @@ describe("probing both current-session APIs", () => {
     });
     expect(probe).toMatchObject({ existing: null, unreadable: false });
   });
+  it("does not treat a first-visit photo-flow 401 as a broken connection", async () => {
+    class PhotoRequestFailure extends Error {
+      constructor(public status: number) {
+        super("SESSION_REQUIRED");
+      }
+    }
+    const probe = await probeExisting({
+      sample: async () => null,
+      spine: async () => {
+        throw new PhotoRequestFailure(401);
+      },
+    });
+    expect(probe).toMatchObject({ existing: null, unreadable: false });
+  });
   it("reports unreadable when a flow fails for any other reason but still shows the other", async () => {
     const probe = await probeExisting({
       sample: async () => sampleView("READY", "PUBLISHED"),

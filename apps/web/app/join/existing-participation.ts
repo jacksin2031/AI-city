@@ -55,8 +55,12 @@ export type ExistingProbe = {
 function isAbsent(failure: unknown): boolean {
   if (failure instanceof DevelopmentApiError)
     return failure.status === 401 || failure.status === 404;
+  // Both the hosted photo flow and the shared session probe use status-bearing request errors.
+  // No session (401) is expected on first visit, and must not show a red connection warning.
   return (
-    failure instanceof SpineRequestFailure && (failure.status === 401 || failure.status === 404)
+    failure instanceof Error &&
+    "status" in failure &&
+    (failure.status === 401 || failure.status === 404)
   );
 }
 

@@ -3,6 +3,7 @@ import {
   type SpineAdminTask,
   type SpineAdminView,
   SpineAdminViewSchema,
+  SpineFailureCodeSchema,
   SpineRepairEntrySchema,
   SpineTaskIdSchema,
   SpineTaskStateSchema,
@@ -20,6 +21,7 @@ const ATTENTION_STATES = new Set(["FAILED", "UNKNOWN", "REQUIRES_REVIEW"]);
 /** Only these fields of a stored job are ever read; everything else stays server-side. */
 const jobView = z.object({
   state: SpineTaskStateSchema,
+  failureCode: z.unknown().optional(),
   // A malformed timestamp must not hide an otherwise valid job from administrators.
   stateSince: z.unknown().optional(),
   bundle: z.unknown().optional(),
@@ -70,6 +72,9 @@ export async function buildAdminView(store: VisitorStore, now: number): Promise<
       code: task.data.slice("spine-".length, "spine-".length + 8),
       state,
       stateSince: stateSince === undefined ? null : new Date(stateSince).toISOString(),
+      failureCode: SpineFailureCodeSchema.safeParse(job.data.failureCode).success
+        ? SpineFailureCodeSchema.parse(job.data.failureCode)
+        : null,
       needsAttention: ATTENTION_STATES.has(state) || stuck,
       preview,
     });
