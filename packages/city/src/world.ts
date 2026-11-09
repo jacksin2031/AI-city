@@ -134,7 +134,13 @@ export function nearestWalkable(grid: WalkGrid, point: Point, radius = 40): Poin
   return best;
 }
 
-type Scratch = { cost: Float32Array; from: Int32Array; stamp: Uint32Array; generation: number };
+type Scratch = {
+  cost: Float32Array;
+  from: Int32Array;
+  stamp: Uint32Array;
+  closed: Uint32Array;
+  generation: number;
+};
 const scratches = new WeakMap<WalkGrid, Scratch>();
 
 function scratchFor(grid: WalkGrid): Scratch {
@@ -145,6 +151,7 @@ function scratchFor(grid: WalkGrid): Scratch {
       cost: new Float32Array(cells),
       from: new Int32Array(cells),
       stamp: new Uint32Array(cells),
+      closed: new Uint32Array(cells),
       generation: 0,
     };
     scratches.set(grid, scratch);
@@ -225,7 +232,7 @@ export function findPath(grid: WalkGrid, from: Point, to: Point, budget = 400_00
   if (start < 0 || goal < 0 || !grid.kinds[goal]) return [];
   if (start === goal) return [to];
   const scratch = scratchFor(grid);
-  const { cost, from: came, stamp, generation } = scratch;
+  const { cost, from: came, stamp, closed, generation } = scratch;
   const goalCol = goal % grid.width;
   const goalRow = Math.floor(goal / grid.width);
   const estimate = (index: number) => {
@@ -241,6 +248,10 @@ export function findPath(grid: WalkGrid, from: Point, to: Point, budget = 400_00
   let found = false;
   for (let expanded = 0; open.size && expanded < budget; expanded++) {
     const current = open.pop();
+    // The heap can contain outdated copies of a cell after cheaper paths were found.
+    // Count only real expansions and do not repeatedly expand the same cell.
+    if (closed[current] === generation) continue;
+    closed[current] = generation;
     if (current === goal) {
       found = true;
       break;
@@ -253,7 +264,7 @@ export function findPath(grid: WalkGrid, from: Point, to: Point, budget = 400_00
       const r = row + dr;
       if (c < 0 || r < 0 || c >= grid.width || r >= grid.depth) continue;
       const next = r * grid.width + c;
-      if (!canStep(grid, current, next)) continue;
+      if (closed[next] === generation || !canStep(grid, current, next)) continue;
       // No cutting corners past buildings.
       if (
         dc &&
@@ -317,6 +328,18 @@ function clearLine(grid: WalkGrid, cells: number[], from: number, to: number) {
     const cell = Math.round(ay + (by - ay) * t) * grid.width + Math.round(ax + (bx - ax) * t);
     if (cell === previous) continue;
     if (!canStep(grid, previous, cell) || (COST[grid.kinds[cell] ?? 0] ?? 9) > worst) return false;
+    // Smoothing must never cut a diagonal corner that A* itself would reject.
+    const previousCol = previous % grid.width;
+    const previousRow = Math.floor(previous / grid.width);
+    const nextCol = cell % grid.width;
+    const nextRow = Math.floor(cell / grid.width);
+    if (
+      previousCol !== nextCol &&
+      previousRow !== nextRow &&
+      (!canStep(grid, previous, previousRow * grid.width + nextCol) ||
+        !canStep(grid, previous, nextRow * grid.width + previousCol))
+    )
+      return false;
     previous = cell;
   }
   return true;
@@ -379,8 +402,10 @@ const landmarks: Landmark[] = [
   },
   {
     id: "sola-plaza",
+    // The previous centre (50,100) snaps to an isolated 1m navigation island.
+    // The existing plaza footway at (50,96) is connected to the rest of the city.
     x: 50,
-    y: 100,
+    y: 96,
     activity: "sit",
     seconds: 8,
     doing: "ソラシティ広場でひと休み",
@@ -535,7 +560,8 @@ const spawnPoints: Point[] = [
   { x: 36, y: 100 },
   { x: 60, y: 118 },
   { x: 50, y: 96 },
-  { x: 50, y: 100 },
+  // The previous (50,100) was disconnected and stranded one resident.
+  { x: 47, y: 99 },
 ];
 
 export function createWorld(grid: WalkGrid, shops: Shopfront[]): World {
