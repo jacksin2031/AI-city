@@ -1,0 +1,94 @@
+SPINE STAGE REPORT  (branch fix/spine-stage-diagnostics-20261107, base d74e9f7)
+Status: IMPLEMENTED / NOT VALIDATED. Nothing below has been executed.
+ - No node_modules in this worktree; `pnpm install`, `pnpm check`, vitest, biome and python
+   were all refused by the session's approval policy (non-interactive). Not committed, not pushed,
+   no Worker started, no remote/model call, no deploy.
+ - No live generation is claimed. A Muse preview E2E is still required.
+ - Biome formatting was hand-matched (width 100) and is UNCHECKED; run `pnpm format` first.
+
+== A. Pipeline findings (code-level) ==
+Path read: submitCloudPhoto -> reserve/begin/complete (VisitorService) -> jobs/spine-<spine-uuid>
+(QUEUED, CLOUD_PRIVATE, generation) -> worker listTasks -> cleanupLocalTask -> cloudQueuedForWorker
+-> photos.read(generation) + sha check -> dispatchLocalTask -> claim -> execute -> verify -> publish.
+ 1. 11 x WITHDRAWN with claimed=0 is correct behaviour (confirmed by code), not a bug.
+ 2. REAL BUG: any exception from photos.read (CLOUD_PHOTO_UNAVAILABLE on 15 s timeout/token,
+    GENERATION_CHANGED, SIZE) or from dispatch propagated out of pollCloudSpineTasks, and the
+    script's main() had no catch around the loop, so ONE bad/transient job (or a Firestore blip in
+    listTasks) terminated the whole worker process. A QUEUED job could then sit with no worker.
+    Fix: per-task isolation in pollCloudSpineTasks (reason-coded, pass continues); script loop
+    survives a failed poll and logs {pollError: CODE}. Pre-claim errors are free to retry (nothing sent
+    to a model); a claimed job is no longer QUEUED so it is never started twice.
+ 3. REAL GAP: `--workers=N` was parsed/validated but never used (single sequential loop, so one
+    ~7 min job blocked every other queued person), and acquireLock() existed but was never called
+    although the worker design says one process per scratch dir. Now N loops share one in-flight set
+    (default 1 = unchanged) and the lock is taken (stale lock of a dead pid is taken over).
+    BEHAVIOUR CHANGE: a second worker on the same scratch dir now exits WORKER_ALREADY_RUNNING.
+ 4. Order: loop started at a random offset. Now queued jobs first, oldest first (FIFO); concurrent
+    loops still never collide (in-flight check+insert have no await between them).
+ 5. Listing read every CLOUD_PRIVATE doc in full (incl. consent/owner/digest) and then ran up to 3
+    transactions per doc per 5 s poll, including long-finished WITHDRAWN ones. Now .select()s six
+    non-sensitive fields and does not visit WITHDRAWN jobs whose cleanup is finished (counted as
+    "settled"). Cleanup of anything not yet clean is unchanged (PUBLISHED/expired still visited).
+ Not weakened: consent, digest check, generation pinning, session check, withdrawal cleanup, GCS
+ policy, quality gate, UNKNOWN-never-resent. No automatic retry of any paid attempt was added.
+
+== B. Diagnostics ==
+ - jobs.inspectCloudQueue(task) -> {queued} | {queued:null, reason}; reasons: RECORD_MISSING,
+   RECORD_INVALID (e.g. strict-schema mismatch), WITHDRAWN, NOT_QUEUED, NOT_CLOUD_PHOTO,
+   SESSION_INACTIVE. cloudQueuedForWorker is now a wrapper (same semantics).
+ - Poll summary: {claimed, cleaned, skipped:{CODE:n}, listing:{listed,settled,byState,
+   oldestQueuedSeconds,oldestRunningSeconds}}. Skip codes: the six above + CLEANUP_PENDING,
+   NOT_EXAMINED (pass already at capacity), NO_PHOTO_DIGEST, PHOTO_MISSING, BAD_PHOTO_DIGEST,
+   PHOTO_GENERATION_CHANGED, PHOTO_SIZE_INVALID, PHOTO_UNAVAILABLE, NOT_DISPATCHED, CLAIM_LOST,
+   IN_FLIGHT, ERROR_<UPPER_CASE_CODE>. Error text is echoed only if it is a bare UPPER_CASE code,
+   else UNCLASSIFIED. No task IDs, owners, digests, URLs, names or photo data in any output.
+ - PollReporter (cloud-worker-report.ts): one JSON line when something was done / the picture
+   changed / every 5 min while idle (no more silent hours). Warnings QUEUED_NOT_CLAIMED (oldest
+   queued >= 10 min and nothing claimed this poll) and RUNNING_LONG (>= 15 min, same as admin
+   stuck marker). Warnings are information only; nothing is retried.
+ - "/join said accepted but job is NOT_QUEUED" is now visible as skipped.NOT_QUEUED / byState.
+
+== C. /join progress ==
+ spine-progress.ts: estimateProgress/TYPICAL_RUN_SECONDS/percent removed. describeProgress(state)
+ is a pure function of state: 3 fixed steps (順番待ち / 制作中 / 完成), no %, no durations.
+ QUEUED & PREPARED = waiting (step 1); RUNNING = step 2 "終わるまでの時間は分かりません";
+ only PUBLISHED = step 3 "完成". FAILED/UNKNOWN/REQUIRES_REVIEW message tells to call staff.
+ spine-flow.tsx: removed runningSince/now 1 s ticker; step list instead of bar; the "5〜10分"
+ claims removed (also from the upload-stage text). participant.css: .pf-bar -> .pf-steps.
+
+== D. Python tool audit (no code change, nothing run) ==
+ Existing, so NOT re-implemented:
+ - pipeline.work GENERATE: per-part jobs are persisted (s['jobs'], completed_parts); sent jobs are
+   harvested before any new submission; an unknown result stops with WAIT_RESULT, no resend;
+   analysis uses recover() when already reserved. => no repeat model call for a completed part.
+ - character_flow / reference_assets verify sha256 of references; reference library is pinned by
+   ASSET_MANIFEST.json (reference_only, commercial_use_allowed:false).
+ - Standard arms/ears are local shared processing (production_timing 'STANDARD_*_LOCAL').
+ - production_timing.py already records persisted per-job started_at/finished_at/elapsed.
+ Not done: a cross-participant cache. The reference library is licence-restricted
+ (reference_only), and I could not run the tool or measure, so a cache would be unverified.
+ Candidate for later (unmeasured): source_profile(root) is re-evaluated each GENERATE pass.
+ No local timings are claimed; live model speed is unmeasured by this work.
+
+== E. Timestamps ==
+ Optional fields on the job record: queuedAt (admission / requeue), startedAt (claim),
+ preparedAt (markPrepared), finishedAt (publish / fail / review / unknown). Requeue sets
+ queuedAt=now and clears startedAt/preparedAt/finishedAt (new attempt). Old records stay valid.
+ !! DEPLOY ORDER: recordSchema is strict. A worker running OLD code cannot parse a record that has
+ these fields, so it would silently never claim it (RECORD_INVALID with the new code). Update and
+ restart the VM worker BEFORE (or together with) any web revision that writes them. Preview uses a
+ separate namespace so it is unaffected; production is the risk. Not surfaced in admin UI yet.
+
+== Files ==
+ M apps/web/lib/spine/jobs.ts, cloud-worker.ts, scripts/cloud-spine-worker.ts
+ A apps/web/lib/spine/cloud-worker-report.ts (+ .test.ts)
+ M apps/web/app/join/spine-progress.ts, spine-flow.tsx, participant.css
+ M tests: jobs.test.ts, cloud-worker.test.ts, cloud-photo-intake.test.ts, spine-progress.test.ts
+
+== Known limits / next ==
+ 1. Run: pnpm install --frozen-lockfile; pnpm format; pnpm check (lint, typecheck, vitest, build).
+    Likely first failures if any: biome formatting; type narrowing on inspectCloudQueue union.
+ 2. Tests were written against existing fixtures but never executed.
+ 3. A job stuck RUNNING after a worker crash still needs admin requeue (by design: no auto paid retry).
+ 4. Python tests not run (no venv; python call refused).
+ 5. Preview E2E by Muse remains the only proof of a live generation.
