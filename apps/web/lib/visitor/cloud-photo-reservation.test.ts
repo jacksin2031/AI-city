@@ -209,4 +209,24 @@ describe("cloud photo upload reservation", () => {
     expect(completed.status === "fulfilled").not.toBe(cancelled.status === "fulfilled");
     expect(store.dump().has(`jobs/spine-${id}`)).toBe(completed.status === "fulfilled");
   });
+  it("retains upload state when the durable queue is malformed", async () => {
+    const store = new MemoryVisitorStore();
+    const service = new VisitorService(store);
+    const { token } = await service.createOpenSession();
+    const id = task();
+    await service.reserveCloudPhotoUpload(token, id, "a".repeat(64), consent);
+    await service.beginCloudPhotoUpload(token, id);
+    await store.run(async (tx) =>
+      tx.set("meta/cloud-photo-queue", { schemaVersion: 1, tasks: "bad" }),
+    );
+    await expect(
+      service.completeCloudPhotoUpload(token, id, "a".repeat(64), "123"),
+    ).rejects.toMatchObject({ code: "STORAGE_INVALID" });
+    const entries = store.dump().get("meta/cloud-photo-uploads")?.entries as Record<
+      string,
+      { state: string }
+    >;
+    expect(entries[id]?.state).toBe("UPLOADING");
+    expect(store.dump().has(`jobs/spine-${id}`)).toBe(false);
+  });
 });

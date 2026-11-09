@@ -3,6 +3,7 @@ import { SpinePhotoConsentSchema, SpineTaskStateSchema } from "@ai-city/contract
 import { z } from "zod";
 import type { VisitorStore, VisitorTransaction } from "../visitor/store";
 import { verifySpineBundle } from "./bundle";
+import { CloudPhotoQueueSchema } from "./cloud-queue-schema";
 import { createProductionJob, transitionProductionJob } from "./lifecycle";
 import { addSpineResident, removeSpineResident } from "./roster-index";
 
@@ -220,6 +221,53 @@ export class SpineJobs {
         return null;
       if (!(await sessionActive(tx, record.data, this.now()))) return null;
       return { owner: record.data.owner, photoSha256: record.data.photoSha256 };
+    });
+  }
+  /** The durable index retains claimed tasks for recovery; this only lists opaque IDs. */
+  async cloudTasks(): Promise<string[]> {
+    return this.store.run(
+      async (tx) =>
+        CloudPhotoQueueSchema.parse(
+          (await tx.get("meta/cloud-photo-queue")) ?? { schemaVersion: 1, tasks: [] },
+        ).tasks,
+    );
+  }
+  /** A read-only preflight filter; claimCloud repeats all checks transactionally. */
+  async cloudQueuedForWorker(task: string): Promise<boolean> {
+    return this.store.run(async (tx) => {
+      const record = recordSchema.safeParse(await tx.get(this.path(task)));
+      return Boolean(
+        record.success &&
+          record.data.state === "QUEUED" &&
+          record.data.photoStorage === "CLOUD_PRIVATE" &&
+          (await sessionActive(tx, record.data, this.now())),
+      );
+    });
+  }
+  /** A cloud task is claimed exactly once, with its session still active. */
+  async claimCloud(task: string, worker: string) {
+    const path = this.path(task);
+    id.parse(worker);
+    return this.store.run(async (tx) => {
+      const queue = CloudPhotoQueueSchema.parse(await tx.get("meta/cloud-photo-queue"));
+      const record = recordSchema.parse(await tx.get(path));
+      if (
+        !queue.tasks.includes(task) ||
+        record.photoStorage !== "CLOUD_PRIVATE" ||
+        !record.photoGeneration ||
+        !record.photoSha256 ||
+        record.state !== "QUEUED"
+      )
+        throw new Error("INVALID_TRANSITION");
+      if (!(await sessionActive(tx, record, this.now()))) throw new Error("SESSION_EXPIRED");
+      const next = { ...record, ...transitionProductionJob(record, { type: "START" }), worker };
+      tx.set(path, next);
+      return {
+        task,
+        owner: record.owner,
+        photoSha256: record.photoSha256,
+        photoGeneration: record.photoGeneration,
+      };
     });
   }
   async claim(task: string, worker: string) {

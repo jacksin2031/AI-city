@@ -55,21 +55,39 @@ describe("private cloud photos", () => {
   it("reads a pinned generation and refuses oversized objects", async () => {
     const fetcher = vi
       .fn()
+      .mockResolvedValueOnce(response(safe))
       .mockResolvedValueOnce(response({ generation: "123", size: "3" }))
       .mockResolvedValueOnce(new Response(new Uint8Array([1, 2, 3])));
     const storage = new CloudPhotoStorage(bucket, async () => "test-token", fetcher);
     expect(await storage.read(task, 3)).toEqual(new Uint8Array([1, 2, 3]));
-    expect(String(fetcher.mock.calls[1]?.[0])).toContain("ifGenerationMatch=123");
-    const big = vi.fn().mockResolvedValue(response({ generation: "123", size: "4" }));
+    expect(String(fetcher.mock.calls[2]?.[0])).toContain("ifGenerationMatch=123");
+    const big = vi
+      .fn()
+      .mockResolvedValueOnce(response(safe))
+      .mockResolvedValueOnce(response({ generation: "123", size: "4" }));
     await expect(
       new CloudPhotoStorage(bucket, async () => "test-token", big).read(task, 3),
     ).rejects.toThrow();
-    expect(big).toHaveBeenCalledTimes(1);
+    expect(big).toHaveBeenCalledTimes(2);
   });
   it("rejects a different generation from the one returned by upload", async () => {
-    const fetcher = vi.fn().mockResolvedValue(response({ generation: "124", size: "1" }));
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(response(safe))
+      .mockResolvedValueOnce(response({ generation: "124", size: "1" }));
     const storage = new CloudPhotoStorage(bucket, async () => "test-token", fetcher);
     await expect(storage.read(task, 3, "123")).rejects.toThrow("CLOUD_PHOTO_GENERATION_CHANGED");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it("refuses to read a photo when the bucket policy is unsafe", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response({ ...safe, softDeletePolicy: { retentionDurationSeconds: "604800" } }),
+      );
+    await expect(
+      new CloudPhotoStorage(bucket, async () => "test-token", fetcher).read(task, 3),
+    ).rejects.toThrow("PHOTO_BUCKET_UNSAFE");
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
   it("deletes only the observed generation and checks bucket policy before reporting completion", async () => {
@@ -123,6 +141,7 @@ describe("private cloud photos", () => {
   it("rejects downloads exceeding the stated metadata size", async () => {
     const fetcher = vi
       .fn()
+      .mockResolvedValueOnce(response(safe))
       .mockResolvedValueOnce(response({ generation: "123", size: "1" }))
       .mockResolvedValueOnce(new Response(new Uint8Array([1, 2])));
     await expect(

@@ -83,6 +83,7 @@ export class CloudPhotoStorage {
     const name = this.object(task);
     if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > MAX_PHOTO)
       throw new Error("CLOUD_PHOTO_SIZE");
+    await this.verifyPolicy();
     const info = await this.objectMetadata(name);
     if (!info) return null;
     if (expectedGeneration !== undefined && info.generation !== expectedGeneration)

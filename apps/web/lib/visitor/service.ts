@@ -22,6 +22,7 @@ import {
 } from "@ai-city/contracts/spine";
 import { z } from "zod";
 import { DevelopmentServiceError } from "../development/service";
+import { CLOUD_QUEUE_CAPACITY, CloudPhotoQueueSchema } from "../spine/cloud-queue-schema";
 import {
   makeCloudSpineJob,
   makeSpineJob,
@@ -633,7 +634,11 @@ export class VisitorService {
       );
       const ownerRequest = await tx.get(`requests/spine-owner-${owner}`);
       const target = await tx.get(`jobs/spine-${task}`);
+      const queue = CloudPhotoQueueSchema.safeParse(
+        (await tx.get("meta/cloud-photo-queue")) ?? { schemaVersion: 1, tasks: [] },
+      );
       if (!parsed.success) throw new DevelopmentServiceError("STORAGE_INVALID", 500);
+      if (!queue.success) throw new DevelopmentServiceError("STORAGE_INVALID", 500);
       if (!validSession(session, owner, state, now))
         throw new DevelopmentServiceError("SESSION_REQUIRED", 401);
       const entry = parsed.data.entries[task];
@@ -646,6 +651,8 @@ export class VisitorService {
         target
       )
         throw new DevelopmentServiceError("INVALID_REQUEST", 409);
+      if (queue.data.tasks.includes(task) || queue.data.tasks.length >= CLOUD_QUEUE_CAPACITY)
+        throw new DevelopmentServiceError("LOCAL_CAPACITY", 429);
       const entries = { ...parsed.data.entries };
       delete entries[task];
       tx.set(
@@ -653,6 +660,7 @@ export class VisitorService {
         makeCloudSpineJob(owner, verifiedDigest, entry.consent, session.expiresAt, generation),
       );
       tx.set("meta/cloud-photo-uploads", { ...parsed.data, entries });
+      tx.set("meta/cloud-photo-queue", { schemaVersion: 1, tasks: [...queue.data.tasks, task] });
       return { task, state: "QUEUED" as const };
     });
   }

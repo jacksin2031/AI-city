@@ -1,8 +1,14 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { Firestore } from "@google-cloud/firestore";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { submitCloudPhoto } from "../../apps/web/lib/spine/cloud-photo-intake";
+import { dispatchCloudPreflight } from "../../apps/web/lib/spine/cloud-preflight-dispatch";
 import { SpineJobs } from "../../apps/web/lib/spine/jobs";
+import { LocalSpineStorage } from "../../apps/web/lib/spine/local-storage";
+import { createToolPreflightExecutor } from "../../apps/web/lib/spine/tool-preflight";
 import { FirestoreVisitorStore } from "../../apps/web/lib/visitor/firestore";
 import { VisitorService } from "../../apps/web/lib/visitor/service";
 
@@ -40,6 +46,118 @@ const consent = {
 };
 
 describe("real Firestore transaction persistence", () => {
+  it.skipIf(!process.env.AI_CITY_TEST_SPINE_PYTHON)(
+    "prepares a synthetic cloud photo with the real model-disabled tool",
+    async () => {
+      const python = process.env.AI_CITY_TEST_SPINE_PYTHON;
+      if (!python) throw new Error("missing test python");
+      const root = await mkdtemp(join(tmpdir(), "ai-city-tool-cloud-preflight-"));
+      try {
+        const { store: repository } = store();
+        const service = new VisitorService(repository);
+        const jobs = new SpineJobs(repository);
+        const local = await LocalSpineStorage.open(root);
+        const { token } = await service.createOpenSession();
+        const photo = Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAE0lEQVQImWP4z8DwnwGM/zMwAAAf7gP9qS/A4gAAAABJRU5ErkJggg==",
+          "base64",
+        );
+        let saved = new Uint8Array();
+        const cloud = {
+          write: async (_task: string, bytes: Uint8Array) => {
+            saved = Uint8Array.from(bytes);
+            return "123";
+          },
+          read: async (_task: string, _max: number, generation?: string) =>
+            generation === "123" ? saved : null,
+        };
+        const result = await submitCloudPhoto(service, cloud, token, photo, {
+          processing: true,
+          externalModelUpload: true,
+          automaticPublication: true,
+          version: 2,
+        });
+        const preflight = createToolPreflightExecutor(
+          {
+            python,
+            script: resolve("scripts/prepare-spine-tool-task.py"),
+            toolRoot: resolve("apps/web/app/city/spine-lab/SpineSkinTool_v1.0"),
+          },
+          jobs,
+          local,
+        );
+        const prepared = await dispatchCloudPreflight(
+          jobs,
+          cloud,
+          local,
+          result.task,
+          "worker",
+          preflight,
+        );
+        expect(prepared.state).toBe("PREPARED");
+        const receipt = JSON.parse(
+          await readFile(
+            join(root, result.task, "tool-workspace", "integration-receipt.json"),
+            "utf8",
+          ),
+        );
+        expect(receipt.model_calls).toBe(0);
+        expect(await jobs.publishedBundle(result.task)).toBeNull();
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
+    },
+    120_000,
+  );
+  it("passes a synthetic cloud photo to one local preflight worker", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ai-city-persistent-preflight-"));
+    try {
+      const { store: repository } = store();
+      const service = new VisitorService(repository);
+      const jobs = new SpineJobs(repository);
+      const local = await LocalSpineStorage.open(root);
+      const { token } = await service.createOpenSession();
+      const photo = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAE0lEQVQImWP4z8DwnwGM/zMwAAAf7gP9qS/A4gAAAABJRU5ErkJggg==",
+        "base64",
+      );
+      let saved = new Uint8Array();
+      const cloud = {
+        write: async (_task: string, bytes: Uint8Array) => {
+          saved = Uint8Array.from(bytes);
+          return "123";
+        },
+        read: async (_task: string, _max: number, generation?: string) =>
+          generation === "123" ? saved : null,
+      };
+      const result = await submitCloudPhoto(service, cloud, token, photo, {
+        processing: true,
+        externalModelUpload: true,
+        automaticPublication: true,
+        version: 2,
+      });
+      const prepared = await dispatchCloudPreflight(
+        jobs,
+        cloud,
+        local,
+        result.task,
+        "worker",
+        async (id, bytes, worker) => {
+          await jobs.bindToolFlow(
+            id,
+            worker,
+            `flow-${"a".repeat(32)}`,
+            createHash("sha256").update(bytes).digest("hex"),
+          );
+          return { status: "PREPARED" };
+        },
+      );
+      expect(prepared.state).toBe("PREPARED");
+      expect(await jobs.publishedBundle(result.task)).toBeNull();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
   it("queues a verified synthetic cloud photo through persistent reservations", async () => {
     const { namespace, store: repository } = store();
     const service = new VisitorService(repository);
@@ -71,6 +189,14 @@ describe("real Firestore transaction persistence", () => {
       photoStorage: "CLOUD_PRIVATE",
       photoGeneration: "123",
     });
+    const firstWorker = new SpineJobs(repository);
+    const secondWorker = new SpineJobs(new FirestoreVisitorStore(db, namespace));
+    const claims = await Promise.allSettled([
+      firstWorker.claimCloud(result.task, "worker1"),
+      secondWorker.claimCloud(result.task, "worker2"),
+    ]);
+    expect(claims.filter((claim) => claim.status === "fulfilled")).toHaveLength(1);
+    expect(await firstWorker.cloudTasks()).toContain(result.task);
   });
   it("allows only one concurrent cloud photo reservation per visitor", async () => {
     const { namespace, store: repository } = store();
