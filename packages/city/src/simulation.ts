@@ -19,13 +19,25 @@ export type Actor = {
 };
 /** Walking pace in metres per second. */
 const speed = 1.35;
-/** Residents pick their next stop within a few minutes' walk, so the crowd stays together. */
+/** Neighbourhood walks, mixed with occasional longer journeys between famous landmarks. */
 const NEARBY = 45;
+const MAX_LANDMARK_TRIP = 350;
 
-/**
- * The Sola City plaza and the crossing beside it. Destinations are limited to this box so the
- * crowd stays in the part of town the exhibition shows, rather than scattering across the map.
- */
+/** These links choose *destinations*, never straight-line movement: A* still follows the nav grid. */
+const LANDMARK_LINKS: Record<string, readonly string[]> = {
+  "sola-plaza": ["jr-hijiri", "nikolai", "yushima"],
+  dhu: ["jr-hijiri", "sola-plaza"],
+  subway: ["jr-hijiri", "sola-plaza"],
+  "jr-hijiri": ["jr-ocha", "photo", "sola-plaza"],
+  "jr-ocha": ["bridge", "jr-hijiri", "meiji"],
+  bridge: ["jr-ocha", "photo"],
+  photo: ["jr-hijiri", "yushima"],
+  nikolai: ["sola-plaza", "jr-hijiri"],
+  yushima: ["photo", "sola-plaza"],
+  meiji: ["jr-ocha", "nikolai"],
+};
+
+/** The Sola City plaza area, retained for spawn-area checks and map assertions. */
 export function inCentralDistrict(point: Point): boolean {
   return point.x >= -10 && point.x <= 120 && point.y >= 55 && point.y <= 150;
 }
@@ -62,19 +74,40 @@ function nextDestinations(world: World, actor: Actor, inView?: (point: Point) =>
   // Small LCG: stable sequences per resident, varied between residents.
   const seed = (actor.seed * 1103 + 12345) % 9973;
   const others = world.pois.filter((poi) => poi.id !== actor.goal);
-  const central = others.filter(inCentralDistrict);
-  const district = central.length ? central : others;
-  const near = district.filter((poi) => Math.hypot(poi.x - actor.x, poi.y - actor.y) < NEARBY);
-  const nearby = near.length ? near : district;
-  const visible = inView ? nearby.filter(inView) : [];
+  const distance = (point: Point) => Math.hypot(point.x - actor.x, point.y - actor.y);
+  const near = others.filter((poi) => distance(poi) < NEARBY);
+  const visible = inView ? near.filter(inView) : [];
+
+  // Find the nearest landmark hub, then sometimes leave its neighbourhood for the next
+  // hub. For example, residents at Sola City can walk to JR Ochanomizu Station.
+  // Never jump directly between points: planTrip validates the complete A* route.
+  const hubs = world.pois.filter((poi) => poi.id in LANDMARK_LINKS);
+  const hub = hubs.reduce<Poi | undefined>(
+    (closest, poi) => (!closest || distance(poi) < distance(closest) ? poi : closest),
+    undefined,
+  );
+  const linked = (hub ? LANDMARK_LINKS[hub.id] : undefined) ?? [];
+  const connectors = linked
+    .map((id) => others.find((poi) => poi.id === id))
+    .filter((poi): poi is Poi => Boolean(poi && distance(poi) <= MAX_LANDMARK_TRIP));
+  const guided =
+    seed % 3 === 0 && connectors.length
+      ? [
+          ...connectors.slice(seed % connectors.length),
+          ...connectors.slice(0, seed % connectors.length),
+        ]
+      : [];
+
+  const broader = others.filter((poi) => distance(poi) < 140);
   const ordered: Poi[] = [];
-  for (const group of [visible, nearby, district]) {
+  for (const group of [guided, visible, near, broader, others]) {
     for (let offset = 0; offset < group.length; offset++) {
       const poi = group[(seed + offset) % group.length];
       if (poi && !ordered.some((item) => item.id === poi.id)) ordered.push(poi);
+      if (ordered.length >= 8) return ordered;
     }
   }
-  return ordered.slice(0, 8);
+  return ordered;
 }
 
 function closest(world: World, actor: Actor, activity: Poi["activity"]): Poi | undefined {

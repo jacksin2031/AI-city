@@ -173,10 +173,8 @@ export class DeviceLinkService {
     return DeviceDisplaySchema.parse({
       control: this.control,
       snapshot,
-      totalParticipants:
-        this.control.displayMode === "LIVE"
-          ? this.participation.joinedTotal()
-          : snapshot?.residents.length,
+      // Only actual participants count as joins. DEMO residents are fictional presets.
+      totalParticipants: this.control.displayMode === "LIVE" ? this.participation.joinedTotal() : 0,
     });
   }
   /** The display has its own monotonic stream because presets are not participant events. */

@@ -299,9 +299,6 @@ export function SpineParticipantFlow() {
       <div className="pf-scene">
         <CityScene />
         <header className="pf-header">
-          <Link href="/" aria-label="トップへ">
-            <span className="pf-brand" />
-          </Link>
           <span>試験運用</span>
         </header>
         <div className="pf-intro">

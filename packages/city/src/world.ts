@@ -103,7 +103,12 @@ export function heightAt(grid: WalkGrid, x: number, y: number): number {
 }
 
 /** The walkable cell centre closest to `point`, searching outwards up to `radius` metres. */
-export function nearestWalkable(grid: WalkGrid, point: Point, radius = 40): Point | null {
+export function nearestWalkable(
+  grid: WalkGrid,
+  point: Point,
+  radius = 40,
+  accessible?: Uint8Array,
+): Point | null {
   const col = Math.floor(point.x - grid.x0);
   const row = Math.floor(point.y - grid.y0);
   let best: Point | null = null;
@@ -119,7 +124,7 @@ export function nearestWalkable(grid: WalkGrid, point: Point, radius = 40): Poin
         // Prefer footways. Open ground may be a gap between buildings, so it is only chosen
         // when no footway is near; a street cell is a last resort.
         const kind = grid.kinds[index] ?? 0;
-        if (!kind) continue;
+        if (!kind || (accessible && !accessible[index])) continue;
         const cell = centre(grid, index);
         // Open ground may be a gap between buildings; a street cell is a last resort.
         const avoidance = kind === 2 ? OPEN_GROUND_AVOIDANCE : kind >= 4 ? 6 : 0;
@@ -213,6 +218,42 @@ const NEIGHBOURS = [
 function canStep(grid: WalkGrid, from: number, to: number) {
   if (!grid.kinds[to]) return false;
   return Math.abs((grid.heights[to] ?? 0) - (grid.heights[from] ?? 0)) <= MAX_STEP_CM;
+}
+
+/** Keep destinations in the same walkable component as the plaza entrance.
+ * Some exported 1 m cells look like footways but are isolated by steep edges.
+ */
+function accessibleFrom(grid: WalkGrid, start: Point): Uint8Array {
+  const visited = new Uint8Array(grid.width * grid.depth);
+  const initial = cellOf(grid, start.x, start.y);
+  if (initial < 0 || !grid.kinds[initial]) return visited;
+  const queue = new Int32Array(visited.length);
+  let head = 0;
+  let tail = 1;
+  queue[0] = initial;
+  visited[initial] = 1;
+  while (head < tail) {
+    const current = queue[head++] ?? -1;
+    const col = current % grid.width;
+    const row = Math.floor(current / grid.width);
+    for (const [dc, dr] of NEIGHBOURS) {
+      const c = col + dc;
+      const r = row + dr;
+      if (c < 0 || r < 0 || c >= grid.width || r >= grid.depth) continue;
+      const next = r * grid.width + c;
+      if (visited[next] || !canStep(grid, current, next)) continue;
+      if (
+        dc &&
+        dr &&
+        (!canStep(grid, current, row * grid.width + c) ||
+          !canStep(grid, current, r * grid.width + col))
+      )
+        continue;
+      visited[next] = 1;
+      queue[tail++] = next;
+    }
+  }
+  return visited;
 }
 
 /**
@@ -337,6 +378,26 @@ const landmarks: Landmark[] = [
     place: "聖橋口",
     facing: { x: -30, y: 35 },
   },
+  // Short stops around the station entrances, so visits cover the surrounding footways
+  // instead of converging on a single doorway.
+  {
+    id: "jr-hijiri-front",
+    x: -36,
+    y: 44,
+    activity: "stand",
+    seconds: 5,
+    doing: "JR御茶ノ水駅の聖橋口周辺を散策中",
+    place: "JR御茶ノ水駅・聖橋口周辺",
+  },
+  {
+    id: "jr-hijiri-walk",
+    x: -19,
+    y: 55,
+    activity: "stand",
+    seconds: 5,
+    doing: "聖橋口近くの歩道を歩いています",
+    place: "聖橋口の歩道",
+  },
   {
     id: "jr-ocha",
     x: -173,
@@ -346,6 +407,24 @@ const landmarks: Landmark[] = [
     doing: "JR御茶ノ水駅（御茶ノ水橋口）で電車待ち",
     place: "御茶ノ水橋口",
     facing: { x: -160, y: -2 },
+  },
+  {
+    id: "jr-ocha-front",
+    x: -161,
+    y: -6,
+    activity: "stand",
+    seconds: 6,
+    doing: "JR御茶ノ水駅の御茶ノ水橋口周辺を散策中",
+    place: "JR御茶ノ水駅・御茶ノ水橋口周辺",
+  },
+  {
+    id: "jr-ocha-walk",
+    x: -185,
+    y: -18,
+    activity: "stand",
+    seconds: 5,
+    doing: "御茶ノ水橋口近くを散歩しています",
+    place: "御茶ノ水橋口の歩道",
   },
   {
     id: "bridge",
@@ -368,6 +447,15 @@ const landmarks: Landmark[] = [
     heading: 0,
   },
   {
+    id: "bridge-approach",
+    x: -165,
+    y: -45,
+    activity: "stand",
+    seconds: 5,
+    doing: "お茶の水橋のたもとを散策しています",
+    place: "お茶の水橋周辺",
+  },
+  {
     id: "dhu",
     x: 72,
     y: 100,
@@ -376,6 +464,15 @@ const landmarks: Landmark[] = [
     doing: "デジタルハリウッド大学で授業中",
     place: "デジタルハリウッド大学",
     facing: { x: 106, y: 130 },
+  },
+  {
+    id: "sola-entrance",
+    x: 30,
+    y: 95,
+    activity: "stand",
+    seconds: 5,
+    doing: "ソラシティの周辺を散歩しています",
+    place: "御茶ノ水ソラシティ周辺",
   },
   {
     id: "sola-plaza",
@@ -447,6 +544,15 @@ const landmarks: Landmark[] = [
     facing: { x: -5, y: 192 },
   },
   {
+    id: "nikolai-walk",
+    x: -46,
+    y: 177,
+    activity: "stand",
+    seconds: 6,
+    doing: "ニコライ堂の周辺を歩いています",
+    place: "ニコライ堂周辺",
+  },
+  {
     id: "yushima",
     x: 56,
     y: -74,
@@ -455,6 +561,15 @@ const landmarks: Landmark[] = [
     doing: "湯島聖堂を見学中",
     place: "湯島聖堂",
     heading: north,
+  },
+  {
+    id: "yushima-walk",
+    x: 60,
+    y: -65,
+    activity: "stand",
+    seconds: 5,
+    doing: "湯島聖堂の周辺を散策しています",
+    place: "湯島聖堂周辺",
   },
   {
     id: "meiji",
@@ -539,13 +654,15 @@ const spawnPoints: Point[] = [
 ];
 
 export function createWorld(grid: WalkGrid, shops: Shopfront[]): World {
+  const plazaEntrance = nearestWalkable(grid, spawnPoints[0] ?? { x: 44, y: 95 });
+  const accessible = plazaEntrance ? accessibleFrom(grid, plazaEntrance) : undefined;
   const pois: Poi[] = [];
   const add = (poi: Poi) => {
     if (pois.some((other) => Math.hypot(other.x - poi.x, other.y - poi.y) < 1.5)) return;
     pois.push(poi);
   };
   for (const landmark of landmarks) {
-    const spot = nearestWalkable(grid, landmark);
+    const spot = nearestWalkable(grid, landmark, 40, accessible);
     if (!spot) continue;
     const { facing, heading, ...rest } = landmark;
     add({
@@ -559,7 +676,12 @@ export function createWorld(grid: WalkGrid, shops: Shopfront[]): World {
     const options = shopActivities[shop.kind];
     if (!options) continue;
     // Stand on the footway a few steps in front of the awning, facing the shop.
-    const spot = nearestWalkable(grid, { x: shop.x + shop.nx * 2.5, y: shop.z + shop.nz * 2.5 }, 8);
+    const spot = nearestWalkable(
+      grid,
+      { x: shop.x + shop.nx * 2.5, y: shop.z + shop.nz * 2.5 },
+      8,
+      accessible,
+    );
     if (!spot) continue;
     const count = counts[shop.kind] ?? 0;
     counts[shop.kind] = count + 1;
@@ -575,7 +697,7 @@ export function createWorld(grid: WalkGrid, shops: Shopfront[]): World {
     });
   }
   const spawns = spawnPoints.flatMap((point) => {
-    const spot = nearestWalkable(grid, point);
+    const spot = nearestWalkable(grid, point, 40, accessible);
     return spot ? [spot] : [];
   });
   return { grid, pois, spawns };
