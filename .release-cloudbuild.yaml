@@ -1,4 +1,12 @@
 steps:
-- name: gcr.io/cloud-builders/docker
-  args: ['build', '-f', 'infra/app/Dockerfile', '-t', 'asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/web:exhibit-b207f9e1', '.']
-images: ['asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/web:exhibit-b207f9e1']
+  - name: gcr.io/cloud-builders/docker
+    args:
+      [
+        "build",
+        "-f",
+        "infra/app/Dockerfile",
+        "-t",
+        "asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/web:exhibit-b207f9e1",
+        ".",
+      ]
+images: ["asia-northeast1-docker.pkg.dev/ai-city-511822/ai-city/web:exhibit-b207f9e1"]
