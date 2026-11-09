@@ -13,6 +13,15 @@ def clean_environment():
     # Keep Codex's own credential store; do not read/copy OAuth tokens or API keys.
     return {k:v for k,v in os.environ.items() if not k.upper().startswith(('OPENAI_','AZURE_OPENAI_')) and k.upper() not in ('CODEX_API_KEY','XAI_API_KEY','GROK_API_KEY')}
 
+def vision_only_flags():
+    """No JavaScript Code Mode host for text+image inspection which forbids tool calls.
+
+    This avoids requiring a separately installed code-mode-host binary on the worker VM.
+    Only DESIGN and read-only visual REVIEW use this; built-in ImageGen stays unchanged.
+    """
+    return ["-c", "features.code_mode=false", "-c", "features.code_mode_host=false"]
+
+
 def executable(spec):
     value=shutil.which(spec['executable'])
     if not value:raise SubscriptionError('CODEX_CLI_NOT_FOUND')
