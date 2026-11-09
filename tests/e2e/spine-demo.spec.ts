@@ -5,7 +5,7 @@ test("the official sample is rendered in the tablet demo city", async ({
   request,
 }, testInfo) => {
   test.setTimeout(60000);
-  const origin = "http://127.0.0.1:3000";
+  const origin = "http://127.0.0.1:3001";
   const { key } = await (
     await request.post("/api/link/bootstrap", { data: {}, headers: { origin } })
   ).json();

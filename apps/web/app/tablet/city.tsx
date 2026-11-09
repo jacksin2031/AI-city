@@ -2,6 +2,7 @@
 import {
   closePresentation,
   createDevelopmentCity,
+  fetchSpineBundle,
   type IllustratedCity,
   loadChibiDemo,
   openProfile,
@@ -27,11 +28,20 @@ export function TabletCity({
   const [presentation, setPresentation] = useState(() => updatePresentation(null, snapshot));
   const view = useMemo(() => updatePresentation(presentation, snapshot), [presentation, snapshot]);
   const residents = view.roster.residents;
+  const spineKey = JSON.stringify(
+    snapshot.avatars.flatMap(({ manifest }) =>
+      manifest.spine &&
+      residents.some((resident) => resident.avatarVersion === manifest.avatarVersion)
+        ? [{ version: manifest.avatarVersion, descriptor: manifest.spine }]
+        : [],
+    ),
+  );
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [anchor, setAnchor] = useState<ScenePresentationFrame | null>(null);
   const [animated, setAnimated] = useState(false);
   const [spineSample, setSpineSample] = useState<"loading" | "ready" | "failed" | null>(null);
+  const [spineBundles, setSpineBundles] = useState(0);
   const latest = useRef({ snapshot, residents, motion, active: view.active });
   latest.current = { snapshot, residents, motion, active: view.active };
   const select = useCallback(
@@ -57,9 +67,13 @@ export function TabletCity({
   }, [focus, residents, select]);
   useEffect(() => {
     if (!parent.current) return;
+    setReady(false);
+    setFailed(false);
+    setSpineBundles(0);
     let active = true;
     const lifetime = new AbortController();
     let sampleAssets: Awaited<ReturnType<typeof loadChibiDemo>> | undefined;
+    const bundleAssets = new Map<string, Awaited<ReturnType<typeof fetchSpineBundle>>>();
     const media = matchMedia("(prefers-reduced-motion: reduce)");
     const applyMotion = () => {
       const enabled = latest.current.motion && !media.matches;
@@ -86,18 +100,44 @@ export function TabletCity({
       : Promise.resolve(undefined);
     if (sample) setSpineSample("loading");
     else setSpineSample(null);
-    loadSample
-      .then((assets) => {
+    const descriptors: Array<{
+      version: string;
+      descriptor: NonNullable<CitySnapshot["avatars"][number]["manifest"]["spine"]>;
+    }> = JSON.parse(spineKey);
+    const loadBundles = Promise.all(
+      descriptors.map(async ({ version, descriptor }) => {
+        try {
+          const assets = await fetchSpineBundle(descriptor, lifetime.signal);
+          if (!active) assets.dispose();
+          else bundleAssets.set(version, assets);
+        } catch {
+          // An unavailable or invalid bundle falls back to the existing illustration.
+        }
+      }),
+    );
+    Promise.all([loadSample, loadBundles])
+      .then(([assets]) => {
         if (!active) return;
         const sampleId = latest.current.residents[0]?.residentId;
+        let bundlePlayers = 0;
         return createDevelopmentCity(container, {
           residents: latest.current.residents,
           fillViewport: true,
           motionEnabled: latest.current.motion && !media.matches,
           signal: lifetime.signal,
-          createAnimatedCharacter: assets
-            ? (resident) => (resident.residentId === sampleId ? assets.create() : null)
-            : undefined,
+          createAnimatedCharacter: (resident) => {
+            try {
+              const bundle = bundleAssets.get(resident.avatarVersion);
+              if (bundle) {
+                const player = bundle.create();
+                bundlePlayers += 1;
+                return player;
+              }
+              return assets && resident.residentId === sampleId ? assets.create() : null;
+            } catch {
+              return null;
+            }
+          },
           onSelect: (id) => {
             if (active) select(id);
           },
@@ -108,7 +148,10 @@ export function TabletCity({
             if (active) setAnchor(frame);
           },
           onReady: () => {
-            if (active) setReady(true);
+            if (active) {
+              setSpineBundles(bundlePlayers);
+              setReady(true);
+            }
           },
         });
       })
@@ -134,8 +177,9 @@ export function TabletCity({
       city.current?.destroy();
       city.current = null;
       sampleAssets?.dispose();
+      for (const assets of bundleAssets.values()) assets.dispose();
     };
-  }, [select, close, sample]);
+  }, [select, close, sample, spineKey]);
   useEffect(() => {
     setPresentation((previous) => updatePresentation(previous, snapshot));
   }, [snapshot]);
@@ -174,6 +218,7 @@ export function TabletCity({
         data-ready={ready}
         data-failed={failed || undefined}
         data-spine-sample={spineSample ?? undefined}
+        data-spine-bundles={spineBundles}
         aria-label="街の住民をタップすると公開プロフィールを表示します。"
       >
         <div className="tablet-scene-canvas" ref={parent} />

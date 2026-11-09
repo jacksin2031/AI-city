@@ -7,7 +7,12 @@ export default function Join() {
   const hosted = Boolean(process.env.AI_CITY_PUBLIC_ORIGIN);
   const persistent = process.env.AI_CITY_ENABLE_VISITORS === "1";
   const codeFree = persistent && process.env.AI_CITY_VISITOR_CODE_FREE === "1";
-  if (codeFree) return <ParticipantExperience />;
+  const spineLocal =
+    persistent &&
+    process.env.AI_CITY_SPINE_LOCAL_INTAKE === "1" &&
+    process.env.AI_CITY_LOOPBACK_PREVIEW === "1" &&
+    !process.env.AI_CITY_PUBLIC_ORIGIN;
+  if (codeFree) return <ParticipantExperience spineLocal={spineLocal} />;
   return (
     <main className="participation">
       <h1>AIシティへの参加</h1>
@@ -35,6 +40,7 @@ export default function Join() {
         codeFree={codeFree}
       />
       <nav aria-label="サンプルの移動">
+        {spineLocal && <Link href="/join/spine">写真からキャラクターを作る（本機テスト）</Link>}
         <Link href="/">戻る</Link>
       </nav>
     </main>

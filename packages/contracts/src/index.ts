@@ -29,7 +29,7 @@ export const SpineBundleSchema = z
     pages: z
       .array(z.string().regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.png$/))
       .min(1)
-      .max(16),
+      .max(32),
     orientationPolicy: z
       .string()
       .regex(/^\/avatars\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/orientation-policy\.json$/),
@@ -67,30 +67,37 @@ export const AvatarSpecSchema = z.strictObject({
   asymmetryIds: z.array(Id).max(8).optional(),
 });
 
-export const AvatarManifestSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  avatarVersion: Version,
-  rigVersion: Version,
-  directions: z.strictObject({
-    front: AssetReference,
-    back: AssetReference,
-    left: AssetReference,
-    right: AssetReference,
-  }),
-  animationVersion: Version.optional(),
-  // Transparent frame size in pixels; the anchor is normalized to that frame (0–1).
-  frameSize: z
-    .strictObject({
-      width: z.number().int().min(1).max(4096),
-      height: z.number().int().min(1).max(4096),
-    })
-    .optional(),
-  anchor: z.strictObject({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).optional(),
-  atlas: z.strictObject({ image: AssetReference, data: AtlasDataReference }).optional(),
-  // True when this asset set is a template or Fast Mode fallback, not the requested result.
-  fallback: z.boolean().optional(),
-  spine: SpineBundleSchema.optional(),
-});
+export const AvatarManifestSchema = z
+  .strictObject({
+    schemaVersion: z.literal(1),
+    avatarVersion: Version,
+    rigVersion: Version,
+    directions: z
+      .strictObject({
+        front: AssetReference,
+        back: AssetReference,
+        left: AssetReference,
+        right: AssetReference,
+      })
+      .optional(),
+    animationVersion: Version.optional(),
+    // Transparent frame size in pixels; the anchor is normalized to that frame (0–1).
+    frameSize: z
+      .strictObject({
+        width: z.number().int().min(1).max(4096),
+        height: z.number().int().min(1).max(4096),
+      })
+      .optional(),
+    anchor: z.strictObject({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).optional(),
+    atlas: z.strictObject({ image: AssetReference, data: AtlasDataReference }).optional(),
+    // True when this asset set is a template or Fast Mode fallback, not the requested result.
+    fallback: z.boolean().optional(),
+    spine: SpineBundleSchema.optional(),
+  })
+  .refine(
+    (manifest) => manifest.directions !== undefined || manifest.spine !== undefined,
+    "An avatar requires directions or a Spine bundle",
+  );
 
 // Shape validation is NOT proof of a real consent record or authorization.
 // The future publishing service must verify session ownership and consent independently.

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { cityViewport, clampSpeechToViewport } from "./viewport";
+import {
+  cityViewport,
+  clampSpeechToViewport,
+  nextVisibleTourIndex,
+  pointInVisibleCity,
+} from "./viewport";
 
 describe("city viewport", () => {
   it("fills a 4:3 tablet without distorting the 960:600 scene", () => {
@@ -20,6 +25,16 @@ describe("city viewport", () => {
     expect(layout.width).toBe(1024);
     expect(layout.height).toBe(640);
     expect(layout.top).toBe(64);
+  });
+  it("excludes points hidden by portrait cropping and includes the central street", () => {
+    expect(pointInVisibleCity({ x: 480, y: 300 }, 768, 1024, true)).toBe(true);
+    expect(pointInVisibleCity({ x: 30, y: 300 }, 768, 1024, true)).toBe(false);
+    expect(pointInVisibleCity({ x: 480, y: 5 }, 768, 1024, true)).toBe(false);
+  });
+  it("skips tour stops with no visible resident and returns null when none fit", () => {
+    expect(nextVisibleTourIndex(0, 4, (index) => index === 2)).toBe(2);
+    expect(nextVisibleTourIndex(2, 4, (index) => index === 0)).toBe(0);
+    expect(nextVisibleTourIndex(0, 4, () => false)).toBeNull();
   });
 });
 

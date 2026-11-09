@@ -7,7 +7,7 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
 }) => {
   // Loading and drawing the 3D city on a software GPU takes a while under parallel load.
   test.setTimeout(60000);
-  const origin = "http://127.0.0.1:3000";
+  const origin = "http://127.0.0.1:3001";
   const { key } = await (
     await request.post("/api/link/bootstrap", { data: {}, headers: { origin } })
   ).json();
@@ -65,7 +65,7 @@ test("a real canvas tap opens an enlarged public profile, respects reduced motio
     await page.touchscreen.tap(100, 650);
     await expect(profile).toHaveCount(0);
     await expect(page.locator(".tablet-scene-canvas")).toHaveAttribute("data-camera-zoom", "1");
-    await page.touchscreen.tap(box.x + (412 / 960) * box.width, box.y + (232 / 600) * box.height);
+    await page.touchscreen.tap(box.x + (519 / 960) * box.width, box.y + (330 / 600) * box.height);
     const other = page.getByRole("region", { name: "はる", exact: true });
     await expect(other).toBeVisible();
     await expect(other).toHaveAttribute("data-actor-x", "480");
@@ -131,7 +131,7 @@ test("new residents wave at their city position, profiles have priority and remo
   request,
 }) => {
   test.setTimeout(90000);
-  const origin = "http://127.0.0.1:3000";
+  const origin = "http://127.0.0.1:3001";
   const postHeaders = { origin };
   const { key } = await (
     await request.post("/api/link/bootstrap", { data: {}, headers: postHeaders })

@@ -1,0 +1,242 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+
+type State =
+  | "QUEUED"
+  | "RUNNING"
+  | "PREPARED"
+  | "UNKNOWN"
+  | "REQUIRES_REVIEW"
+  | "FAILED"
+  | "PUBLISHED"
+  | "WITHDRAWN";
+type Job = { task: string; state: State; photoCleanup?: "PENDING" | "COMPLETE" };
+const labels: Record<State, string> = {
+  QUEUED: "準備待ちです。",
+  RUNNING: "準備中です。",
+  PREPARED: "工具の準備ができました。自動制作はまだ有効になっていません。",
+  UNKNOWN: "処理結果を確認できません。再送せず管理者にお知らせください。",
+  REQUIRES_REVIEW: "候補は確認待ちです。まだ街には公開されていません。",
+  FAILED: "制作を完了できませんでした。",
+  PUBLISHED: "キャラクターを街に表示しています。",
+  WITHDRAWN: "公開を取り消しました。",
+};
+
+async function request(path: string, init?: RequestInit) {
+  const response = await fetch(`/api/visitor/${path}`, {
+    ...init,
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const body = await response.json();
+  if (!response.ok)
+    throw new Error(
+      body?.error?.message ?? "操作できませんでした。しばらくしてからお試しください。",
+    );
+  return body;
+}
+
+export function SpinePhotoPanel({ codeFree }: { codeFree: boolean }) {
+  const [session, setSession] = useState<"checking" | "required" | "ready">("checking");
+  const [invitation, setInvitation] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [upload, setUpload] = useState(false);
+  const [publication, setPublication] = useState(false);
+  const [job, setJob] = useState<Job | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const refresh = useCallback(async () => {
+    try {
+      const result = await request("spine/jobs/current");
+      setJob(result.job);
+      setSession("ready");
+    } catch {
+      setSession("required");
+    }
+  }, []);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+  useEffect(() => {
+    if (!job || !["QUEUED", "RUNNING"].includes(job.state)) return;
+    const timer = setInterval(() => {
+      void refresh();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [job, refresh]);
+
+  async function startSession() {
+    setBusy(true);
+    setError("");
+    try {
+      await request("session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(codeFree ? {} : { invitation: invitation.trim() }),
+      });
+      await refresh();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "参加を開始できませんでした。");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function submit() {
+    if (!photo || !processing || !upload || !publication) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await request("spine/jobs", {
+        method: "POST",
+        headers: {
+          "Content-Type": photo.type,
+          "x-spine-processing-consent": "1",
+          "x-spine-model-upload-consent": "1",
+          "x-spine-publication-consent": "1",
+        },
+        body: photo,
+      });
+      setJob({ task: result.task, state: result.state });
+      setPhoto(null);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "写真を送信できませんでした。");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function withdraw() {
+    if (!job) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await request(`spine/jobs/${encodeURIComponent(job.task)}/withdraw`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      setJob({ ...job, state: "WITHDRAWN", photoCleanup: result.photoCleanup });
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "取り消せませんでした。");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main className="participation flow">
+      <h1>写真からキャラクターを作る</h1>
+      <p className="notice">
+        本機限定のテストです。現在は写真の受付と工具の準備まで対応しており、自動制作・街への公開はまだ動作しません。
+      </p>
+      <p>
+        写真をもとに髪型や服装をデザインします。制作を有効にした場合、写真は外部の AI
+        サービスに送信されます。完成したキャラクターは展示画面に公開されます。
+      </p>
+      <p>
+        参加情報は最大24時間です。公開の取り消しを求めることができます。処理中や外部サービスに送信済みのデータは、取り消し直後に消去できない場合があります。
+      </p>
+      {error && <p role="alert">{error}</p>}
+      {session === "checking" && <p role="status">参加情報を確認しています。</p>}
+      {session === "required" && (
+        <section className="flow-panel">
+          {!codeFree && (
+            <label className="field">
+              参加用コード{" "}
+              <input
+                value={invitation}
+                onChange={(event) => setInvitation(event.target.value)}
+                autoComplete="off"
+              />
+            </label>
+          )}
+          <button
+            type="button"
+            disabled={busy || (!codeFree && !invitation.trim())}
+            onClick={() => void startSession()}
+          >
+            参加を開始
+          </button>
+        </section>
+      )}
+      {session === "ready" &&
+        (!job || (job.state === "WITHDRAWN" && job.photoCleanup === "COMPLETE")) && (
+          <section className="flow-panel">
+            <label className="field">
+              写真（JPEG・PNG・WebP、8 MB以内）{" "}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={processing}
+                onChange={(event) => setProcessing(event.target.checked)}
+              />
+              写真をキャラクター制作に使用することに同意します。
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={upload}
+                onChange={(event) => setUpload(event.target.checked)}
+              />
+              写真を外部 AI サービスに送信することに同意します。
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={publication}
+                onChange={(event) => setPublication(event.target.checked)}
+              />
+              完成したキャラクターを自動的に街に公開することに同意します。
+            </label>
+            <button
+              type="button"
+              disabled={
+                busy ||
+                !photo ||
+                photo.size > 8 * 1024 * 1024 ||
+                !processing ||
+                !upload ||
+                !publication
+              }
+              onClick={() => void submit()}
+            >
+              写真を送信
+            </button>
+          </section>
+        )}
+      {job && (
+        <section className="flow-panel" aria-live="polite">
+          <h2>制作状況</h2>
+          <p>{labels[job.state]}</p>
+          {job.state === "WITHDRAWN" && (
+            <p>
+              {job.photoCleanup === "PENDING"
+                ? "関連ファイルの消去は確認待ちです。"
+                : "本機に保存した写真の消去を確認しました。"}
+            </p>
+          )}
+          {job.state !== "WITHDRAWN" && (
+            <button type="button" disabled={busy} onClick={() => void withdraw()}>
+              公開を取り消し、写真の消去を依頼
+            </button>
+          )}
+          {job.state === "WITHDRAWN" && job.photoCleanup === "PENDING" && (
+            <button type="button" disabled={busy} onClick={() => void withdraw()}>
+              消去を再確認
+            </button>
+          )}
+        </section>
+      )}
+      <p>
+        <Link href="/join">参加ページへ戻る</Link>
+      </p>
+    </main>
+  );
+}

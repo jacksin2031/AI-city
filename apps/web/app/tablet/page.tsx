@@ -150,7 +150,12 @@ export default function Tablet() {
               focus={focus}
             />
             <p className="tablet-disclaimer">
-              {control.displayMode === "DEMO" ? "架空の住民" : "仮のイラスト"}・会話と交通は見本
+              {control.displayMode === "DEMO"
+                ? "架空の住民"
+                : state.snapshot.mode === "LOCAL_PRIVATE_TEST"
+                  ? "キャラクターは本機テスト"
+                  : "仮のイラスト"}
+              ・会話と交通は見本
               {!control.motionEnabled && "・動きは停止中"}
             </p>
           </>

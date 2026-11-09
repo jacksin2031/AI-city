@@ -9,7 +9,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: "http://127.0.0.1:3001",
     locale: "ja-JP",
     trace: "retain-on-failure",
   },
@@ -21,9 +21,9 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm build && pnpm start",
-    url: "http://127.0.0.1:3000/api/health",
+    url: "http://127.0.0.1:3001/api/health",
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
-    env: { NEXT_TELEMETRY_DISABLED: "1", AI_CITY_ENABLE_LOCAL_MOCK: "1" },
+    env: { PORT: "3001", NEXT_TELEMETRY_DISABLED: "1", AI_CITY_ENABLE_LOCAL_MOCK: "1" },
   },
 });
