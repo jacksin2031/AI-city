@@ -30,15 +30,15 @@
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.4",
+    "@biomejs/biome": "2.6.6",
     "@firebase/rules-unit-testing": "6.0.0",
     "@google-cloud/firestore": "9.4.0",
-    "@playwright/test": "1.64.1",
+    "@playwright/test": "1.65.0",
     "@types/node": "24.19.2",
-    "firebase": "13.1.0",
-    "firebase-tools": "15.34.2",
-    "tsx": "4.20.5",
+    "firebase": "13.2.0",
+    "firebase-tools": "15.35.0",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   }
 }
